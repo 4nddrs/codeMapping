@@ -4,7 +4,7 @@ A browsable archive of traced code-mapping sessions for robotics and machine-lea
 
 The repository is intentionally static: there is no build step, package manager, or application server requirement. Open the menu locally and follow the links to inspect a session.
 
-## Quick Start
+## Quick Start.
 
 ### Open directly in a browser
 
