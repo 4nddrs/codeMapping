@@ -1,0 +1,895 @@
+<title>Code Mapping Sessions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    /* neutrals biased toward the call-tree slate, not a stock grey */
+    --ground: #eaeef4;
+    --surface: #ffffff;
+    --surface-2: #f3f6fa;
+    --ink: #0e2134;
+    --ink-2: #33475d;
+    --muted: #5c718a;
+    --faint: #8496ab;
+    --rule: #cdd8e5;
+    --rule-2: #dde5ee;
+
+    --accent: #0f766e;
+    --accent-ink: #0b5f59;
+    --accent-soft: #e2f6f3;
+
+    --ok: #0c7350;
+    --ok-soft: #ddf1e8;
+    --ok-line: #9ad6bd;
+
+    /* family stripes — each lifted from that session's own page palette */
+    --fam-gap: #0f766e;
+    --fam-cap: #7c3aed;
+    --fam-rldx: #b45309;
+    --fam-data: #2554c7;
+
+    --shadow: 0 1px 2px rgba(14, 33, 52, .06), 0 10px 26px -16px rgba(14, 33, 52, .38);
+    --shadow-lift: 0 1px 2px rgba(14, 33, 52, .08), 0 16px 34px -18px rgba(14, 33, 52, .45);
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #070e16;
+      --surface: #0d1a28;
+      --surface-2: #12212f;
+      --ink: #dce7f3;
+      --ink-2: #b3c5d7;
+      --muted: #8199b1;
+      --faint: #5f7590;
+      --rule: #1e3245;
+      --rule-2: #17293a;
+
+      --accent: #4fd1c5;
+      --accent-ink: #7ff0e2;
+      --accent-soft: rgba(79, 209, 197, .13);
+
+      --ok: #3ecf8e;
+      --ok-soft: rgba(62, 207, 142, .12);
+      --ok-line: #266b4a;
+
+      --fam-gap: #4fd1c5;
+      --fam-cap: #b794f6;
+      --fam-rldx: #e0a34a;
+      --fam-data: #8bb4ff;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 12px 28px -18px rgba(0, 0, 0, .8);
+      --shadow-lift: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 38px -18px rgba(0, 0, 0, .85);
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #070e16;
+    --surface: #0d1a28;
+    --surface-2: #12212f;
+    --ink: #dce7f3;
+    --ink-2: #b3c5d7;
+    --muted: #8199b1;
+    --faint: #5f7590;
+    --rule: #1e3245;
+    --rule-2: #17293a;
+
+    --accent: #4fd1c5;
+    --accent-ink: #7ff0e2;
+    --accent-soft: rgba(79, 209, 197, .13);
+
+    --ok: #3ecf8e;
+    --ok-soft: rgba(62, 207, 142, .12);
+    --ok-line: #266b4a;
+
+    --fam-gap: #4fd1c5;
+    --fam-cap: #b794f6;
+    --fam-rldx: #e0a34a;
+    --fam-data: #8bb4ff;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 12px 28px -18px rgba(0, 0, 0, .8);
+    --shadow-lift: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 38px -18px rgba(0, 0, 0, .85);
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px 72px;
+  }
+
+  /* ---------------- masthead ---------------- */
+
+  .mast { padding: 44px 0 0; }
+
+  .eyebrow {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+
+  .mast h1 {
+    margin: 0;
+    font-size: clamp(30px, 4.6vw, 42px);
+    font-weight: 600;
+    letter-spacing: -.022em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin: 14px 0 0;
+    max-width: 62ch;
+    font-size: 16px;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  /* aggregate strip — totals across every traced run in the shelf */
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 30px 0 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .tot {
+    flex: 1 1 150px;
+    padding: 14px 20px 15px;
+    border-left: 1px solid var(--rule-2);
+  }
+  .tot:first-child { border-left: 0; padding-left: 0; }
+  .tot b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .tot span {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--cond);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---------------- sections ---------------- */
+
+  .shelf { margin-top: 44px; }
+
+  .shelfhead {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .shelfhead h2 {
+    margin: 0;
+    font-family: var(--cond);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .shelfhead .n {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .shelfhead .note {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .runs { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+  /* a paired subgroup: two traces of one codebase — set --fam on the .pair to
+     colour its rail; it falls back to the RLDX amber for the original pair */
+  .pair {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 18px;
+    border-left: 2px solid var(--fam, var(--fam-rldx));
+  }
+  .pairhead {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--fam, var(--fam-rldx));
+    margin: 6px 0 -2px;
+  }
+  .pairhead em {
+    font-family: var(--sans);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 12.5px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+
+  /* ---------------- one run ---------------- */
+
+  .run {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 268px;
+    gap: 24px;
+    align-items: start;
+    padding: 18px 20px 18px 24px;
+    background: var(--surface);
+    border: 1px solid var(--rule-2);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: box-shadow .16s ease, border-color .16s ease, transform .16s ease;
+  }
+  .run::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--fam);
+  }
+  .run:hover {
+    border-color: var(--rule);
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-1px);
+  }
+  .run:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+  }
+  .run:hover .title .name { color: var(--fam); }
+  .title .name { transition: color .16s ease; }
+  .title .slug {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--faint);
+  }
+
+  .what {
+    margin: 7px 0 0;
+    max-width: 58ch;
+    font-size: 14px;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  .cmd {
+    display: block;
+    margin-top: 12px;
+    padding: 8px 11px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-2);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .cmd .flag { color: var(--ink-2); }
+
+  .local {
+    margin: 10px 0 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .local .sep { padding: 0 7px; opacity: .55; }
+
+  /* right column: state, then scale, then counts */
+  .metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    padding-top: 3px;
+  }
+
+  .verdict {
+    align-self: flex-start;
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--ok-soft);
+    border: 1px solid var(--ok-line);
+    color: var(--ok);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .cov { display: flex; flex-direction: column; gap: 6px; }
+  .covtop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .covtop b { color: var(--ink); font-weight: 500; }
+  .covlabel {
+    font-family: var(--cond);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .bar {
+    height: 5px;
+    border-radius: 999px;
+    background: var(--rule-2);
+    overflow: hidden;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    background: var(--fam);
+    border-radius: 999px;
+  }
+
+  .counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px 10px;
+    margin: 0;
+  }
+  .counts div { min-width: 0; }
+  .counts dt {
+    font-family: var(--cond);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .counts dd {
+    margin: 1px 0 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------------- footer ---------------- */
+
+  .foot {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .foot p { margin: 0; max-width: 60ch; }
+  .foot code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+
+  @media (max-width: 760px) {
+    .run { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .metrics { padding-top: 0; }
+    .shelfhead .note { flex-basis: 100%; margin-left: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="mast">
+    <p class="eyebrow">Code mapping</p>
+    <h1>Code Mapping Sessions</h1>
+    <p class="lede">
+      Every traced run we've mapped, in one place. Each session is a live call tree of one real
+      command &mdash; every function that ran, every line that executed, and the values its
+      variables held &mdash; captured from the actual process, not read off the source.
+    </p>
+
+    <div class="totals">
+      <div class="tot"><b>16</b><span>Sessions</span></div>
+      <div class="tot"><b>4,498</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,457,519</b><span>Calls recorded</span></div>
+      <div class="tot"><b>41,980</b><span>Lines executed</span></div>
+      <div class="tot"><b>107,651</b><span>Lines in scope</span></div>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="shelf">
+      <div class="shelfhead">
+        <h2>Execution call trees</h2>
+        <span class="n">15</span>
+        <span class="note">One command per session, traced end to end from its entry point.</span>
+      </div>
+
+      <div class="runs">
+        <div class="pair" style="--fam: var(--fam-gap)">
+          <p class="pairhead">VLM4VLA <em>Two traces of one codebase &mdash; line coverage (1 GPU, workers 0) and the earlier live-I/O multiprocess run.</em></p>
+
+        <a class="run" style="--fam: var(--fam-gap)"
+           href="projects/vlm4vla/index.html">
+          <div>
+            <h3 class="title"><span class="name">Line coverage</span> <span class="slug">training · 1 GPU · workers 0</span></h3>
+            <p class="what">Two optimizer steps under codetrace with coverage.py. DDP, num_workers=0. Teal/amber/pink are measured line hits. Stage jumps still work.</p>
+            <code class="cmd">python main.py docs/code_mapping/capture/config.short05_cov.json --exp_name cov05 --gpus 1 --num_nodes 1 --strategy ddp</code>
+            <p class="local">projects/vlm4vla/index.html<span class="sep">/</span>2.8 MB<span class="sep">/</span>entry <code>experiment</code> &middot; main.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 248.1s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>38.0%</b> &middot; 1,659/4,367</span></div>
+              <div class="bar"><i style="width: 38.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>161</dd></div>
+              <div><dt>Edges</dt><dd>197</dd></div>
+              <div><dt>Calls</dt><dd>3,519</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-gap)"
+           href="projects/vlm4vla/io.html">
+          <div>
+            <h3 class="title"><span class="name">Live I/O</span> <span class="slug">training · CALVIN · 2 GPUs</span></h3>
+            <p class="what">Two optimizer steps on two GPUs with dataset workers. Detailed live I/O; line coverage was not collected. Kept as the multiprocess evidence page.</p>
+            <code class="cmd">PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True VLM_MAPPING_OUT=&quot;$PWD/docs/code_mapping/runs/short_trial_05/trace&quot; PYTHONPATH=&quot;$PWD/docs/code_mapping/capture:$PWD&quot; bash scripts/run.sh docs/code_mapping/capture/config.short05.json</code>
+            <p class="local">projects/vlm4vla/io.html<span class="sep">/</span>8.1 MB<span class="sep">/</span>entry <code>run.sh · orchestration</code> &middot; scripts/run.sh</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · 2 steps · 2 GPUs</span>
+            <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span>Not collected · live calls + I/O</span></div></div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>98</dd></div>
+              <div><dt>Edges</dt><dd>518</dd></div>
+              <div><dt>Calls</dt><dd>9,967</dd></div>
+            </dl>
+          </div>
+        </a>
+        </div>
+
+        <a class="run" style="--fam: var(--fam-gap)"
+           href="projects/gap/index.html">
+          <div>
+            <h3 class="title"><span class="name">GAP</span> <span class="slug">graph-as-policy</span></h3>
+            <p class="what">
+              A LIBERO object-suite rollout driven by a typed, verified skill graph &mdash; 17 columns
+              of call depth from the <code>gap</code> CLI down into the sim connector.
+            </p>
+            <code class="cmd">gap run examples/libero_quickstart/graph <span class="flag">--sim</span> libero_object_all_variance/0</code>
+            <p class="local">projects/gap/index.html<span class="sep">/</span>9.9 MB<span class="sep">/</span>entry <code>main</code> &middot; gap/cli/__init__.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS &middot; reward 1.00</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>36.4%</b> &middot; 3,374/9,261</span></div>
+              <div class="bar"><i style="width: 36.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>332</dd></div>
+              <div><dt>Edges</dt><dd>513</dd></div>
+              <div><dt>Calls</dt><dd>17,630</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-cap)"
+           href="projects/cap/index.html">
+          <div>
+            <h3 class="title"><span class="name">CAP</span> <span class="slug">cap-policy &middot; real2sim</span></h3>
+            <p class="what">
+              Goal-conditioned pick evaluated on substitute objects: a VQ-BeT policy over a ResNet-50
+              encoder, 12 episodes with 3D goal conditioning. The heaviest inner loop in the shelf.
+            </p>
+            <code class="cmd">python test_sim.py <span class="flag">--model_path</span> checkpoints/pick.pt <span class="flag">--condition</span> 3d <span class="flag">--num_episodes</span> 12 <span class="flag">--seed</span> 0</code>
+            <p class="local">projects/cap/index.html<span class="sep">/</span>548 KB<span class="sep">/</span>entry <code>__main__</code> &middot; test_sim.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 &middot; 83.2s &middot; 9/12 picked</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.9%</b> &middot; 992/2,310</span></div>
+              <div class="bar"><i style="width: 42.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>88</dd></div>
+              <div><dt>Edges</dt><dd>111</dd></div>
+              <div><dt>Calls</dt><dd>1,006,921</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-gap)"
+           href="projects/umi/index.html">
+          <div>
+            <h3 class="title"><span class="name">UMI</span> <span class="slug">universal_manipulation_interface · training</span></h3>
+            <p class="what">Diffusion-policy training debug capture on cup_in_the_wild.zarr.zip: 2 epochs and 6 training steps, from configuration and dataset loading through optimization.</p>
+            <code class="cmd">python train.py --config-name=train_diffusion_unet_timm_umi_workspace task.dataset_path=cup_in_the_wild.zarr.zip training.debug=True dataloader.num_workers=0 dataloader.persistent_workers=False val_dataloader.num_workers=0 val_dataloader.persistent_workers=False logging.mode=offline</code>
+            <p class="local">projects/umi/index.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 733.4s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>45.0%</b> &middot; 1,104/2,453</span></div>
+              <div class="bar"><i style="width: 45.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>98</dd></div>
+              <div><dt>Edges</dt><dd>184</dd></div>
+              <div><dt>Calls</dt><dd>28,689</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-gap)"
+           href="projects/simtoolreal/index.html">
+          <div>
+            <h3 class="title"><span class="name">simtoolreal</span> <span class="slug">DexToolBench · IsaacGym</span></h3>
+            <p class="what">A real IsaacGym worker episode driven by scripted commands: 580 steps and all 37 goals completed, with the policy and simulation calls captured.</p>
+            <code class="cmd">python docs/code_mapping/scripts/capture_episode.py</code>
+            <p class="local">projects/simtoolreal/index.html<span class="sep">/</span>4.9 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/scripts/capture_episode.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · 580 steps · 37/37 goals</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>33.2%</b> &middot; 2,177/6,566</span></div>
+              <div class="bar"><i style="width: 33.2%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>167</dd></div>
+              <div><dt>Edges</dt><dd>361</dd></div>
+              <div><dt>Calls</dt><dd>63,063</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <div class="pair">
+          <p class="pairhead">RLDX-1 <em>Two traces of one codebase &mdash; the training path and the inference path.</em></p>
+
+          <a class="run" style="--fam: var(--fam-rldx)"
+             href="projects/rldx1/train.html">
+            <div>
+              <h3 class="title"><span class="name">Training</span> <span class="slug">launch_train.py &middot; rank 0</span></h3>
+              <p class="what">
+                A GR-1 plate-to-bowl finetune cut to two optimizer steps across 2 GPUs, so the whole
+                training path &mdash; config assembly, dataset specs, collator, trainer &mdash; stays visible.
+              </p>
+              <code class="cmd">python rldx/experiment/launch_train.py <span class="flag">--dataset-path</span> data/gr1_platetobowl_8ep <span class="flag">--base-model-path</span> RLWRLD/RLDX-1-PT <span class="flag">--num-gpus</span> 2 <span class="flag">--max-steps</span> 2</code>
+              <p class="local">projects/rldx1/train.html<span class="sep">/</span>8.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; launch_train.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 &middot; 1,149.4s</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>34.8%</b> &middot; 2,877/8,273</span></div>
+                <div class="bar"><i style="width: 34.8%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>262</dd></div>
+                <div><dt>Edges</dt><dd>433</dd></div>
+                <div><dt>Calls</dt><dd>160,232</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-rldx)"
+             href="projects/rldx1/inference.html">
+            <div>
+              <h3 class="title"><span class="name">Inference</span> <span class="slug">quickstart &middot; one get_action</span></h3>
+              <p class="what">
+                A single action chunk read out of the RoboCasa checkpoint through <code>RLDXPolicy</code>
+                &mdash; the notebook quickstart transcribed to a script so it has a traceable argv.
+              </p>
+              <code class="cmd">python docs/code_mapping/quickstart_infer.py</code>
+              <p class="local">projects/rldx1/inference.html<span class="sep">/</span>5.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; quickstart_infer.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 &middot; 42.3s</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>30.6%</b> &middot; 2,164/7,066</span></div>
+                <div class="bar"><i style="width: 30.6%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>199</dd></div>
+                <div><dt>Edges</dt><dd>301</dd></div>
+                <div><dt>Calls</dt><dd>2,491</dd></div>
+              </dl>
+            </div>
+          </a>
+        </div>
+
+        <div class="pair" style="--fam: var(--fam-cap)">
+          <p class="pairhead">perturb_flow <em>Two traces of one codebase &mdash; the training path and one evaluation episode.</em></p>
+
+          <a class="run" style="--fam: var(--fam-cap)"
+             href="projects/perturb_flow/train.html">
+            <div>
+              <h3 class="title"><span class="name">Training</span> <span class="slug">train_flow.py &middot; libero_spatial</span></h3>
+              <p class="what">
+                Two epochs &times; two optimizer steps of the joint action + future-image flow-matching
+                policy (DINOv2-B unfrozen, 6-layer DiT) on stock 128px LIBERO-spatial &mdash; dataset load,
+                encoder, flow loss, checkpoint and image-sample dump, with the dataloader in-process so
+                <code>dataset.py</code> is traced.
+              </p>
+              <code class="cmd">python src/train_flow.py <span class="flag">--epochs</span> 2 <span class="flag">--steps_per_epoch</span> 2 <span class="flag">--num_workers</span> 0 <span class="flag">--prefix</span> codetrace</code>
+              <p class="local">projects/perturb_flow/train.html<span class="sep">/</span>978 KB<span class="sep">/</span>entry <code>__main__</code> &middot; src/train_flow.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 &middot; 61.4s</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>53.3%</b> &middot; 553/1,037</span></div>
+                <div class="bar"><i style="width: 53.3%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>43</dd></div>
+                <div><dt>Edges</dt><dd>42</dd></div>
+                <div><dt>Calls</dt><dd>699</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-cap)"
+             href="projects/perturb_flow/eval.html">
+            <div>
+              <h3 class="title"><span class="name">Evaluation</span> <span class="slug">eval_sr.py &middot; one episode</span></h3>
+              <p class="what">
+                One full 220-step LIBERO-spatial episode of task 0 at ta=4 with 10 Euler steps per
+                replan &mdash; 55 chunk predictions through <code>PolicyRunner</code>, the env loop and
+                action denormalization. The checkpoint is the 4-step training snapshot, so the episode
+                fails at the step cap.
+              </p>
+              <code class="cmd">python src/eval_sr.py <span class="flag">--ckpt</span> checkpoints/codetrace_ep2.pt <span class="flag">--tasks</span> 0 <span class="flag">--episodes_per_task</span> 1 <span class="flag">--ta</span> 4 <span class="flag">--seed</span> 456 <span class="flag">--out</span> out/scratch/results/eval_codetrace.json</code>
+              <p class="local">projects/perturb_flow/eval.html<span class="sep">/</span>768 KB<span class="sep">/</span>entry <code>__main__</code> &middot; src/eval_sr.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 &middot; 97.9s &middot; 0/1 &middot; 4-step ckpt</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.1%</b> &middot; 490/1,110</span></div>
+                <div class="bar"><i style="width: 44.1%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>31</dd></div>
+                <div><dt>Edges</dt><dd>30</dd></div>
+                <div><dt>Calls</dt><dd>13,273</dd></div>
+              </dl>
+            </div>
+          </a>
+        </div>
+
+        <div class="pair" style="--fam: var(--fam-gap)">
+          <p class="pairhead">VERA <em>Five traces of one codebase &mdash; the three serving paths (PushT, MimicGen, DROID) and both training stages.</em></p>
+
+          <a class="run" style="--fam: var(--fam-gap)"
+             href="projects/vera/pusht-serve.html">
+            <div>
+              <h3 class="title"><span class="name">PushT serve</span> <span class="slug">DFoT planner · DPT Jacobian IDM</span></h3>
+              <p class="what">One PushT episode through the real policy server and headless client in one process: the DFoT planner dreams future flow and the Jacobian IDM solves it into pusher actions — 4 replans over 8 env steps, then the live viewer is read like a browser would.</p>
+              <code class="cmd">python scripts/codetrace_pusht.py</code>
+              <p class="local">projects/vera/pusht-serve.html<span class="sep">/</span>4.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/codetrace_pusht.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 · 61.9s · max_reward 0.86</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>38.7%</b> &middot; 4,651/12,003</span></div>
+                <div class="bar"><i style="width: 38.7%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>562</dd></div>
+                <div><dt>Edges</dt><dd>593</dd></div>
+                <div><dt>Calls</dt><dd>37,980</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-gap)"
+             href="projects/vera/mimicgen-serve.html">
+            <div>
+              <h3 class="title"><span class="name">MimicGen serve</span> <span class="slug">WAN 1.3B · VGGT IDM · gated gripper</span></h3>
+              <p class="what">A Stack_D0 episode from the notebook&#x27;s demo_20 state: the WAN planner dreams both camera views, AllTracker tracks the dream, and the VGGT Jacobian IDM with the gated gripper turns it into end-effector actions — 3 replans over 24 of the notebook&#x27;s 700 steps.</p>
+              <code class="cmd">python scripts/codetrace_mimicgen.py</code>
+              <p class="local">projects/vera/mimicgen-serve.html<span class="sep">/</span>9.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/codetrace_mimicgen.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 · 206.8s · 3 replans · 24 steps</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.9%</b> &middot; 8,025/18,714</span></div>
+                <div class="bar"><i style="width: 42.9%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>817</dd></div>
+                <div><dt>Edges</dt><dd>1,075</dd></div>
+                <div><dt>Calls</dt><dd>24,415</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-gap)"
+             href="projects/vera/droid-serve.html">
+            <div>
+              <h3 class="title"><span class="name">DROID serve</span> <span class="slug">WAN 14B I2V · replay controller</span></h3>
+              <p class="what">The 14B DROID planner and VGGT-fusion IDM served to run_controller&#x27;s hardware-free replay backend on the bundled three-camera clips — 3 action chunks. UMT5-XXL runs on CPU so the stack fits a 48 GB card; the open-loop replay trips the documented collapse canary.</p>
+              <code class="cmd">python scripts/codetrace_droid.py</code>
+              <p class="local">projects/vera/droid-serve.html<span class="sep">/</span>7.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/codetrace_droid.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 · 273.7s · 3 chunks</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.5%</b> &middot; 7,395/17,419</span></div>
+                <div class="bar"><i style="width: 42.5%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>812</dd></div>
+                <div><dt>Edges</dt><dd>977</dd></div>
+                <div><dt>Calls</dt><dd>72,366</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-gap)"
+             href="projects/vera/train-idm.html">
+            <div>
+              <h3 class="title"><span class="name">IDM training</span> <span class="slug">stage 1 · DPT-VGGT fusion · pusht_packed</span></h3>
+              <p class="what">Two optimizer steps and one validation pass of the Jacobian IDM on the packed PushT set — from the Hydra entry point through the J·du ≈ flow loss and its least-squares inversion check, with the dataloader in-process.</p>
+              <code class="cmd">python -m vera.main --config-name=config_pusht_vggt_fusion_jacobian dataset.pusht_zarr_root=debug_run/data/pusht experiment.training.batch_size=2 experiment.validation.batch_size=2 experiment.training.data.persistent_workers=false experiment.validation.data.persistent_workers=false experiment.training.max_steps=2 experiment.validation.val_every_n_step=2 experiment.validation.num_sanity_val_steps=0 experiment.training.data.num_workers=0 experiment.validation.data.num_workers=0 wandb.mode=offline +skip_download=true hydra.run.dir=out/train_idm_pusht/hydra_run</code>
+              <p class="local">projects/vera/train-idm.html<span class="sep">/</span>7.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; vera/main.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 · 53.5s · 2 steps + val</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>36.9%</b> &middot; 3,410/9,248</span></div>
+                <div class="bar"><i style="width: 36.9%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>442</dd></div>
+                <div><dt>Edges</dt><dd>589</dd></div>
+                <div><dt>Calls</dt><dd>1,837</dd></div>
+              </dl>
+            </div>
+          </a>
+
+          <a class="run" style="--fam: var(--fam-gap)"
+             href="projects/vera/train-planner.html">
+            <div>
+              <h3 class="title"><span class="name">Planner training</span> <span class="slug">stage 2 · WAN 1.3B · PushT subset</span></h3>
+              <p class="what">Two optimizer steps and a validation pass of the action-free WAN video planner under diffusion-forcing noise on the PushT subset — the debug recipe (from scratch, no text encoder), so the stage-2 code path rather than its numbers.</p>
+              <code class="cmd">python -m vera.main --config-name=config_wan_combined_5env algorithm=wan_t2v algorithm.skip_text_encoder=true algorithm.model.ckpt_path=null algorithm.model.tuned_ckpt_path=null algorithm.vae.ckpt_path=null ~dataset.training.weight.allegro_sim ~dataset.training.weight.allegro_real ~dataset.training.weight.mimicgen ~dataset.training.weight.droid_flow ~dataset.validation.weight.allegro_sim ~dataset.validation.weight.allegro_real ~dataset.validation.weight.mimicgen ~dataset.validation.weight.droid_flow experiment.training.batch_size=1 experiment.training.checkpointing.save_last=false experiment.training.max_steps=2 experiment.validation.val_every_n_step=2 experiment.validation.num_sanity_val_steps=0 experiment.training.data.num_workers=0 experiment.validation.data.num_workers=0 wandb.mode=offline +skip_download=true hydra.run.dir=out/train_wan_pusht/hydra_run</code>
+              <p class="local">projects/vera/train-planner.html<span class="sep">/</span>4.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; vera/main.py</p>
+            </div>
+            <div class="metrics">
+              <span class="verdict">exit 0 · 68.0s · 2 steps + val</span>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>39.7%</b> &middot; 3,109/7,824</span></div>
+                <div class="bar"><i style="width: 39.7%"></i></div>
+              </div>
+              <dl class="counts">
+                <div><dt>Functions</dt><dd>386</dd></div>
+                <div><dt>Edges</dt><dd>538</dd></div>
+                <div><dt>Calls</dt><dd>14,437</dd></div>
+              </dl>
+            </div>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="shelf">
+      <div class="shelfhead">
+        <h2>Dataset views</h2>
+        <span class="n">1</span>
+        <span class="note">What the model is asked, rather than what the code did.</span>
+      </div>
+
+      <div class="runs">
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robo2vlm/index.html">
+          <div>
+            <h3 class="title"><span class="name">Robo2VLM</span> <span class="slug">keplerccc/Robo2VLM-1</span></h3>
+            <p class="what">
+              A probe inspector for the test split: each sample shows the robot frame, the question put
+              to the VLM, its multiple choices and the ground truth &mdash; browsable by probe family,
+              task or source dataset.
+            </p>
+            <code class="cmd">split=test &middot; 500 samples spread across 6,676 &middot; 13 probe types</code>
+            <p class="local">projects/robo2vlm/index.html<span class="sep">/</span>14 MB<span class="sep">/</span>frames embedded, no network fetch</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">500 probes loaded</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Split sampled</span><span><b>7.5%</b> &middot; 500/6,676</span></div>
+              <div class="bar"><i style="width: 7.5%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Spatial</dt><dd>6</dd></div>
+              <div><dt>Interaction</dt><dd>7</dd></div>
+              <div><dt>Probe types</dt><dd>13</dd></div>
+            </dl>
+          </div>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <p>
+      Every page here is self-contained: source, coverage and captured values ship inside the HTML,
+      so a session opens with no server and no network fetch.
+    </p>
+    <p>
+      The full source of all fourteen lives beside this menu under <code>projects/</code>, one folder per
+      project. Adding a session means dropping its HTML in a folder and copying a row.
+    </p>
+  </footer>
+
+</div>
