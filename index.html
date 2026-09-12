@@ -457,11 +457,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>17</b><span>Sessions</span></div>
-      <div class="tot"><b>4,596</b><span>Functions traced</span></div>
-      <div class="tot"><b>1,463,487</b><span>Calls recorded</span></div>
-      <div class="tot"><b>43,209</b><span>Lines executed</span></div>
-      <div class="tot"><b>110,661</b><span>Lines in scope</span></div>
+      <div class="tot"><b>21</b><span>Sessions</span></div>
+      <div class="tot"><b>4,780</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,480,473</b><span>Calls recorded</span></div>
+      <div class="tot"><b>45,983</b><span>Lines executed</span></div>
+      <div class="tot"><b>116,455</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -470,15 +470,18 @@
     <section class="shelf">
       <div class="shelfhead">
         <h2>Execution call trees</h2>
-        <span class="n">16</span>
+        <span class="n">20</span>
         <span class="note">One command per session, traced end to end from its entry point.</span>
       </div>
 
       <div class="runs">
+        <div class="pair" style="--fam: var(--fam-data)">
+          <p class="pairhead">RoboInter <em>Five traces of one codebase &mdash; the training run, the checkpoint it produced being run and scored, the annotation service upstream of the data, and the dataloader. The last two run on invented input; their cards say so.</em></p>
+
         <a class="run" style="--fam: var(--fam-data)"
            href="projects/robointer/index.html">
           <div>
-            <h3 class="title"><span class="name">RoboInter</span> <span class="slug">training · Qwen2.5-VL-3B · resume 4 to 8</span></h3>
+            <h3 class="title"><span class="name">Training</span> <span class="slug">training · Qwen2.5-VL-3B · resume 4 to 8</span></h3>
             <p class="what">Four new ZeRO-3 updates after restoring checkpoint-4: packed VQA microbatches, frozen vision, trained LLM, checkpoint-8.</p>
             <code class="cmd">bash docs/code_mapping/scripts/run_capture.sh</code>
             <p class="local">projects/robointer/index.html<span class="sep">/</span>983 KB<span class="sep">/</span>entry <code>__main__</code> &middot; qwenvl/train/train_qwen.py</p>
@@ -496,6 +499,95 @@
             </dl>
           </div>
         </a>
+
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robointer/eval.html">
+          <div>
+            <h3 class="title"><span class="name">Inference</span> <span class="slug">eval · checkpoint-8 · 64 VQA records</span></h3>
+            <p class="what">The checkpoint the training capture produced, actually run: chat-template prompt assembly, vision preprocessing and autoregressive generate() with a KV cache, over 64 real RoboInter-VQA validation records.</p>
+            <code class="cmd">bash docs/code_mapping/scripts/run_capture_eval.sh</code>
+            <p class="local">projects/robointer/eval.html<span class="sep">/</span>1.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; eval/benchmark/eval_manip/evaluation_intermediate.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 30.4s · 64 records · 16 batches</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>38.8%</b> &middot; 824/2,121</span></div>
+              <div class="bar"><i style="width: 38.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>69</dd></div>
+              <div><dt>Edges</dt><dd>68</dd></div>
+              <div><dt>Calls</dt><dd>15,386</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robointer/score.html">
+          <div>
+            <h3 class="title"><span class="name">Scoring</span> <span class="slug">metrics · IoU / DTW / accuracy</span></h3>
+            <p class="what">Those predictions scored by the repo&#x27;s own metric stack — bbox IoU, trajectory DTW and choice accuracy, all three families, 64 records each. Tracing it showed the printed accuracy is an artefact of an untrimmed decode.</p>
+            <code class="cmd">bash docs/code_mapping/scripts/run_capture_score.sh</code>
+            <p class="local">projects/robointer/score.html<span class="sep">/</span>482 KB<span class="sep">/</span>entry <code>__main__</code> &middot; eval/benchmark/eval_llava_format/manip/generation.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 0.6s · 3 metric families · 192 evals</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.9%</b> &middot; 272/568</span></div>
+              <div class="bar"><i style="width: 47.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>19</dd></div>
+              <div><dt>Edges</dt><dd>18</dd></div>
+              <div><dt>Calls</dt><dd>1,240</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robointer/annotate.html">
+          <div>
+            <h3 class="title"><span class="name">Annotation Service</span> <span class="slug">annotation · partly invented input</span></h3>
+            <p class="what">PARTLY INVENTED INPUT — config.yaml, the demo .mp4 and its prior-annotation .npz are absent from the repo and were synthesised. The upstream half of the project: the real pool-generator CLI, then all nine Flask routes driven over loopback by the repo&#x27;s own client transport.</p>
+            <code class="cmd">bash docs/code_mapping/scripts/run_capture_annotation.sh</code>
+            <p class="local">projects/robointer/annotate.html<span class="sep">/</span>693 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/scripts/drive_annotation_service.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 2.0s · 9 routes · adapter in scope</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>54.8%</b> &middot; 1,202/2,193</span></div>
+              <div class="bar"><i style="width: 54.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>65</dd></div>
+              <div><dt>Edges</dt><dd>94</dd></div>
+              <div><dt>Calls</dt><dd>154</dd></div>
+            </dl>
+          </div>
+        </a>
+
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robointer/dataloader.html">
+          <div>
+            <h3 class="title"><span class="name">Dataloader</span> <span class="slug">dataloader · synthetic fixture</span></h3>
+            <p class="what">SYNTHETIC INPUT — no RoboInter LeRobot dataset exists on this machine. create_dataloader&#x27;s construction-and-filtering subtree over an invented 14-episode v2.1 fixture: metadata and range_nop load, index build, the per-episode Q_annotation gate and the parquet reads behind it.</p>
+            <code class="cmd">bash docs/code_mapping/scripts/run_capture_dataloader.sh</code>
+            <p class="local">projects/robointer/dataloader.html<span class="sep">/</span>659 KB<span class="sep">/</span>entry <code>create_dataloader</code> &middot; lerobot_dataloader/dataset.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 6.1s · construction subtree · 69 dropped</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>52.2%</b> &middot; 476/912</span></div>
+              <div class="bar"><i style="width: 52.2%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>31</dd></div>
+              <div><dt>Edges</dt><dd>33</dd></div>
+              <div><dt>Calls</dt><dd>206</dd></div>
+            </dl>
+          </div>
+        </a>
+        </div>
         <div class="pair" style="--fam: var(--fam-gap)">
           <p class="pairhead">VLM4VLA <em>Two traces of one codebase &mdash; line coverage (1 GPU, workers 0) and the earlier live-I/O multiprocess run.</em></p>
 
