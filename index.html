@@ -457,11 +457,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>16</b><span>Sessions</span></div>
-      <div class="tot"><b>4,498</b><span>Functions traced</span></div>
-      <div class="tot"><b>1,457,519</b><span>Calls recorded</span></div>
-      <div class="tot"><b>41,980</b><span>Lines executed</span></div>
-      <div class="tot"><b>107,651</b><span>Lines in scope</span></div>
+      <div class="tot"><b>17</b><span>Sessions</span></div>
+      <div class="tot"><b>4,596</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,463,487</b><span>Calls recorded</span></div>
+      <div class="tot"><b>43,209</b><span>Lines executed</span></div>
+      <div class="tot"><b>110,661</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -470,11 +470,32 @@
     <section class="shelf">
       <div class="shelfhead">
         <h2>Execution call trees</h2>
-        <span class="n">15</span>
+        <span class="n">16</span>
         <span class="note">One command per session, traced end to end from its entry point.</span>
       </div>
 
       <div class="runs">
+        <a class="run" style="--fam: var(--fam-data)"
+           href="projects/robointer/index.html">
+          <div>
+            <h3 class="title"><span class="name">RoboInter</span> <span class="slug">training · Qwen2.5-VL-3B · resume 4 to 8</span></h3>
+            <p class="what">Four new ZeRO-3 updates after restoring checkpoint-4: packed VQA microbatches, frozen vision, trained LLM, checkpoint-8.</p>
+            <code class="cmd">bash docs/code_mapping/scripts/run_capture.sh</code>
+            <p class="local">projects/robointer/index.html<span class="sep">/</span>983 KB<span class="sep">/</span>entry <code>__main__</code> &middot; qwenvl/train/train_qwen.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 519.0s · steps 5–8 · 8 forwards</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>40.8%</b> &middot; 1,229/3,010</span></div>
+              <div class="bar"><i style="width: 40.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>98</dd></div>
+              <div><dt>Edges</dt><dd>97</dd></div>
+              <div><dt>Calls</dt><dd>5,968</dd></div>
+            </dl>
+          </div>
+        </a>
         <div class="pair" style="--fam: var(--fam-gap)">
           <p class="pairhead">VLM4VLA <em>Two traces of one codebase &mdash; line coverage (1 GPU, workers 0) and the earlier live-I/O multiprocess run.</em></p>
 
