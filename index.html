@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Code Mapping Sessions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,6 +218,57 @@
     font-size: 13px;
     color: var(--muted);
   }
+
+  .repo-shelf {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--surface);
+    scroll-margin-top: 20px;
+  }
+  .repo-summary {
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 68px;
+    margin: 0;
+    padding: 18px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .repo-summary::-webkit-details-marker { display: none; }
+  .repo-summary:hover { background: var(--surface-2); }
+  .repo-summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .repo-summary h2 { font-size: 16px; letter-spacing: .04em; }
+  .repo-summary .n { color: var(--muted); }
+  .repo-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    color: var(--accent-ink);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .repo-chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+  }
+  .repo-shelf .when-open { display: none; }
+  .repo-shelf[open] .when-closed { display: none; }
+  .repo-shelf[open] .when-open { display: inline; }
+  .repo-shelf[open] .repo-chevron { transform: rotate(225deg) translate(-2px, -1px); }
+  .repo-shelf[open] > .repo-summary {
+    border-bottom: 1px solid var(--rule-2);
+    border-radius: 10px 10px 0 0;
+  }
+  .repo-content { padding: 0 18px 18px; }
+  .repo-note { margin: 16px 0 0; font-size: 13px; color: var(--muted); }
 
   .runs { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 
@@ -467,8 +520,10 @@
 
   <main>
 <!-- PATCH_POLICY_SUITE_BEGIN -->
-<section class="shelf" id="patch-policy">
-<div class="shelfhead"><h2>Patch Policy · execution paths</h2><span class="n">27</span><span class="note">Training, evaluation, encoders, simulator internals, and data utilities. Each card states its real execution scope and outcome.</span></div>
+<details class="shelf repo-shelf" id="patch-policy">
+<summary class="shelfhead repo-summary"><h2>Patch Policy</h2><span class="n">27 flows</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Training, evaluation, encoders, simulator internals, and data utilities. Each card states its real execution scope and outcome.</p>
 <div class="runs">
 <a class="run" style="--fam: var(--fam-cap)"
            href="projects/patch_policy/index.html">
@@ -1038,7 +1093,8 @@
           </div>
         </a>
 </div>
-</section>
+</div>
+</details>
 <!-- PATCH_POLICY_SUITE_END -->
 
 

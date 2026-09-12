@@ -64,7 +64,8 @@ python code_flow_v2/code-mapping/codetrace/menu_card.py \
     --what "Two optimizer steps of the joint action+future-image flow policy, from dataset load to checkpoint." \
     --fam gap --copy
 # 3. paste the printed <a class="run"> block into index.html (inside the
-#    "Execution call trees" shelf), replace the totals strip with the printed
+#    repository group, or "Execution call trees" for an ungrouped session),
+#    replace the totals strip with the printed
 #    numbers, bump the shelf's <span class="n">, add the printed row to README.md
 # 4. open http://localhost:8766/ and click the new card; verify the page and UI
 # 5. complete the authorized origin/main commit/push, then verify deployment below
@@ -129,7 +130,9 @@ for distinct symbols. Report distinct-function counts separately when available.
 Run these checks on localhost before the push, then on the public site after
 deployment. Use a browser or browser automation against the actual served URLs.
 
-1. Open the menu and click the session's card. Check the resulting URL, page
+1. Open the menu; for a repository group, verify its summary expands and
+   collapses with both a click and the keyboard, then expand it and click the
+   session's card. Check the resulting URL, page
    title, entry point, recorded command, and outcome against the saved run.
 2. Check stage navigation against the curated important list. Search for a
    representative function and navigate to its card. Repeated call sites may
@@ -150,8 +153,16 @@ record that limitation rather than claiming the UI was verified.
 
 ## Rules
 
-- One card per traced command. Two traces of one codebase go in one folder as
-  two pages, grouped in a `<div class="pair">` (see the RLDX-1 block).
+- One card per traced command. Keep a repository's pages in one project folder.
+  Group large collections in one closed-by-default
+  `<details class="shelf repo-shelf" id="<slug>">`, with the repository title
+  and flow count in `<summary class="shelfhead repo-summary">` and its cards
+  in `.repo-content > .runs`.
+  Reuse the menu's summary styling and keep its expand/collapse control visible.
+  A two-page pair may retain `<div class="pair">` (see the RLDX-1 block).
+  Preserve existing card URLs and the repository hash anchor; verify a hash
+  link still reaches the visible repository summary. Publication scripts must
+  preserve this grouping when replacing cards, counts, or generated sections.
 - Do not edit a page after copying it, except the `<title>`. If the trace
   presentation changes, rebuild from the saved trace and re-copy. If a new run
   changes the evidence, re-copy its page and update the card's numbers.
