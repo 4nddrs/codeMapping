@@ -82,3 +82,38 @@ a verified localhost:8766 menu entry, and the authorized site publication. Exist
 traces are reused for rendering. Explicit data-only or local-only requests take precedence.
 See [publishing and workflow synchronization](code_flow_v2/PUBLISHING.md) for the
 working-pack path and the local, pushed, and deployed checks.
+
+<!-- PATCH_POLICY_RUNS_BEGIN -->
+## Patch Policy execution paths
+
+[Open the grouped flows](https://roaring-kringle-be46b2.netlify.app/#patch-policy). The original PushT VQ-BeT baseline remains at its existing URL. These are bounded real executions; failed or blocked configurations are labeled.
+
+| Path | Kind | Recorded outcome | Navigator |
+| --- | --- | --- | --- |
+| PushT Diffusion | training | SUCCESS · exit 0 · 221.0s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
+| Blockpush VQ-BeT | training | SUCCESS · exit 0 · 104.1s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_vq.html) |
+| Blockpush Diffusion | training | SUCCESS · exit 0 · 817.2s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_diffusion.html) |
+| Cube VQ-BeT | training | SUCCESS · exit 0 · 85.5s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0 | [Flow](projects/patch_policy/cube_vq.html) |
+| Cube Diffusion | training | SUCCESS · exit 0 · 319.3s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0 | [Flow](projects/patch_policy/cube_diffusion.html) |
+| Libero Goal VQ-BeT | training | SUCCESS · exit 0 · 96.3s · 2 observed updates · 300 parent simulator steps · reward 0 · best evaluation reward 0 | [Flow](projects/patch_policy/libero_goal_vq.html) |
+| Libero Goal Diffusion | training | SUCCESS · exit 0 · 336.7s · 2 observed updates · 300 parent simulator steps · reward 0 · best evaluation reward 0 | [Flow](projects/patch_policy/libero_goal_diffusion.html) |
+| Online Encoding | training | SUCCESS · exit 0 · 84.8s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_online.html) |
+| Checkpoint Evaluation | training | SUCCESS · exit 0 · 79.9s · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_checkpoint_eval.html) |
+| Snapshot Resume | training | SUCCESS · exit 0 · 86.5s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_resume.html) |
+| Diffusion Resume | training | SUCCESS · exit 0 · 406.2s · 2 observed updates · 604 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion_resume.html) |
+| Model Resources | resources | SUCCESS · exit 0 · 67.3s | [Flow](projects/patch_policy/resources_vq.html) |
+| DINOv2 Encoders | encoder | SUCCESS · exit 0 · 47.6s | [Flow](projects/patch_policy/encoders_dino_contexts.html) |
+| ResNet-18 Encoders | encoder | SUCCESS · exit 0 · 45.5s | [Flow](projects/patch_policy/encoders_resnet.html) |
+| WebSSL Encoders | encoder | SUCCESS · exit 0 · 92.1s | [Flow](projects/patch_policy/encoders_webssl_contexts.html) |
+| SigLIP2 Encoders | encoder | SUCCESS · exit 0 · 119.8s | [Flow](projects/patch_policy/encoders_siglip2.html) |
+| V-JEPA 2 Encoders | encoder | SUCCESS · exit 0 · 108.2s | [Flow](projects/patch_policy/encoders_vjepa2.html) |
+| DINOv3 Encoders | encoder | FAILED · exit 1 · 50.0s · OSError('You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/facebook/dinov3-vits16plus-pretrain-lvd1689m.\n403 Cli | [Flow](projects/patch_policy/encoders_dinov3.html) |
+| DynaMo checkpoint configuration Encoders | encoder | FAILED · exit 1 · 43.1s | [Flow](projects/patch_policy/encoders_dynamo.html) |
+| PushT Simulator | simulator | SUCCESS · exit 0 · 23.3s | [Flow](projects/patch_policy/pusht_simulator_v2.html) |
+| Block Push Simulator | simulator | SUCCESS · exit 0 · 26.5s | [Flow](projects/patch_policy/blockpush_simulator_v2.html) |
+| Cube Simulator | simulator | SUCCESS · exit 0 · 11.5s | [Flow](projects/patch_policy/cube_simulator_v2.html) |
+| LIBERO Ten Task Simulators | simulator | SUCCESS · exit 0 · 81.7s | [Flow](projects/patch_policy/libero_simulator_v2.html) |
+| Cube Episode Video Export | utility | SUCCESS · exit 0 · 8.1s | [Flow](projects/patch_policy/cube_video_export.html) |
+| Cube Plan Oracle Collection | utility | SUCCESS · exit 0 · 20.0s | [Flow](projects/patch_policy/cube_generate_play.html) |
+| Cube Markov Oracle Collection | utility | SUCCESS · exit 0 · 15.5s | [Flow](projects/patch_policy/cube_generate_noisy.html) |
+<!-- PATCH_POLICY_RUNS_END -->

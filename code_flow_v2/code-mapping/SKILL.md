@@ -20,7 +20,9 @@ Follow [OBJECTIVE.md](../OBJECTIVE.md). Deliver **data + documentation + a viewa
 
 1. **Evidence over narrative.** Numbers and call order come from a real trial. Never invent I/O.
 2. **Phases in order.** Do not write the final mapping document before phases 1–5 are closed (or explicitly waived with reason).
-3. **One command.** Do not expand scope mid-flight without updating the brief.
+3. **One command per trace.** Do not expand a trace's scope without updating its
+   brief. When the user requests all important commands in a repository, use
+   the [command survey](reference/command-survey.md) to plan multiple traces.
 4. **Curate.** A raw call graph is input; the critical-path list is the product.
 5. **Honest gaps.** Cache hits, RPC, skipped perception, missing symbols — document them.
 6. **No secrets.** Strip API keys, tokens, and `.env` contents from all artifacts.

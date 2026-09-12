@@ -457,28 +457,23 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>23</b><span>Sessions</span></div>
-      <div class="tot"><b>5,153</b><span>Functions traced</span></div>
-      <div class="tot"><b>1,539,471</b><span>Calls recorded</span></div>
-      <div class="tot"><b>49,697</b><span>Lines executed</span></div>
-      <div class="tot"><b>125,598</b><span>Lines in scope</span></div>
+      <div class="tot"><b>49</b><span>Sessions</span></div>
+      <div class="tot"><b>9,055</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,923,984</b><span>Calls recorded</span></div>
+      <div class="tot"><b>83,117</b><span>Lines executed</span></div>
+      <div class="tot"><b>197,188</b><span>Lines in scope</span></div>
     </div>
   </header>
 
   <main>
-
-    <section class="shelf">
-      <div class="shelfhead">
-        <h2>Execution call trees</h2>
-        <span class="n">22</span>
-        <span class="note">One command per session, traced end to end from its entry point.</span>
-      </div>
-
-      <div class="runs">
-        <a class="run" style="--fam: var(--fam-cap)"
+<!-- PATCH_POLICY_SUITE_BEGIN -->
+<section class="shelf" id="patch-policy">
+<div class="shelfhead"><h2>Patch Policy · execution paths</h2><span class="n">27</span><span class="note">Training, evaluation, encoders, simulator internals, and data utilities. Each card states its real execution scope and outcome.</span></div>
+<div class="runs">
+<a class="run" style="--fam: var(--fam-cap)"
            href="projects/patch_policy/index.html">
           <div>
-            <h3 class="title"><span class="name">Patch Policy</span> <span class="slug">Push-T · training and rollout</span></h3>
+            <h3 class="title"><span class="name">PushT · VQ-BeT baseline</span> <span class="slug">Push-T · training and rollout</span></h3>
             <p class="what">One training epoch on two real demonstrations, 21 policy updates, and a 302-step simulator rollout. Follow dense DINOv2 patch features, block-causal attention, VQ fitting, action heads, and sampled live values; rollout coverage was 0.0.</p>
             <code class="cmd">bash docs/code_mapping/run_capture.sh</code>
             <p class="local">projects/patch_policy/index.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train_policy.py</p>
@@ -496,6 +491,568 @@
             </dl>
           </div>
         </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_diffusion.html">
+          <div>
+            <h3 class="title"><span class="name">PushT Diffusion</span> <span class="slug">training</span></h3>
+            <p class="what">Train and evaluate the alternate diffusion policy: action normalization, noise prediction loss, EMA update, 100-step DDPM sampling, and chunked simulator actions. Two real official PushT demonstrations; at most two training and two validation batches; one complete final simulator episode; unchanged 100 diffusion steps and eight-layer model.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_diffusion --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_diffusion.html<span class="sep">/</span>1.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 221.0s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.9%</b> &middot; 1,486/3,171</span></div>
+              <div class="bar"><i style="width: 46.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>164</dd></div>
+              <div><dt>Edges</dt><dd>193</dd></div>
+              <div><dt>Calls</dt><dd>18,255</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/blockpush_vq.html">
+          <div>
+            <h3 class="title"><span class="name">Blockpush VQ-BeT</span> <span class="slug">training</span></h3>
+            <p class="what">Run blockpush dataset loading, real frozen image encoding, vq optimization, checkpoints, and simulator rollout. First two complete official demonstrations; one epoch bounded to two training/two validation batches; one full simulator rollout. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py blockpush_vq --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/blockpush_vq.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 104.1s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.1%</b> &middot; 2,331/5,289</span></div>
+              <div class="bar"><i style="width: 44.1%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>264</dd></div>
+              <div><dt>Edges</dt><dd>313</dd></div>
+              <div><dt>Calls</dt><dd>18,530</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/blockpush_diffusion.html">
+          <div>
+            <h3 class="title"><span class="name">Blockpush Diffusion</span> <span class="slug">training</span></h3>
+            <p class="what">Run blockpush dataset loading, real frozen image encoding, diffusion optimization, checkpoints, and simulator rollout. First two complete official demonstrations; one epoch bounded to two training/two validation batches; one full simulator rollout. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py blockpush_diffusion --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/blockpush_diffusion.html<span class="sep">/</span>1.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 817.2s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.5%</b> &middot; 1,460/3,142</span></div>
+              <div class="bar"><i style="width: 46.5%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>157</dd></div>
+              <div><dt>Edges</dt><dd>182</dd></div>
+              <div><dt>Calls</dt><dd>67,925</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_vq.html">
+          <div>
+            <h3 class="title"><span class="name">Cube VQ-BeT</span> <span class="slug">training</span></h3>
+            <p class="what">Run cube dataset loading, real frozen image encoding, vq optimization, checkpoints, and simulator rollout. First two complete official demonstrations; one epoch bounded to two training/two validation batches; one full simulator rollout. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_vq --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_vq.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 85.5s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.4%</b> &middot; 2,343/5,275</span></div>
+              <div class="bar"><i style="width: 44.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>266</dd></div>
+              <div><dt>Edges</dt><dd>315</dd></div>
+              <div><dt>Calls</dt><dd>18,528</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_diffusion.html">
+          <div>
+            <h3 class="title"><span class="name">Cube Diffusion</span> <span class="slug">training</span></h3>
+            <p class="what">Run cube dataset loading, real frozen image encoding, diffusion optimization, checkpoints, and simulator rollout. First two complete official demonstrations; one epoch bounded to two training/two validation batches; one full simulator rollout. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_diffusion --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_diffusion.html<span class="sep">/</span>1.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 319.3s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.6%</b> &middot; 1,456/3,127</span></div>
+              <div class="bar"><i style="width: 46.6%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>159</dd></div>
+              <div><dt>Edges</dt><dd>184</dd></div>
+              <div><dt>Calls</dt><dd>26,324</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/libero_goal_vq.html">
+          <div>
+            <h3 class="title"><span class="name">Libero Goal VQ-BeT</span> <span class="slug">training</span></h3>
+            <p class="what">Run libero_goal dataset loading, real frozen image encoding, vq optimization, checkpoints, and simulator rollout. All 500 LIBERO demos remain indexed for the ten-task goal cache; images encoded online, at most two training/two validation batches; final rollout covers task0 only. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py libero_goal_vq --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/libero_goal_vq.html<span class="sep">/</span>1.9 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 96.3s · 2 observed updates · 300 parent simulator steps · reward 0 · best evaluation reward 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.4%</b> &middot; 2,359/5,309</span></div>
+              <div class="bar"><i style="width: 44.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>254</dd></div>
+              <div><dt>Edges</dt><dd>303</dd></div>
+              <div><dt>Calls</dt><dd>17,010</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/libero_goal_diffusion.html">
+          <div>
+            <h3 class="title"><span class="name">Libero Goal Diffusion</span> <span class="slug">training</span></h3>
+            <p class="what">Run libero_goal dataset loading, real frozen image encoding, diffusion optimization, checkpoints, and simulator rollout. All 500 LIBERO demos remain indexed for the ten-task goal cache; images encoded online, at most two training/two validation batches; final rollout covers task0 only. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py libero_goal_diffusion --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/libero_goal_diffusion.html<span class="sep">/</span>1.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 336.7s · 2 observed updates · 300 parent simulator steps · reward 0 · best evaluation reward 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.0%</b> &middot; 1,487/3,163</span></div>
+              <div class="bar"><i style="width: 47.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>148</dd></div>
+              <div><dt>Edges</dt><dd>173</dd></div>
+              <div><dt>Calls</dt><dd>27,770</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_online.html">
+          <div>
+            <h3 class="title"><span class="name">Online Encoding</span> <span class="slug">training</span></h3>
+            <p class="what">Exercise frozen image encoding inside validation/training batches instead of precomputing trajectory embeddings. Two official PushT demonstrations; two-batch bound where training applies; one full rollout. Existing original model/snapshot preserved; resume receives a copied snapshot.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_online --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_online.html<span class="sep">/</span>1.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 84.8s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.2%</b> &middot; 2,263/5,123</span></div>
+              <div class="bar"><i style="width: 44.2%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>254</dd></div>
+              <div><dt>Edges</dt><dd>307</dd></div>
+              <div><dt>Calls</dt><dd>18,652</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_checkpoint_eval.html">
+          <div>
+            <h3 class="title"><span class="name">Checkpoint Evaluation</span> <span class="slug">training</span></h3>
+            <p class="what">Load a full saved VQ-BeT model before optimizer setup and evaluate it without training. Two official PushT demonstrations; two-batch bound where training applies; one full rollout. Existing original model/snapshot preserved; resume receives a copied snapshot.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_checkpoint_eval --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_checkpoint_eval.html<span class="sep">/</span>1.0 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 79.9s · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.0%</b> &middot; 1,033/2,247</span></div>
+              <div class="bar"><i style="width: 46.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>114</dd></div>
+              <div><dt>Edges</dt><dd>143</dd></div>
+              <div><dt>Calls</dt><dd>17,931</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_resume.html">
+          <div>
+            <h3 class="title"><span class="name">Snapshot Resume</span> <span class="slug">training</span></h3>
+            <p class="what">Restore VQ codebook fit state, model parameters, AdamW moments/counters, epoch and metrics, then resume optimization. Two official PushT demonstrations; two-batch bound where training applies; one full rollout. Existing original model/snapshot preserved; resume receives a copied snapshot.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_resume --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_resume.html<span class="sep">/</span>1.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 86.5s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.9%</b> &middot; 1,700/3,785</span></div>
+              <div class="bar"><i style="width: 44.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>198</dd></div>
+              <div><dt>Edges</dt><dd>235</dd></div>
+              <div><dt>Calls</dt><dd>18,358</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_diffusion_resume.html">
+          <div>
+            <h3 class="title"><span class="name">Diffusion Resume</span> <span class="slug">training</span></h3>
+            <p class="what">Restore the diffusion model, action normalizer, EMA state and optimizer; exercise periodic evaluation and best-checkpoint saving while resuming epoch1. Copied epoch0 diffusion snapshot; one further epoch bounded to two training/two validation batches; one periodic plus one final full simulator evaluation. Source snapshot retained; 100-step sampling unchanged.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_diffusion_resume --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_diffusion_resume.html<span class="sep">/</span>1.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 406.2s · 2 observed updates · 604 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.0%</b> &middot; 1,699/3,613</span></div>
+              <div class="bar"><i style="width: 47.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>187</dd></div>
+              <div><dt>Edges</dt><dd>240</dd></div>
+              <div><dt>Calls</dt><dd>36,040</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/resources_vq.html">
+          <div>
+            <h3 class="title"><span class="name">Model Resources</span> <span class="slug">resources</span></h3>
+            <p class="what">Exercise the standalone parameter-counting and encoder-plus-policy inference measurement command using the saved VQ model. Official resources_test.py with config-path corrected to the existing configs directory; real simulator reset, loaded saved smoke model, 50 warmups and three measured calls in each timing loop. Instrumented timings are not performance benchmarks.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py resources_vq --jobs docs/code_mapping/suite/jobs.json --gpu 0</code>
+            <p class="local">projects/patch_policy/resources_vq.html<span class="sep">/</span>677 KB<span class="sep">/</span>entry <code>__main__</code> &middot; resources_test.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 67.3s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>51.4%</b> &middot; 817/1,591</span></div>
+              <div class="bar"><i style="width: 51.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>89</dd></div>
+              <div><dt>Edges</dt><dd>110</dd></div>
+              <div><dt>Calls</dt><dd>2,416</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_dino_contexts.html">
+          <div>
+            <h3 class="title"><span class="name">DINOv2 Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 3 official DINOv2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. Fresh capture after extending inspector sampling to distinguish each config; prior evidence preserved. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dino_contexts --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_dino_contexts.html<span class="sep">/</span>522 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 47.6s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>62.9%</b> &middot; 229/364</span></div>
+              <div class="bar"><i style="width: 62.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>13</dd></div>
+              <div><dt>Edges</dt><dd>12</dd></div>
+              <div><dt>Calls</dt><dd>22</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_resnet.html">
+          <div>
+            <h3 class="title"><span class="name">ResNet-18 Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 2 official ResNet-18 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_resnet --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_resnet.html<span class="sep">/</span>514 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 45.5s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>62.1%</b> &middot; 218/351</span></div>
+              <div class="bar"><i style="width: 62.1%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>13</dd></div>
+              <div><dt>Edges</dt><dd>12</dd></div>
+              <div><dt>Calls</dt><dd>18</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_webssl_contexts.html">
+          <div>
+            <h3 class="title"><span class="name">WebSSL Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 3 official WebSSL encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. Fresh capture after extending inspector sampling to distinguish each config; prior evidence preserved. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_webssl_contexts --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_webssl_contexts.html<span class="sep">/</span>529 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 92.1s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>62.8%</b> &middot; 236/376</span></div>
+              <div class="bar"><i style="width: 62.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>13</dd></div>
+              <div><dt>Edges</dt><dd>12</dd></div>
+              <div><dt>Calls</dt><dd>22</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_siglip2.html">
+          <div>
+            <h3 class="title"><span class="name">SigLIP2 Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 2 official SigLIP2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_siglip2 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_siglip2.html<span class="sep">/</span>521 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 119.8s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>59.5%</b> &middot; 232/390</span></div>
+              <div class="bar"><i style="width: 59.5%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>13</dd></div>
+              <div><dt>Edges</dt><dd>12</dd></div>
+              <div><dt>Calls</dt><dd>18</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_vjepa2.html">
+          <div>
+            <h3 class="title"><span class="name">V-JEPA 2 Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 2 official V-JEPA 2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_vjepa2 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_vjepa2.html<span class="sep">/</span>520 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 108.2s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>62.2%</b> &middot; 230/370</span></div>
+              <div class="bar"><i style="width: 62.2%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>13</dd></div>
+              <div><dt>Edges</dt><dd>12</dd></div>
+              <div><dt>Calls</dt><dd>18</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_dinov3.html">
+          <div>
+            <h3 class="title"><span class="name">DINOv3 Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 3 official DINOv3 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dinov3 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_dinov3.html<span class="sep">/</span>519 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">FAILED · exit 1 · 50.0s · OSError(&#x27;You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/facebook/dinov3-vits16plus-pretrain-lvd1689m.\n403 Cli</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>56.6%</b> &middot; 194/343</span></div>
+              <div class="bar"><i style="width: 56.6%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>12</dd></div>
+              <div><dt>Edges</dt><dd>11</dd></div>
+              <div><dt>Calls</dt><dd>13</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/encoders_dynamo.html">
+          <div>
+            <h3 class="title"><span class="name">DynaMo checkpoint configuration Encoders</span> <span class="slug">encoder</span></h3>
+            <p class="what">Exercise 4 official DynaMo checkpoint configuration encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dynamo --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
+            <p class="local">projects/patch_policy/encoders_dynamo.html<span class="sep">/</span>511 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">FAILED · exit 1 · 43.1s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>56.3%</b> &middot; 175/311</span></div>
+              <div class="bar"><i style="width: 56.3%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>11</dd></div>
+              <div><dt>Edges</dt><dd>10</dd></div>
+              <div><dt>Calls</dt><dd>18</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/pusht_simulator_v2.html">
+          <div>
+            <h3 class="title"><span class="name">PushT Simulator</span> <span class="slug">simulator</span></h3>
+            <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. Official pusht wrapper and configured environment, seeded 42; one reset and three explicit zero actions; actual observations, rewards, done flags and state info recorded. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
+            <p class="local">projects/patch_policy/pusht_simulator_v2.html<span class="sep">/</span>712 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 23.3s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>48.7%</b> &middot; 845/1,735</span></div>
+              <div class="bar"><i style="width: 48.7%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>87</dd></div>
+              <div><dt>Edges</dt><dd>104</dd></div>
+              <div><dt>Calls</dt><dd>375</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/blockpush_simulator_v2.html">
+          <div>
+            <h3 class="title"><span class="name">Block Push Simulator</span> <span class="slug">simulator</span></h3>
+            <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. Official blockpush wrapper and configured environment, seeded 42; one reset and three explicit zero actions; actual observations, rewards, done flags and state info recorded. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py blockpush_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
+            <p class="local">projects/patch_policy/blockpush_simulator_v2.html<span class="sep">/</span>807 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 26.5s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.0%</b> &middot; 1,124/2,441</span></div>
+              <div class="bar"><i style="width: 46.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>113</dd></div>
+              <div><dt>Edges</dt><dd>123</dd></div>
+              <div><dt>Calls</dt><dd>253</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_simulator_v2.html">
+          <div>
+            <h3 class="title"><span class="name">Cube Simulator</span> <span class="slug">simulator</span></h3>
+            <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. Official cube wrapper and configured environment, seeded 42; one reset and three explicit zero actions; actual observations, rewards, done flags and state info recorded. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_simulator_v2.html<span class="sep">/</span>1.4 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 11.5s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>49.6%</b> &middot; 2,463/4,964</span></div>
+              <div class="bar"><i style="width: 49.6%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>350</dd></div>
+              <div><dt>Edges</dt><dd>646</dd></div>
+              <div><dt>Calls</dt><dd>1,569</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/libero_simulator_v2.html">
+          <div>
+            <h3 class="title"><span class="name">LIBERO Ten Task Simulators</span> <span class="slug">simulator</span></h3>
+            <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. All ten official LIBERO Goal task identities: one reset with its built-in 20 stabilization steps and three explicit diagnostic actions each; seed 42 with upstream episode seed offsets 43–52. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py libero_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
+            <p class="local">projects/patch_policy/libero_simulator_v2.html<span class="sep">/</span>1.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 81.7s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>41.7%</b> &middot; 2,105/5,045</span></div>
+              <div class="bar"><i style="width: 41.7%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>318</dd></div>
+              <div><dt>Edges</dt><dd>378</dd></div>
+              <div><dt>Calls</dt><dd>24,663</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_video_export.html">
+          <div>
+            <h3 class="title"><span class="name">Cube Episode Video Export</span> <span class="slug">utility</span></h3>
+            <p class="what">Run the official stored-episode export command: load the first real Cube .pth demonstration, normalize image frames and encode an H.264 video. utils/evaluate_episode.py --episode 1 uses its one-based CLI to select official obses/episode_00000.pth; all 154 frames exported at 30fps. This command exports a recorded demonstration; it does not evaluate a policy.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_video_export --jobs docs/code_mapping/suite/jobs_utilities.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_video_export.html<span class="sep">/</span>493 KB<span class="sep">/</span>entry <code>__main__</code> &middot; utils/evaluate_episode.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 8.1s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>54.6%</b> &middot; 112/205</span></div>
+              <div class="bar"><i style="width: 54.6%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>5</dd></div>
+              <div><dt>Edges</dt><dd>4</dd></div>
+              <div><dt>Calls</dt><dd>5</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_generate_play.html">
+          <div>
+            <h3 class="title"><span class="name">Cube Plan Oracle Collection</span> <span class="slug">utility</span></h3>
+            <p class="what">Exercise the official Cube data generator using the plan/play oracle, including environment control, subtask switches, success filtering and serialization when an episode succeeds. Unchanged utils/generate_manipspace.py, cube-double-v1 task 5, one requested training episode, zero validation episodes, 300-step episode cap, and 180-second SIGALRM diagnostic bound on the retry loop. A timeout or failed collection is retained and is not labeled successful data generation. Oracle dependency code remains outside repository source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_generate_play --jobs docs/code_mapping/suite/jobs_utilities.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_generate_play.html<span class="sep">/</span>1.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_generate.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 20.0s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>48.9%</b> &middot; 2,414/4,932</span></div>
+              <div class="bar"><i style="width: 48.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>344</dd></div>
+              <div><dt>Edges</dt><dd>641</dd></div>
+              <div><dt>Calls</dt><dd>58,621</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/cube_generate_noisy.html">
+          <div>
+            <h3 class="title"><span class="name">Cube Markov Oracle Collection</span> <span class="slug">utility</span></h3>
+            <p class="what">Exercise the official Cube data generator using the Markov oracle with action noise, including environment control, subtask switches, success filtering and serialization when an episode succeeds. Unchanged utils/generate_manipspace.py, cube-double-v1 task 5, one requested training episode, zero validation episodes, 300-step episode cap, and 180-second SIGALRM diagnostic bound on the retry loop. A timeout or failed collection is retained and is not labeled successful data generation. Oracle dependency code remains outside repository source coverage.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py cube_generate_noisy --jobs docs/code_mapping/suite/jobs_utilities.json --gpu 1</code>
+            <p class="local">projects/patch_policy/cube_generate_noisy.html<span class="sep">/</span>1.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_generate.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">SUCCESS · exit 0 · 15.5s</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>48.9%</b> &middot; 2,409/4,928</span></div>
+              <div class="bar"><i style="width: 48.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>343</dd></div>
+              <div><dt>Edges</dt><dd>640</dd></div>
+              <div><dt>Calls</dt><dd>11,159</dd></div>
+            </dl>
+          </div>
+        </a>
+</div>
+</section>
+<!-- PATCH_POLICY_SUITE_END -->
+
+
+
+
+    <section class="shelf">
+      <div class="shelfhead">
+        <h2>Execution call trees</h2>
+        <span class="n">21</span>
+        <span class="note">One command per session, traced end to end from its entry point.</span>
+      </div>
+
+      <div class="runs">
+
         <a class="run" style="--fam: var(--fam-data)"
            href="projects/robo2vlm/train.html">
           <div>

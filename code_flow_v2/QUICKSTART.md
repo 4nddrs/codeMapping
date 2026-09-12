@@ -1,6 +1,9 @@
 # Agent quickstart (one page)
 
 1. Read `OBJECTIVE.md` (pack root) and `code-mapping/SKILL.md`.
+   For requests covering all important repository commands, first follow the
+   [command survey](code-mapping/reference/command-survey.md), then apply this
+   sequence to each selected command.
 2. Copy `code-mapping/templates/brief.template.md` → `docs/code_mapping/BRIEF.md`; fill from the request and available evidence; freeze or record open questions.
 3. **Capture** a SUCCESS run (or point at an existing one). Inventory it. For Python, preserve the matching `callgraph.json`, `coverage.json`, and `run.json` for the navigator.
 4. Curate `important.txt` with **why** on every symbol; SUCCESS order.

@@ -89,7 +89,7 @@ def _workflow_from_important(patterns, nodes):
         if heading and pats:
             for n in sorted(nodes.values(), key=lambda x: x["seq"]):
                 if _is_important(n["file"], n["name"], pats):
-                    stages.append({"label": heading, "name": n["name"]})
+                    stages.append({"label": heading, "name": n["name"], "id": n["id"], "file": n["file"]})
                     break
         heading, pats = None, []
 
