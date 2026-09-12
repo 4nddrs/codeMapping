@@ -16,6 +16,9 @@ shared menu so anyone can open every session from one place:
     rldx1/inference.html
 ```
 
+For exact commands against the existing Patch Policy capture, see the
+[Patch Policy delivery example](code-mapping/examples/patch-policy-delivery.md).
+
 The menu is a folder **and** a git repo (`https://github.com/4nddrs/codeMapping.git`,
 branch `main`). Its configured public site is
 **https://roaring-kringle-be46b2.netlify.app/**. Keep these states distinct:
@@ -74,6 +77,12 @@ whose cards are just "Training" / "Evaluation", pass `--title "proj · Training"
 so the browser tab still says which project). Without `--copy` it only prints;
 nothing in the menu is touched. `--force` overwrites an existing page.
 
+For a saved capture with a documented rendering adapter, use that command in
+step 1 instead of a stock `--rebuild`; see
+[Phase 7](code-mapping/phases/07-interactive-artifact.md#steps).
+The helper prints proposed markup; it does not edit `index.html` or `README.md`.
+Match the README's existing table columns when inserting its row.
+
 Worked example — the perturb_flow pair (two traces of one codebase, grouped in a
 `<div class="pair" style="--fam: var(--fam-cap)">` like RLDX-1):
 
@@ -101,12 +110,43 @@ Every value is read off the trace, never typed from memory:
 | entry `main · file.py` | the payload node whose `id == main` |
 | file size | `stat call-tree.html` |
 | Line coverage `36.4% · 3,374/9,261` | `totals.executed` / `totals.lines` |
-| Functions / Edges / Calls | `totals.functions`, `totals.edges`, `totals.calls` |
+| Function cards / Edges / Calls | `totals.functions`, `totals.edges`, `totals.calls`; cards can repeat a function |
 | `--fam` stripe colour | `gap` teal · `cap` violet · `rldx` amber · `data` blue (defined in `index.html` `:root`) |
 
 The totals strip at the top of the menu is the sum over all cards: sessions,
 functions traced, calls recorded, lines executed, lines in scope. The helper
 prints the new sums; replace the five `<div class="tot">` values by hand.
+
+The helper's totals assume a **new session**. When replacing an existing page,
+replace its card and README row, keep the session/shelf counts unchanged, and
+subtract the old metrics before adding the new ones. Do not paste its proposed
+add-one totals for a replacement. `totals.functions` counts call-site cards;
+label that count as function cards where repeated functions could be mistaken
+for distinct symbols. Report distinct-function counts separately when available.
+
+## Browser acceptance checks
+
+Run these checks on localhost before the push, then on the public site after
+deployment. Use a browser or browser automation against the actual served URLs.
+
+1. Open the menu and click the session's card. Check the resulting URL, page
+   title, entry point, recorded command, and outcome against the saved run.
+2. Check stage navigation against the curated important list. Search for a
+   representative function and navigate to its card. Repeated call sites may
+   create multiple cards for one function; card counts are not symbol counts.
+3. Open the value inspector with right-click or Ctrl-click. Navigate to the
+   card first because off-screen cards are virtualized. Automated checks must
+   exercise the real pointer/context-menu gesture, including pointer release.
+4. Page through retained samples for representative functions and distinct
+   captured contexts (for example validation, training, and rollout). Compare
+   displayed primitives, shapes, numeric summaries, statistics scopes, and
+   entry/exit labels with the evidence. Check missing/None values where present.
+5. Check for JavaScript errors and compare the served embedded payload with
+   the rendered payload, allowing documented title changes. A successful HTTP
+   response or matching JSON alone does not establish working controls.
+
+Save the check results as described below. If browser verification is unavailable,
+record that limitation rather than claiming the UI was verified.
 
 ## Rules
 
@@ -148,6 +188,10 @@ git push origin main
   and report the exact blocker instead of claiming publication.
 - If the checkout is on another branch or has unrelated changes, reconcile the
   intended update safely before following the `main` commands above.
+- If Git rejects this known shared checkout because another local user owns it,
+  inspect the path/remote and use
+  `git -c safe.directory=/mnt/sata1/andres/menuCodeMapping -C /mnt/sata1/andres/menuCodeMapping <command>`
+  for that checkout. Keep the exception scoped to each command.
 
 ## Verify the deployed page and finish
 
@@ -158,10 +202,10 @@ accepting a fallback/index response as success:
 1. Open `https://roaring-kringle-be46b2.netlify.app/`; confirm the new card and
    its relative target are present.
 2. Open `https://roaring-kringle-be46b2.netlify.app/projects/<slug>/<page>`;
-   check the expected title, trace identity and representative functions, and
-   exercise the relevant navigator controls in a browser.
-3. Record the URLs and delivered commit in the run inventory and `MAPPING.md`.
-   Return the direct localhost:8766 URL and the verified public project URL.
+   run the [browser acceptance checks](#browser-acceptance-checks). Netlify may
+   redirect `index.html` to the directory URL; record the actual final URL.
+3. Save the [delivery record](#record-the-delivery) and return the direct
+   localhost:8766 URL and verified public project URL.
 
 If the site has not deployed or configuration/authentication is unavailable,
 report local success and pushed status separately from the deployment blocker.
@@ -169,6 +213,26 @@ Keep the local link usable; do not invent a public URL or say the site is live
 without verification. Use an existing authorized deployment mechanism if the
 site needs a manual publish; do not create another site to work around missing
 configuration.
+
+## Record the delivery
+
+Keep a publication inventory such as `docs/code_mapping/runs/PUBLISHED.md`
+and the browser results beside the existing run inventory. Include:
+
+- The source trace and exact render command, including any adapter; generated
+  page path and menu project path.
+- The local and public menu/direct-page URLs, check time, expected title, and
+  trace identity or canonical payload hash used for comparison.
+- Which navigation, inspector, and sample checks passed, plus any limitations.
+- Publication repository, branch, full pushed commit, and confirmation that
+  `git ls-remote origin refs/heads/main` contains that commit (or a verified
+  descendant). Record deployment verification separately from Git push.
+
+Link this record from `MAPPING.md` and the SUCCESS run inventory. Update the
+brief, gaps, and completion checklist so they no longer say rendering or
+publication was not requested when it was completed. Keep sample limits,
+subprocess exclusions, and the actual task outcome visible in both the report
+and viewer; an exit-zero capture is not automatically task success.
 
 ## Versioning this skill pack
 
@@ -178,3 +242,11 @@ requests pack changes and a push, sync the intended source changes into that
 copy, review the diff, and include `code_flow_v2/` in the same authorized commit
 or a separate scoped commit. Exclude caches, environments, and generated run
 artifacts. Do not initialize a nested Git repository in the working pack.
+
+Compare the working pack and versioned copy before syncing; preserve unrelated
+edits in either location. Copy the intended changed files with their relative
+paths, then stage `code_flow_v2/` along with the requested site changes. Validate
+the skill and its local links, review `git diff --cached --check` and the staged
+diff, commit, and push using the sequence above. Confirm the intended files in
+both pack locations match after the sync. Workflow-only edits do not require
+rerunning a target capture or regenerating unchanged project pages.

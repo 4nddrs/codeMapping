@@ -4,6 +4,11 @@ Portable method for **forensic code mapping from a real run**: pick one command,
 
 The normal deliverable is **data + documentation + a viewable call-tree navigator**. Complete the evidence and documentation first, then [Phase 7](code-mapping/phases/07-interactive-artifact.md) renders the interactive, zoomable page from the same trace, adds it to the shared sessions menu, and verifies the local URL on port **8766**. Push to the configured menu repository and verify its deployment when authorized; return the actual usable URLs. Explicit data-only, local-only, and no-publish requests take precedence.
 
+Start with [QUICKSTART.md](QUICKSTART.md) for the complete sequence, then use
+[PUBLISHING.md](PUBLISHING.md) for menu updates, browser checks, Git push,
+Netlify verification, and the evidence to save. These are the standing
+instructions for future mappings; the process must not depend on chat history.
+
 Phase 7 returns **one page: `call-tree.html`**. The coverage mosaic is rendered beside it and published only on request, and no additional hand-authored "explained" site is built — phase 6's `MAPPING.md` is the prose deliverable. One command, one canvas, one document.
 
 ## What this is for

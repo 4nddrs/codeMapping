@@ -62,9 +62,18 @@ for why this is genuinely hard to get right from scratch.
 **Start with the saved trace.** If `callgraph.json`, `coverage.json`, and
 `run.json` already exist for the brief's run, check their command, scope, and
 source references, then go directly to **step 6 (`--rebuild`)**. Do not rerun
-training or simulation solely to generate or publish the page. If required
-trace data is missing or incompatible, record the reason and use steps 1–5
-for a scoped capture; reconcile phases 2–6 with that run before delivering.
+training or simulation solely to generate or publish the page.
+
+If an existing capture uses a different value schema, first check for its
+documented render command or adapter. Inspect representative primitives,
+arrays, sample IDs, and execution contexts before using the stock rebuild.
+Adapt the saved evidence at render time when needed, preserving entry/exit
+timing, statistics scopes, omitted/truncated data, and distinct run phases.
+Keep raw trace files unchanged and save the adapter and exact rebuild command
+with the mapping. Verify the values in the rendered inspector; populated JSON
+alone is insufficient. Only recapture when required evidence is actually
+missing or cannot be recovered by rendering; document why and reconcile
+phases 2–6 with that run before delivering.
 
 1. **Install codetrace if needed.**
    ```bash
@@ -267,10 +276,11 @@ Feed these into [phases/05-honest-gaps.md](05-honest-gaps.md) /
 - **Only your code is drawn.** Third-party and stdlib frames are walked past
   silently; a `via …` label on a chip means the call passed through such a
   frame before landing back in your code.
-- **Values are sampled, not exhaustive.** The right-click inspector shows the
-  first two calls of each function, captured at exit — later calls to a
-  hot function are not shown, and a mutated-in-place argument shows its
-  final state, not what it held at entry.
+- **Values are sampled, not exhaustive.** The stock tracer records the first
+  two calls of each function at exit; a mutated-in-place argument shows its
+  final state. For another saved capture or adapter, describe its actual
+  sampling policy and entry/exit timing instead. Do not imply a line-by-line
+  timeline or coverage of calls that were never sampled.
 - **One run is one path.** Branches this run didn't take are pink
   ("never ran"), not proof the branch is dead or unreachable.
 - **Bundled back-edges understate the arriving edge count** until a circle is

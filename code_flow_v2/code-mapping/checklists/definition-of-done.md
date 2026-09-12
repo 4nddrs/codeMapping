@@ -54,12 +54,17 @@ work; do not describe an unavailable page or deployment as finished.
 - [ ] Exactly one navigator delivered; mosaic only if requested, no second website
 - [ ] Page and card added/updated in the shared menu with accurate totals
 - [ ] Local menu on port 8766 opened in a browser; new card opens the correct page
+- [ ] Served-page stage/search navigation and value-inspector gestures/pagination
+      checked against saved samples; shapes, statistics scopes, and contexts
+      agree with the evidence (see [browser checks](../../PUBLISHING.md#browser-acceptance-checks))
 - [ ] Authorized menu changes committed and pushed to configured `origin/main`,
       or explicit local-only choice / push blocker recorded (see `PUBLISHING.md`)
 - [ ] Deployed menu and direct page verified at the configured URL, or deployment
       limitation clearly recorded; git push is not counted as site verification
 - [ ] Run inventory and `MAPPING.md` contain output paths, verified delivery URLs,
       and the delivery status; final response includes usable direct links
+- [ ] Delivery record retains render command, browser results, and pushed commit;
+      brief/checklist/gaps reflect completed delivery without stale exclusions
 - [ ] Phase-specific gaps recorded: import-time drop, sampled values, single-run
       coverage, bundled back-edges, and anything that ran out-of-process
 

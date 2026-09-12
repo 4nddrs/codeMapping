@@ -29,6 +29,8 @@ Follow [OBJECTIVE.md](../OBJECTIVE.md). Deliver **data + documentation + a viewa
 ## Before you start
 
 1. Read this file and [OBJECTIVE.md](../OBJECTIVE.md).
+   Use [QUICKSTART.md](../QUICKSTART.md) for the complete sequence and
+   [PUBLISHING.md](../PUBLISHING.md) for local/public delivery and browser checks.
 2. Copy [templates/brief.template.md](templates/brief.template.md) into the project (e.g. `docs/code_mapping/BRIEF.md`) and fill it from the request and available evidence; resolve missing scope before capture.
 3. Confirm where run outputs live (logs, traces, `outputs/`, coverage dirs).
 4. Open [checklists/phase-gates.md](checklists/phase-gates.md); tick gates as you go.
@@ -105,6 +107,8 @@ deployment within existing user authorization. Return actual verified URLs;
 
 - [examples/gap-libero-quickstart-brief.md](examples/gap-libero-quickstart-brief.md)
 - [examples/gap-artifact-map.md](examples/gap-artifact-map.md)
+- [examples/patch-policy-delivery.md](examples/patch-policy-delivery.md) — saved-trace
+  rendering adapter, served-browser checks, and the configured publishing flow.
 
 ## Closing
 
