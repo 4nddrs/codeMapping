@@ -458,10 +458,10 @@
 
     <div class="totals">
       <div class="tot"><b>23</b><span>Sessions</span></div>
-      <div class="tot"><b>5,120</b><span>Functions traced</span></div>
-      <div class="tot"><b>1,520,180</b><span>Calls recorded</span></div>
-      <div class="tot"><b>48,693</b><span>Lines executed</span></div>
-      <div class="tot"><b>124,562</b><span>Lines in scope</span></div>
+      <div class="tot"><b>5,153</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,539,471</b><span>Calls recorded</span></div>
+      <div class="tot"><b>49,697</b><span>Lines executed</span></div>
+      <div class="tot"><b>125,598</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -500,20 +500,20 @@
            href="projects/robo2vlm/train.html">
           <div>
             <h3 class="title"><span class="name">Robo2VLM · Training</span> <span class="slug">Llama 3.2 Vision · 2 GPUs</span></h3>
-            <p class="what">Real two-GPU LoRA training: 64 VQA examples, 8 optimizer steps and a saved adapter. Inspect the observed call path and sampled values on rank 0; generated-code line coverage was not collected.</p>
-            <code class="cmd">bash docs/code_mapping/run_capture.sh smoke_2gpu_02</code>
-            <p class="local">projects/robo2vlm/train.html<span class="sep">/</span>1.3 MB<span class="sep">/</span>entry <code>main</code> &middot; finetune/main.py</p>
+            <p class="what">Real two-GPU LoRA training: 64 VQA examples, 8 optimizer steps and a saved adapter. Every displayed Python function has measured line coverage, including generated Unsloth code and capture wrappers. Rank 0 is traced.</p>
+            <code class="cmd">bash docs/code_mapping/run_capture.sh smoke_2gpu_03</code>
+            <p class="local">projects/robo2vlm/train.html<span class="sep">/</span>1.4 MB<span class="sep">/</span>entry <code>main</code> &middot; finetune/main.py</p>
           </div>
           <div class="metrics">
-            <span class="verdict">SUCCESS · 2 GPUs · 8 steps · loss 3.55996</span>
+            <span class="verdict">SUCCESS · 2 GPUs · 8 steps · loss 3.55917</span>
             <div class="cov">
-              <div class="covtop"><span class="covlabel">Highlighted / displayed lines</span><span><b>5.6%</b> &middot; 124/2,228</span></div>
-              <div class="bar"><i style="width: 5.6%"></i></div>
+              <div class="covtop"><span class="covlabel">Executed / displayed lines</span><span><b>34.6%</b> &middot; 1,128/3,264</span></div>
+              <div class="bar"><i style="width: 34.6%"></i></div>
             </div>
             <dl class="counts">
-              <div><dt>Functions</dt><dd>80</dd></div>
-              <div><dt>Edges</dt><dd>113</dd></div>
-              <div><dt>Calls</dt><dd>17,352</dd></div>
+              <div><dt>Functions</dt><dd>113</dd></div>
+              <div><dt>Edges</dt><dd>162</dd></div>
+              <div><dt>Calls</dt><dd>36,643</dd></div>
             </dl>
           </div>
         </a>
