@@ -1,0 +1,26 @@
+---
+description: When doing code mapping / run forensics / critical-path documentation, follow the Code Mapping skill pack through evidence, documentation, and the default interactive navigator with verified delivery URLs.
+alwaysApply: false
+globs:
+  - docs/code_mapping/**
+  - "**/BRIEF.md"
+  - "**/recorded_live.json"
+  - "**/important.txt"
+  - "**/GAPS.md"
+  - "**/MAPPING.md"
+  - "**/line_coverage/**"
+---
+
+# Code Mapping (project rule)
+
+When the user asks to map a run, document a critical path, capture live I/O, or continue `docs/code_mapping` work:
+
+1. Follow the skill pack at `skillsCodeMapping/code-mapping/SKILL.md` (or the installed personal copy).
+2. Respect phase order: Scope → Capture → Critical path → Live I/O → Gaps → Documentation → Navigator and delivery.
+3. Prefer evidence from the SUCCESS run cited in `BRIEF.md` over speculation.
+4. Never invent numeric I/O; summarize arrays per the skill’s io-summarization rules.
+5. Document honest gaps (caches, RPC, unexercised code). Do not hide them.
+6. Finish the interactive navigator (phase 7, `code-mapping/codetrace/`) after the evidence and documentation. Prefer `--rebuild` from a matching saved trace. Add the shared-menu card, verify localhost:8766, finish the authorized menu push and configured deployment check, and return usable URLs. Honor explicit data-only/no-publish requests and report unsupported targets or blockers. The mosaic remains optional; do not build a second website.
+7. Keep secrets out of artifacts; reference env var **names** only.
+
+Primary objective: see `skillsCodeMapping/OBJECTIVE.md`.

@@ -4,6 +4,8 @@ A browsable archive of traced code-mapping sessions for robotics and machine-lea
 
 The repository is intentionally static: there is no build step, package manager, or application server requirement. Open the menu locally and follow the links to inspect a session.
 
+Live menu: [roaring-kringle-be46b2.netlify.app](https://roaring-kringle-be46b2.netlify.app/).
+
 ## Quick Start.
 
 ### Open directly in a browser
@@ -34,12 +36,14 @@ index.html                      Archive menu and session index
 projects/                       Self-contained traced session pages
 serve.sh                        Optional local static-file server
 README.md                       Project documentation
+code_flow_v2/                   Versioned Code Mapping workflow and portable tracer
 ```
 
 ## Included Sessions
 
 | Session | Traced run | Result | Report |
 | --- | --- | --- | --- |
+| Patch Policy | `bash docs/code_mapping/run_capture.sh` · Push-T VQ-BeT training and rollout | Exit 0; 21 updates; 302 simulator steps; coverage 0.0 | [Code flow](projects/patch_policy/index.html) |
 | GAP | `gap run examples/libero_quickstart/graph --sim libero_object_all_variance/0` | Success, reward 1.00 | [Open](projects/gap/index.html) |
 | CAP | `python test_sim.py --model_path checkpoints/pick.pt --condition 3d --num_episodes 12 --seed 0` | Exit 0, 9/12 picked | [Open](projects/cap/index.html) |
 | RLDX-1 | Training and inference traces | Two runs completed | [Training](projects/rldx1/train.html), [Inference](projects/rldx1/inference.html) |
@@ -69,3 +73,12 @@ Keep generated reports self-contained whenever possible. If a report references 
 - The original project source code and large datasets are not included in this repository.
 - Some reports contain links or metadata pointing to the external source repositories used during capture.
 - The archive can be published as a static site, including through GitHub Pages, without additional configuration.
+
+## Mapping workflow
+
+The [Code Mapping workflow](code_flow_v2/README.md) is versioned with this menu.
+Normal mapping requests include the evidence and documentation, a rendered call tree,
+a verified localhost:8766 menu entry, and the authorized site publication. Existing
+traces are reused for rendering. Explicit data-only or local-only requests take precedence.
+See [publishing and workflow synchronization](code_flow_v2/PUBLISHING.md) for the
+working-pack path and the local, pushed, and deployed checks.

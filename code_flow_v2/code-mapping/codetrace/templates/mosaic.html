@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #e7edf4;
+    --void: #dde5ee;
+    --surface: #ffffff;
+    --ink: #0f2c4c;
+    --muted: #5b7189;
+    --faint: #8a9db2;
+    --line: #cfdae8;
+    --accent: #0f766e;
+    --accent-soft: #e6fbf8;
+    --hit-bg: rgba(15, 118, 110, 0.10);
+    --hit-bar: #12a594;
+    --hit-ink: #0b5f59;
+    --miss-bar: #d8bfbf;
+    --partial-bar: #d98324;
+    --partial-bg: rgba(217, 131, 36, 0.13);
+    --code-ink: #14273c;
+    --kw: #8b5cf6;
+    --str: #0e7490;
+    --com: #92a4b6;
+    --num: #b45309;
+    --def: #1d4ed8;
+    --panel-shadow: 0 1px 2px rgba(15, 44, 76, 0.10), 0 10px 30px rgba(15, 44, 76, 0.07);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #060f18;
+      --void: #050c14;
+      --surface: #0d1c2b;
+      --ink: #dce7f3;
+      --muted: #8199b1;
+      --faint: #5c7189;
+      --line: #1b3145;
+      --accent: #4fd1c5;
+      --accent-soft: rgba(79, 209, 197, 0.14);
+      --hit-bg: rgba(45, 212, 191, 0.14);
+      --hit-bar: #2dd4bf;
+      --hit-ink: #7ff0e2;
+      --miss-bar: #56313a;
+      --partial-bar: #e0a34a;
+      --partial-bg: rgba(224, 163, 74, 0.15);
+      --code-ink: #c8d8e8;
+      --kw: #c792ea;
+      --str: #7fd1c8;
+      --com: #4f6479;
+      --num: #e0a34a;
+      --def: #7aa7ff;
+      --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #060f18;
+    --void: #050c14;
+    --surface: #0d1c2b;
+    --ink: #dce7f3;
+    --muted: #8199b1;
+    --faint: #5c7189;
+    --line: #1b3145;
+    --accent: #4fd1c5;
+    --accent-soft: rgba(79, 209, 197, 0.14);
+    --hit-bg: rgba(45, 212, 191, 0.14);
+    --hit-bar: #2dd4bf;
+    --hit-ink: #7ff0e2;
+    --miss-bar: #56313a;
+    --partial-bar: #e0a34a;
+    --partial-bg: rgba(224, 163, 74, 0.15);
+    --code-ink: #c8d8e8;
+    --kw: #c792ea;
+    --str: #7fd1c8;
+    --com: #4f6479;
+    --num: #e0a34a;
+    --def: #7aa7ff;
+    --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+  }
+
+  /* ---------- top bar ---------- */
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 8px 14px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    position: relative; z-index: 20;
+  }
+  .brand { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .kicker {
+    font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0;
+  }
+  .cmd {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10.5px;
+    color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 46ch;
+  }
+  .verdict {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; background: var(--hit-bg);
+    color: var(--hit-ink); border: 1px solid var(--hit-bar); white-space: nowrap;
+  }
+  .stats { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 0; }
+  .stat b {
+    font-family: "IBM Plex Mono", monospace; font-size: 13.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .stat span { font-size: 8.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); }
+  .legend { display: flex; gap: 10px; align-items: center; font-size: 10.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .lg-hit { background: var(--hit-bar); }
+  .lg-part { background: var(--partial-bar); }
+  .lg-miss { background: var(--miss-bar); }
+
+  .tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .tools input {
+    width: 190px; padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+  }
+  .tools input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .zoomer { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .zoomer button {
+    border: 0; background: var(--surface); color: var(--muted); cursor: pointer;
+    font-family: inherit; font-size: 13px; padding: 5px 10px; line-height: 1;
+  }
+  .zoomer button:hover { background: var(--accent-soft); color: var(--accent); }
+  .zoomer button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .zoomer .lvl {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--muted);
+    min-width: 52px; text-align: center; font-variant-numeric: tabular-nums;
+    border-left: 1px solid var(--line); border-right: 1px solid var(--line); padding: 5px 4px;
+  }
+  .zoomer .fit { font-size: 10.5px; letter-spacing: 0.04em; }
+
+  /* ---------- canvas ---------- */
+  .viewport {
+    position: relative; overflow: hidden; background: var(--void);
+    cursor: grab; touch-action: none;
+    background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .viewport.drag { cursor: grabbing; }
+  .stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+
+  .panel {
+    position: absolute; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 6px; box-shadow: var(--panel-shadow); overflow: hidden;
+  }
+  .panel.cold { opacity: 0.5; }
+  .panel.match { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--panel-shadow); }
+  .phdr {
+    position: absolute; top: 0; left: 0; right: 0; height: 46px;
+    display: flex; align-items: center; gap: 10px; padding: 0 14px;
+    border-bottom: 1px solid var(--line); background: var(--surface);
+    font-family: "IBM Plex Mono", monospace; overflow: hidden;
+  }
+  .phdr .nm2 { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phdr .dir { color: var(--faint); font-weight: 400; }
+  .phdr .pct {
+    margin-left: auto; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .coldtile {
+    height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    padding: 0 16px; font-family: "IBM Plex Mono", monospace; overflow: hidden;
+  }
+  .coldtile .nm2 { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .coldtile span:last-child { font-size: 12px; color: var(--faint); }
+  .bandlabel {
+    position: absolute; font-family: "IBM Plex Sans", sans-serif; font-weight: 600;
+    font-size: 26px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+    white-space: nowrap;
+  }
+  .bandlabel small { display: block; font-size: 15px; letter-spacing: 0.05em; text-transform: none; font-weight: 400; margin-top: 4px; }
+  .bars { position: absolute; left: 0; top: 46px; width: 100%; display: block; image-rendering: pixelated; }
+  .txt {
+    position: absolute; left: 0; top: 46px; right: 0; bottom: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px;
+  }
+  .row { position: absolute; display: flex; height: 17px; line-height: 17px; }
+  .row .num {
+    width: 56px; flex: 0 0 56px; text-align: right; padding-right: 9px;
+    color: var(--faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+    border-right: 1px solid var(--line); user-select: none;
+  }
+  .row .src { padding: 0 14px 0 11px; white-space: pre; color: var(--code-ink); }
+  .row.hit { background: var(--hit-bg); }
+  .row.hit .num { box-shadow: inset 3px 0 0 var(--hit-bar); color: var(--hit-ink); }
+  .row.part { background: var(--partial-bg); }
+  .row.part .num { box-shadow: inset 3px 0 0 var(--partial-bar); color: var(--partial-bar); }
+  .row.miss .num { box-shadow: inset 3px 0 0 var(--miss-bar); }
+  .row.miss .src { opacity: 0.62; }
+  .row.none .src { opacity: 0.5; }
+
+  .k { color: var(--kw); }
+  .s { color: var(--str); }
+  .c { color: var(--com); font-style: italic; }
+  .nm { color: var(--num); }
+  .d { color: var(--def); font-weight: 600; }
+
+  /* ---------- overlays ---------- */
+  .tip {
+    position: fixed; z-index: 30; pointer-events: none; display: none;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 7px;
+    box-shadow: var(--panel-shadow); padding: 7px 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink);
+    max-width: 380px;
+  }
+  .tip b { display: block; font-weight: 600; margin-bottom: 3px; }
+  .tip span { color: var(--muted); font-size: 10px; }
+  .hint {
+    position: absolute; left: 14px; bottom: 12px; z-index: 15;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 11px; font-size: 10.5px; color: var(--muted);
+    box-shadow: var(--panel-shadow); line-height: 1.6; max-width: 340px;
+  }
+  .hint b { color: var(--ink); font-weight: 600; }
+  .hint kbd {
+    font-family: "IBM Plex Mono", monospace; font-size: 9.5px; background: var(--bg);
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    padding: 0 4px; color: var(--muted);
+  }
+  .hint button {
+    border: 0; background: none; color: var(--accent); cursor: pointer;
+    font-family: inherit; font-size: 10.5px; padding: 0; margin-left: 6px; text-decoration: underline;
+  }
+  .scopenote {
+    position: absolute; right: 14px; bottom: 12px; z-index: 15; text-align: right;
+    font-size: 9.5px; color: var(--faint); line-height: 1.5; max-width: 300px;
+  }
+  @media (prefers-reduced-motion: reduce) { .stage { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <p class="kicker" id="brand"></p>
+    <p class="cmd" id="cmd"></p>
+  </div>
+  <span class="verdict" id="verdict"></span>
+  <div class="stats" id="stats"></div>
+  <div class="legend">
+    <span><i class="lg-hit"></i>executed</span>
+    <span><i class="lg-part"></i>partial branch</span>
+    <span><i class="lg-miss"></i>never ran</span>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="find file…  (press /)" autocomplete="off" />
+    <div class="zoomer">
+      <button id="zout" title="zoom out (−)">−</button>
+      <div class="lvl" id="lvl">—</div>
+      <button id="zin" title="zoom in (+)">+</button>
+      <button id="fit" class="fit" title="fit everything (0)">FIT</button>
+    </div>
+  </div>
+</header>
+
+<div class="viewport" id="vp">
+  <div class="stage" id="stage"></div>
+  <div class="hint" id="hint">
+    <b>Scroll</b> to pan · <b>⌘/Ctrl + scroll</b> or pinch to zoom · <b>drag</b> to move ·
+    <kbd>0</kbd> fit · <kbd>/</kbd> find
+    <button id="hidehint">hide</button>
+  </div>
+  <div class="scopenote" id="scopenote"></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("payload").textContent);
+  var $ = function (id) { return document.getElementById(id); };
+
+  var LH = D.geom.LH, HDR = D.geom.HDR, GAP = 44;
+  var MAXL = D.geom.MAXL;     // lines per sub-column, so tall files read as blocks not slivers
+  var COLD_H = D.geom.COLD_H;
+  var CHW = 7.31;             // IBM Plex Mono advance at 12px
+  var GUT = 67;               // line-number gutter + rule
+  var TEXT_Z = 0.38;          // below this we show the coverage barcode instead of code
+  var MINZ = 0.004, MAXZ = 3;
+
+  // ---------- header ----------
+  document.title = D.title;
+  $("brand").textContent = D.brand;
+  $("cmd").textContent = D.command;
+  $("cmd").title = D.command;
+  $("verdict").textContent = D.outcome;
+  var t = D.totals;
+  $("stats").innerHTML =
+    st(t.executed.toLocaleString(), "lines executed") +
+    st(t.statements.toLocaleString(), "statements") +
+    st(t.files_loaded + " / " + t.files, "files imported") +
+    st(t.lines.toLocaleString(), "lines drawn");
+  function st(v, l) { return '<div class="stat"><b>' + v + "</b><span>" + l + "</span></div>"; }
+  $("scopenote").textContent = "Every .py file under the watched source roots. Third-party code is not drawn.";
+
+  // ---------- layout comes precomputed from the builder ----------
+  var panels = D.files.map(function (f) {
+    f._lines = f.src.split("\n");
+    return { f: f, cold: f.cold, colW: f.colW, ncols: f.ncols, rows: f.rows,
+             w: f.w, h: f.h, x: f.x, y: f.y, el: null, drawn: false };
+  });
+  var cold = panels.filter(function (p) { return p.cold; });
+  var coldTop = D.geom.cold_top;
+  var worldW = D.geom.world_w, worldH = D.geom.world_h;
+
+  // ---------- highlighter ----------
+  var KW = {};
+  ("def class return if elif else for while in not and or import from as with try except finally " +
+   "raise yield lambda pass break continue global nonlocal assert del async await True False None " +
+   "self cls is").split(" ").forEach(function (w) { KW[w] = 1; });
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(line) {
+    var out = "", i = 0, n = line.length, prev = "";
+    while (i < n) {
+      var ch = line[i];
+      if (ch === "#") return out + '<span class="c">' + esc(line.slice(i)) + "</span>";
+      if (ch === '"' || ch === "'") {
+        var q = ch, j, tri = line.substr(i, 3) === q + q + q;
+        if (tri) { j = i + 3; while (j < n && line.substr(j, 3) !== q + q + q) j++; j = Math.min(n, j + 3); }
+        else {
+          j = i + 1;
+          while (j < n) { if (line[j] === "\\") { j += 2; continue; } if (line[j] === q) { j++; break; } j++; }
+        }
+        out += '<span class="s">' + esc(line.slice(i, j)) + "</span>"; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(ch)) {
+        var k = i + 1;
+        while (k < n && /[A-Za-z0-9_]/.test(line[k])) k++;
+        var w = line.slice(i, k);
+        if (prev === "def" || prev === "class") out += '<span class="d">' + w + "</span>";
+        else if (KW[w]) out += '<span class="k">' + w + "</span>";
+        else out += esc(w);
+        prev = w; i = k; continue;
+      }
+      if (/[0-9]/.test(ch)) {
+        var m = i;
+        while (m < n && /[0-9._a-fA-FxXoObB]/.test(line[m])) m++;
+        out += '<span class="nm">' + esc(line.slice(i, m)) + "</span>"; i = m; continue;
+      }
+      if (!/\s/.test(ch)) prev = "";
+      out += esc(ch); i++;
+    }
+    return out;
+  }
+
+  // ---------- per-file line status ----------
+  function status(f) {
+    if (f._st) return f._st;
+    var ex = {}, stmt = {}, part = {};
+    f.ex.forEach(function (v) { ex[v] = 1; stmt[v] = 1; });
+    f.mi.forEach(function (v) { stmt[v] = 1; });
+    f.partial.forEach(function (v) { part[v] = 1; });
+    f._st = { ex: ex, stmt: stmt, part: part };
+    return f._st;
+  }
+
+  // ---------- view transform ----------
+  var z = 0.05, tx = 0, ty = 0;
+  var vp = $("vp"), stage = $("stage");
+  function clampZ(v) { return Math.min(MAXZ, Math.max(MINZ, v)); }
+  function apply() {
+    stage.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + z + ")";
+    $("lvl").textContent = (z * 100).toFixed(z < 0.1 ? 1 : 0) + "%";
+    render();
+  }
+  function fit() {
+    var r = vp.getBoundingClientRect();
+    z = clampZ(Math.min((r.width - 60) / worldW, (r.height - 60) / worldH));
+    tx = (r.width - worldW * z) / 2;
+    ty = (r.height - worldH * z) / 2;
+    apply();
+  }
+  function zoomAt(cx, cy, factor) {
+    var nz = clampZ(z * factor);
+    if (nz === z) return;
+    tx = cx - (cx - tx) * (nz / z);
+    ty = cy - (cy - ty) * (nz / z);
+    z = nz; apply();
+  }
+  function flyTo(p, targetZ) {
+    var r = vp.getBoundingClientRect();
+    z = clampZ(targetZ);
+    tx = r.width / 2 - (p.x + p.w / 2) * z;
+    ty = r.height / 2 - (p.y + Math.min(p.h, 900) / 2) * z;
+    apply();
+  }
+
+  // ---------- rendering (cull + level of detail) ----------
+  var mounted = [];
+  function render() {
+    var r = vp.getBoundingClientRect();
+    var wx0 = -tx / z, wy0 = -ty / z, wx1 = (r.width - tx) / z, wy1 = (r.height - ty) / z;
+    var pad = 200 / z;
+    var showText = z >= TEXT_Z;
+    var next = [];
+
+    panels.forEach(function (p) {
+      var vis = p.x < wx1 + pad && p.x + p.w > wx0 - pad && p.y < wy1 + pad && p.y + p.h > wy0 - pad;
+      if (!vis) {
+        if (p.el) { p.el.remove(); p.el = null; p.drawn = false; }
+        return;
+      }
+      next.push(p);
+      if (!p.el) mount(p);
+      if (p.cold) return;
+      if (!showText) {
+        if (p.drawn) { p.txtEl.textContent = ""; p.drawn = false; }
+        p.barsEl.style.display = "block";
+        return;
+      }
+      p.barsEl.style.display = "none";
+      if (!p.drawn) { drawText(p); p.drawn = true; }
+    });
+    mounted = next;
+  }
+
+  function mount(p) {
+    var f = p.f;
+    var el = document.createElement("div");
+    el.className = "panel" + (f.loaded ? "" : " cold");
+    el.style.cssText = "left:" + p.x + "px;top:" + p.y + "px;width:" + p.w + "px;height:" + p.h + "px";
+    el.dataset.p = f.path;
+
+    var cut = f.path.lastIndexOf("/") + 1;
+    var name = '<span class="dir">' + esc(f.path.slice(0, cut)) + "</span>" + esc(f.path.slice(cut));
+
+    if (p.cold) {
+      el.innerHTML = '<div class="coldtile"><span class="nm2">' + name + "</span>" +
+        "<span>" + f.nlines + " lines · never imported</span></div>";
+      stage.appendChild(el);
+      p.el = el;
+      return;
+    }
+
+    var pct = f.nstmt ? Math.round((f.ex.length / f.nstmt) * 100) : 0;
+    var hdr = document.createElement("div");
+    hdr.className = "phdr";
+    hdr.innerHTML = '<span class="nm2">' + name + '</span><span class="pct">' +
+      f.ex.length + "/" + f.nstmt + " · " + pct + "%</span>";
+    el.appendChild(hdr);
+
+    var cv = document.createElement("canvas");
+    cv.className = "bars";
+    cv.width = p.ncols * 64; cv.height = Math.max(1, p.rows);
+    cv.style.height = (p.rows * LH) + "px";
+    paintBars(cv, p);
+    el.appendChild(cv);
+
+    var txt = document.createElement("div");
+    txt.className = "txt";
+    el.appendChild(txt);
+
+    stage.appendChild(el);
+    p.el = el; p.txtEl = txt; p.barsEl = cv;
+  }
+
+  function paintBars(cv, p) {
+    var f = p.f, s = status(f), g = cv.getContext("2d");
+    var css = getComputedStyle(document.documentElement);
+    var hitC = css.getPropertyValue("--hit-bar").trim();
+    var partC = css.getPropertyValue("--partial-bar").trim();
+    var missC = css.getPropertyValue("--miss-bar").trim();
+    g.clearRect(0, 0, cv.width, cv.height);
+    var lines = f._lines, maxCh = Math.max(20, Math.round(p.colW / CHW));
+    for (var i = 1; i <= f.nlines; i++) {
+      var c = s.ex[i] ? (s.part[i] ? partC : hitC) : s.stmt[i] ? missC : null;
+      if (!c) continue;
+      var col = Math.floor((i - 1) / MAXL), row = (i - 1) % MAXL;
+      g.fillStyle = c;
+      // bar tracks real indentation + length, so the mosaic still reads like code
+      var L = lines[i - 1] || "";
+      var ind = Math.round(((L.length - L.replace(/^\s+/, "").length) / maxCh) * 60);
+      var end = Math.round((Math.min(L.length, maxCh) / maxCh) * 60);
+      g.fillRect(col * 64 + Math.min(ind, 52), row, Math.max(3, end - ind), 1);
+    }
+  }
+
+  function drawText(p) {
+    var f = p.f, s = status(f), lines = f._lines, buf = [];
+    for (var i = 0; i < f.nlines; i++) {
+      var ln = i + 1;
+      var cls = s.ex[ln] ? (s.part[ln] ? "part" : "hit") : s.stmt[ln] ? "miss" : "none";
+      var col = Math.floor(i / MAXL), row = i % MAXL;
+      buf.push('<div class="row ' + cls + '" style="top:' + (row * LH) + "px;left:" +
+        (col * p.colW) + "px;width:" + p.colW + 'px">' +
+        '<span class="num">' + ln + '</span><span class="src">' +
+        (lines[i] ? hl(lines[i]) : " ") + "</span></div>");
+    }
+    p.txtEl.innerHTML = buf.join("");
+  }
+
+  // ---------- interaction ----------
+  vp.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var r = vp.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) {
+      zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.01));
+    } else {
+      tx -= e.deltaX; ty -= e.deltaY; apply();
+    }
+  }, { passive: false });
+
+  var dragging = false, lx = 0, ly = 0, moved = 0;
+  vp.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0) return;
+    dragging = true; moved = 0; lx = e.clientX; ly = e.clientY;
+    vp.classList.add("drag"); vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener("pointermove", function (e) {
+    var r = vp.getBoundingClientRect();
+    if (dragging) {
+      moved += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
+      tx += e.clientX - lx; ty += e.clientY - ly;
+      lx = e.clientX; ly = e.clientY; apply();
+      return;
+    }
+    if (z >= TEXT_Z) { $("tip").style.display = "none"; return; }
+    var wx = (e.clientX - r.left - tx) / z, wy = (e.clientY - r.top - ty) / z;
+    var hitP = null;
+    for (var i = 0; i < mounted.length; i++) {
+      var p = mounted[i];
+      if (wx >= p.x && wx <= p.x + p.w && wy >= p.y && wy <= p.y + p.h) { hitP = p; break; }
+    }
+    var tip = $("tip");
+    if (!hitP) { tip.style.display = "none"; return; }
+    var f = hitP.f;
+    var pct = f.nstmt ? Math.round((f.ex.length / f.nstmt) * 100) : 0;
+    tip.innerHTML = "<b>" + esc(f.path) + "</b><span>" +
+      (f.loaded ? f.ex.length + " of " + f.nstmt + " statements ran · " + pct + "% · " + f.nlines + " lines"
+                : "never imported · " + f.nlines + " lines") + "</span>";
+    tip.style.display = "block";
+    tip.style.left = Math.min(window.innerWidth - 390, e.clientX + 16) + "px";
+    tip.style.top = (e.clientY + 18) + "px";
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false; vp.classList.remove("drag");
+    try { vp.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+  vp.addEventListener("pointerup", function (e) {
+    var wasDrag = moved > 4;
+    endDrag(e);
+    if (wasDrag || z >= TEXT_Z) return;
+    var el = e.target.closest && e.target.closest(".panel");
+    if (!el) return;
+    var p = panels.filter(function (q) { return q.f.path === el.dataset.p; })[0];
+    if (p) { $("tip").style.display = "none"; flyTo(p, 0.75); }
+  });
+  vp.addEventListener("pointercancel", endDrag);
+  vp.addEventListener("pointerleave", function () { $("tip").style.display = "none"; });
+
+  $("zin").addEventListener("click", function () {
+    var r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.5);
+  });
+  $("zout").addEventListener("click", function () {
+    var r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.5);
+  });
+  $("fit").addEventListener("click", fit);
+  $("hidehint").addEventListener("click", function () { $("hint").style.display = "none"; });
+
+  var q = $("q");
+  q.addEventListener("input", function () {
+    var v = q.value.trim().toLowerCase();
+    panels.forEach(function (p) {
+      var m = v && p.f.path.toLowerCase().indexOf(v) >= 0;
+      p.match = m;
+      if (p.el) p.el.classList.toggle("match", !!m);
+    });
+  });
+  q.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { q.blur(); return; }
+    if (e.key !== "Enter") return;
+    var hits = panels.filter(function (p) { return p.match; });
+    if (hits.length) flyTo(hits[0], 0.75);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === "/") { e.preventDefault(); q.focus(); }
+    else if (e.key === "0") fit();
+    else if (e.key === "+" || e.key === "=") {
+      var r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.5);
+    } else if (e.key === "-") {
+      var r2 = vp.getBoundingClientRect(); zoomAt(r2.width / 2, r2.height / 2, 1 / 1.5);
+    }
+  });
+  window.addEventListener("resize", render);
+
+  // ---------- boot ----------
+  if (cold.length) {
+    var lab = document.createElement("div");
+    lab.className = "bandlabel";
+    lab.style.cssText = "left:0;top:" + coldTop + "px";
+    lab.innerHTML = "Never imported by this run" +
+      "<small>" + cold.length + " modules · " +
+      cold.reduce(function (a, p) { return a + p.f.nlines; }, 0).toLocaleString() +
+      " lines · shown collapsed</small>";
+    stage.appendChild(lab);
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

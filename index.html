@@ -457,11 +457,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>22</b><span>Sessions</span></div>
-      <div class="tot"><b>4,860</b><span>Functions traced</span></div>
-      <div class="tot"><b>1,497,825</b><span>Calls recorded</span></div>
-      <div class="tot"><b>46,107</b><span>Lines executed</span></div>
-      <div class="tot"><b>118,683</b><span>Lines in scope</span></div>
+      <div class="tot"><b>23</b><span>Sessions</span></div>
+      <div class="tot"><b>5,120</b><span>Functions traced</span></div>
+      <div class="tot"><b>1,520,180</b><span>Calls recorded</span></div>
+      <div class="tot"><b>48,693</b><span>Lines executed</span></div>
+      <div class="tot"><b>124,562</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -470,11 +470,32 @@
     <section class="shelf">
       <div class="shelfhead">
         <h2>Execution call trees</h2>
-        <span class="n">21</span>
+        <span class="n">22</span>
         <span class="note">One command per session, traced end to end from its entry point.</span>
       </div>
 
       <div class="runs">
+        <a class="run" style="--fam: var(--fam-cap)"
+           href="projects/patch_policy/index.html">
+          <div>
+            <h3 class="title"><span class="name">Patch Policy</span> <span class="slug">Push-T · training and rollout</span></h3>
+            <p class="what">One training epoch on two real demonstrations, 21 policy updates, and a 302-step simulator rollout. Follow dense DINOv2 patch features, block-causal attention, VQ fitting, action heads, and sampled live values; rollout coverage was 0.0.</p>
+            <code class="cmd">bash docs/code_mapping/run_capture.sh</code>
+            <p class="local">projects/patch_policy/index.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train_policy.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 78.9s · 21 updates · 302 simulator steps · coverage 0.0</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.0%</b> &middot; 2,586/5,879</span></div>
+              <div class="bar"><i style="width: 44.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>260</dd></div>
+              <div><dt>Edges</dt><dd>313</dd></div>
+              <div><dt>Calls</dt><dd>22,355</dd></div>
+            </dl>
+          </div>
+        </a>
         <a class="run" style="--fam: var(--fam-data)"
            href="projects/robo2vlm/train.html">
           <div>
