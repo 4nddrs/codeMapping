@@ -460,6 +460,8 @@ def summarize(v, depth=0, budget=None):
     tn = t.__name__
     try:
         if v is None or isinstance(v, (bool, int, float, complex)):
+            if t.__module__ == "numpy" and hasattr(v, "item"):
+                v = v.item()                  # numpy 2 repr is np.float64(10.0); show 10.0
             return {"t": tn, "r": repr(v)[:60]}
         if isinstance(v, str):
             return {"t": "str", "n": len(v), "r": v[:96] + ("…" if len(v) > 96 else "")}
