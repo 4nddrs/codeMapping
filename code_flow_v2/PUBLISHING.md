@@ -29,6 +29,31 @@ branch `main`). Its configured public site is
 - **Deployed:** the public menu and direct project page have been verified to
   contain the new or updated mapping. A successful push alone is not proof.
 
+## Using a different PC
+
+Follow [INSTALL.md](INSTALL.md) to clone the menu and complete the new-machine
+setup. The `/mnt/sata1/andres/` paths in this document describe the original
+machine; use the actual clone path on another PC. The complete `code_flow_v2/`
+folder is versioned inside the menu checkout, so an agent can read it there
+without a separate skill installation.
+
+When `menu_card.py` runs from that cloned pack, it detects the containing menu
+checkout. When using a copied pack, explicitly pass `--menu /actual/menu/clone`.
+An explicit `--menu` always overrides discovery. For compatibility, a standalone
+copy on linux3 can still use its existing menu checkout. If no menu is found,
+`--copy` reports the missing path; printing card markup alone still works.
+
+Cloning retrieves the workflow and published pages. It does not run a target,
+install that target's environment or datasets, transfer Git credentials, or
+start publishing. Give the agent the target repository and authorization to
+publish, and provide GitHub access that can push to `4nddrs/codeMapping`.
+The agent then follows the capture, menu, verification, and push steps below.
+The existing Netlify deployment is associated with the shared repository;
+pushing from another PC uses that same connection. A fork or different remote
+needs its own deployment setup and will not update this site automatically.
+
+## Local preview
+
 Reuse the server already on port 8766 if it serves this checkout. If no server
 is running, start one from the menu directory (keep it running in a persistent
 session):

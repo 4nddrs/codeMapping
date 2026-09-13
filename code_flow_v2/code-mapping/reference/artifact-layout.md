@@ -24,7 +24,7 @@ docs/code_mapping/
     SUCCESS_<id>.md             # pointer + inventory (not a full copy)
     FAILURE_<id>.md
   line_coverage/                # Python trace data for phases 2 and 7
-    codetrace/                  # copied from skillsCodeMapping/code-mapping/codetrace/
+    codetrace/                  # copied from code_flow_v2/code-mapping/codetrace/
     out/                        # codetrace --out: call tree, optional mosaic + data
       call-tree.html
       mosaic.html

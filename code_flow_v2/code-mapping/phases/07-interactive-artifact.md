@@ -77,7 +77,7 @@ phases 2–6 with that run before delivering.
 
 1. **Install codetrace if needed.**
    ```bash
-   cp -R skillsCodeMapping/code-mapping/codetrace <target-repo>/codetrace
+   cp -R /path/to/menuCodeMapping/code_flow_v2/code-mapping/codetrace <target-repo>/codetrace
    cd <target-repo>
    pip install coverage    # or: uv pip install coverage — see the warning below
    ```

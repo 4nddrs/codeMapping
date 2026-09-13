@@ -9,6 +9,10 @@ Start with [QUICKSTART.md](QUICKSTART.md) for the complete sequence, then use
 Netlify verification, and the evidence to save. These are the standing
 instructions for future mappings; the process must not depend on chat history.
 
+On another PC, follow [the clone and setup instructions](INSTALL.md), then
+point the agent at the complete `code_flow_v2/` folder. No separate skill
+installation is required.
+
 Phase 7 returns **one page: `call-tree.html`**. The coverage mosaic is rendered beside it and published only on request, and no additional hand-authored "explained" site is built — phase 6's `MAPPING.md` is the prose deliverable. One command, one canvas, one document.
 
 ## What this is for
@@ -22,7 +26,7 @@ Originated from the Graph-as-Policy Libero quickstart mapping (`docs/code_mappin
 ## Layout
 
 ```
-skillsCodeMapping/
+code_flow_v2/
   README.md                 ← you are here
   OBJECTIVE.md              ← the invariant goal
   QUICKSTART.md             ← one-page agent flow
@@ -44,8 +48,8 @@ skillsCodeMapping/
 
 ## How to use in a new project
 
-1. Copy this folder (or symlink) into the target repo, **or** install `code-mapping/SKILL.md` as a personal Cursor skill under `~/.cursor/skills/code-mapping/`.
-2. Fill `templates/brief.template.md` for the command under study.
+1. Keep this complete folder in the cloned menu checkout, or copy/symlink the complete folder into the target repo. Point the agent at its `code-mapping/SKILL.md`; see [INSTALL.md](INSTALL.md).
+2. Fill `code-mapping/templates/brief.template.md` for the command under study.
 3. Tell the agent: *Follow the Code Mapping skill; brief is at …*
 4. Work phases in order. Do not skip to documentation before live I/O and gaps are frozen.
 5. Land artifacts under a project path such as `docs/code_mapping/` (see `reference/artifact-layout.md`).
@@ -55,7 +59,7 @@ skillsCodeMapping/
 
 Typical prompts:
 
-- “Start a code mapping for `<command>`; use `skillsCodeMapping/code-mapping`.”
+- “Start a code mapping for `<command>`; use `~/codeMapping/code_flow_v2/code-mapping/SKILL.md`.”
 - “Continue code mapping from phase 3; brief is `docs/code_mapping/BRIEF.md`.”
 - “Close the mapping: run the definition-of-done checklist.”
 

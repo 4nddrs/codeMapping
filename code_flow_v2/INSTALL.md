@@ -1,65 +1,117 @@
-# Installing this skill pack
+# Use this pack on another PC
 
-## Option A — Keep in the repo (recommended for team share)
+Clone the shared menu repository to get the current instructions, tracing tools,
+and published pages together. No separate skill installation is required: point
+the agent at the complete `code_flow_v2/` folder so its relative references work.
 
-Leave `skillsCodeMapping/` at the repository root. Point agents at:
+## 1. Clone the repository
 
-```text
-skillsCodeMapping/code-mapping/SKILL.md
-```
-
-Optionally copy `rules/code-mapping.mdc.example` to:
-
-```text
-.cursor/rules/code-mapping.mdc
-```
-
-(adjust frontmatter if your Cursor version expects different fields).
-
-## Option B — Personal Cursor skill (all projects)
+These shell examples use `~/codeMapping`; choose another directory if needed.
 
 ```bash
-mkdir -p ~/.cursor/skills/code-mapping
-cp -R skillsCodeMapping/code-mapping/* ~/.cursor/skills/code-mapping/
-# Also copy OBJECTIVE next to it or merge the objective into SKILL.md
-cp skillsCodeMapping/OBJECTIVE.md ~/.cursor/skills/code-mapping/OBJECTIVE.md
+git clone https://github.com/4nddrs/codeMapping.git "$HOME/codeMapping"
 ```
 
-Ensure paths inside `SKILL.md` still resolve (they use relative links under `code-mapping/`).
-
-## Option C — Per-project brief only
-
-Install the skill personally (B), and in each repo only maintain:
-
-- `docs/code_mapping/BRIEF.md`
-- artifacts produced by the phases
-
-## Starting a new mapping (agent prompt)
+The agent entrypoint is now:
 
 ```text
-Follow skillsCodeMapping/code-mapping/SKILL.md.
-Create docs/code_mapping/ from the templates.
-Command under study: <PASTE COMMAND>
-Complete phases 1–6, then render the call-tree navigator from the saved trace,
-add it to the shared sessions menu, and return verified delivery URLs.
+~/codeMapping/code_flow_v2/code-mapping/SKILL.md
 ```
 
-The navigator is included by default after the evidence and documentation.
-To limit delivery, say `data and documentation only`, `local only`, or
-`do not publish`. For an existing mapping, point the agent at its saved trace
-to rebuild the page without rerunning the target.
+On a PC that already has this checkout, inspect its status and update it without
+discarding local changes:
 
-Finished pages are collected in the shared sessions menu
-(`/mnt/sata1/andres/menuCodeMapping` on linux3, git repo
-`https://github.com/4nddrs/codeMapping.git`) — see `PUBLISHING.md` for how a
-page gets there, the default local URL (`http://localhost:8766/`), and the
-authorized direct-to-`main` push and deployment verification workflow.
+```bash
+git -C "$HOME/codeMapping" status --short
+git -C "$HOME/codeMapping" pull --ff-only origin main
+```
 
-`codetrace/` (phase 7's tracer) needs Python and one pip package
-(`coverage`), installed into the target project's own environment —
-not a `uv run --with` overlay or equivalent. See
-`code-mapping/reference/dynamic-capture-python.md` #6 if unsure why.
+Cloning downloads files; it does not run a target command or upload a new flow.
+The agent carries out the mapping and publication instructions when asked.
+
+## 2. Prepare the target project and access
+
+- Clone or locate the repository you want to map on this PC. The menu checkout
+  is a separate repository containing the workflow and published pages.
+- Set up the target project's supported Python environment and dependencies.
+  Install `coverage` in that same environment, for example with
+  `python -m pip install coverage` after activating it. Do not use
+  `uv run --with coverage`; see the
+  [capture guidance](code-mapping/reference/dynamic-capture-python.md).
+- Obtain the datasets, model weights, checkpoints, and hardware required by the
+  selected commands. Cloning the menu does not copy the other PC's environments,
+  datasets, training checkpoints, or raw captures. Published pages already
+  contain their displayed source and sampled values.
+- For publication, configure Git authentication on this PC using an account
+  with write access to `4nddrs/codeMapping`, plus a Git commit name and email.
+  An agent needs working terminal and browser access to run the workflow and
+  verify delivery. Credentials are local setup, not files to commit.
+
+The bundled tracer handles Python commands. The target's operating system,
+native dependencies, GPU needs, and subprocess behavior may require additional
+setup; the agent must record any unsupported paths or unavailable prerequisites.
+
+## 3. Give the agent the task
+
+Replace `<TARGET_REPO_PATH>` below with the target project's actual location.
+This prompt explicitly authorizes the publication step:
+
+```text
+Use ~/codeMapping/code_flow_v2 to map the important commands in
+<TARGET_REPO_PATH>.
+
+Read code-mapping/SKILL.md, OBJECTIVE.md, QUICKSTART.md, and PUBLISHING.md
+inside that pack. Survey the repository's important command families, run
+representative real commands with documented bounds, and save a separate
+trace and navigator for each distinct flow. Record missing prerequisites
+and untested paths honestly.
+
+Use ~/codeMapping as the shared menu checkout. Group this repository's
+flows in one collapsed-by-default expandable section. Complete the local
+browser checks at localhost:8766. You are authorized to commit and push
+the intended mapping pages and menu changes to origin/main. Verify the
+new flows on https://roaring-kringle-be46b2.netlify.app/ and return the
+verified local and public URLs with any remaining blockers.
+```
+
+For one specific flow, replace the command survey with the exact command you
+want traced. For an existing mapping, give the saved trace path so the agent can
+rebuild its page without rerunning the target. Add `local only`, `data and
+documentation only`, or `do not publish` when that is the intended scope.
+
+Publication is part of the agent's workflow after authorization; it is not an
+unattended uploader. The existing Netlify site can deploy changes pushed to the
+shared repository, and the agent must check the public result rather than
+treating a successful push as proof of deployment.
+
+## 4. Use this PC's paths
+
+When the pack remains inside the cloned menu, `menu_card.py` can locate that
+checkout. If you copy the pack elsewhere, explicitly pass the menu directory to
+the helper, for example `--menu "$HOME/codeMapping"`. Paths mentioning
+`/mnt/sata1/andres/` in historical examples refer to the original PC; substitute
+the actual paths on this one.
+
+The agent should reuse a server already serving this menu on port 8766. To start
+one yourself, keep this command running in a terminal:
+
+```bash
+python3 -m http.server 8766 --bind 127.0.0.1 --directory "$HOME/codeMapping"
+```
+
+Open <http://localhost:8766/> on this PC. Each PC has its own localhost server;
+the shared public site remains <https://roaring-kringle-be46b2.netlify.app/>.
+See [PUBLISHING.md](PUBLISHING.md) for the complete menu, browser verification,
+Git push, and deployment procedure.
+
+## Optional project rule
+
+If your editor uses project rules, adapt
+[`rules/code-mapping.mdc.example`](rules/code-mapping.mdc.example) and set its
+pack path to the complete folder above. Copying only `SKILL.md` loses the phase
+guides, templates, and tools it references.
 
 ## Language
 
-All pack content is English. Produce mapping artifacts in English unless the user requests otherwise.
+All pack content is English. Produce mapping artifacts in English unless the
+user requests otherwise.

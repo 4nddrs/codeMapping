@@ -28,6 +28,20 @@ def fmt(n: int) -> str:
     return f"{n:,}"
 
 
+def default_menu():
+    # Prefer the checkout containing this pack, wherever it was cloned.
+    for parent in Path(__file__).resolve().parents:
+        if ((parent / "index.html").is_file()
+                and (parent / "projects").is_dir()
+                and (parent / "code_flow_v2" / "PUBLISHING.md").is_file()):
+            return str(parent)
+    # Preserve the standalone working pack's existing destination on linux3.
+    legacy = Path(MENU)
+    if (legacy / "index.html").is_file() and (legacy / "projects").is_dir():
+        return str(legacy)
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", required=True, help="codetrace output dir: call-tree.html + payload_call_tree.json")
@@ -40,10 +54,13 @@ def main() -> int:
     ap.add_argument("--fam", choices=FAMS, default="gap", help="stripe colour family")
     ap.add_argument("--result", default="", help="appended to the verdict, e.g. '9/12 picked'")
     ap.add_argument("--page", default="index.html", help="file name under projects/<slug>/")
-    ap.add_argument("--menu", default=MENU)
+    ap.add_argument("--menu", default=default_menu(),
+                    help="menu checkout (default: containing codeMapping clone, then existing linux3 checkout)")
     ap.add_argument("--copy", action="store_true", help="copy the page into the menu now")
     ap.add_argument("--force", action="store_true", help="overwrite an existing page")
     a = ap.parse_args()
+    if a.copy and not a.menu:
+        ap.error("--copy needs --menu /path/to/menuCodeMapping when the menu checkout cannot be located")
 
     out = Path(a.out)
     src = out / "call-tree.html"
@@ -96,8 +113,8 @@ def main() -> int:
     print("\n=== row — append to README.md's Sessions table\n")
     print(row)
 
-    index = Path(a.menu) / "index.html"
-    if index.exists():
+    index = Path(a.menu) / "index.html" if a.menu else None
+    if index is not None and index.exists():
         cur = dict(re.findall(r'<div class="tot"><b>([\d,]+)</b><span>([^<]+)</span></div>', index.read_text(encoding="utf-8")))
         cur = {label: int(v.replace(",", "")) for v, label in cur.items()}
         add = dict(zip(TOTALS, (1, t["functions"], t["calls"], t["executed"], t["lines"])))
@@ -123,8 +140,10 @@ def main() -> int:
         dst.write_text(page, encoding="utf-8")
         shutil.copymode(src, dst)
         print(f"\ncopied → {dst}  ({size_s})")
-    else:
+    elif a.menu:
         print(f"\n(page not copied; add --copy to place it at {Path(a.menu) / 'projects' / a.slug / a.page})")
+    else:
+        print("\n(page not copied; pass --menu /path/to/menuCodeMapping --copy to choose its destination)")
     return 0
 
 
