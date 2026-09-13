@@ -13,6 +13,14 @@ You get two standalone HTML pages, each an infinite zoomable canvas (scroll to p
 Arrows and coverage both come from **one real run** — not static analysis — so what
 you see is what happened, including dynamic dispatch, decorators and callbacks.
 
+Line highlights combine all invocations in that run. A function can take one
+return during training and another during inference, so both lines appear in
+whole-run coverage. Each call-site card groups repeated calls from one calling
+context; its outgoing arrows belong to that context. Call lines observed only
+on another card are muted and link to that other call site. They are not added
+as outgoing arrows on the current card. Per-invocation line coverage is not
+recorded by this tracer; captured value samples also have their own call scope.
+
 ## Install
 
 Copy the `codetrace/` folder into the root of your repo. One dependency:

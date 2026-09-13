@@ -615,7 +615,7 @@
             <h3 class="title"><span class="name">Cube VQ-BeT</span> <span class="slug">training</span></h3>
             <p class="what">Run cube dataset loading, real frozen image encoding, vq optimization, checkpoints, and simulator rollout. First two complete official demonstrations; one epoch bounded to two training/two validation batches; one full simulator rollout. Model architecture and sampling unchanged. Spawned physics internals are outside this parent trace.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py cube_vq --jobs docs/code_mapping/suite/jobs.json --gpu 1</code>
-            <p class="local">projects/patch_policy/cube_vq.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+            <p class="local">projects/patch_policy/cube_vq.html<span class="sep">/</span>1.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 85.5s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0</span>
@@ -783,7 +783,7 @@
             <h3 class="title"><span class="name">Model Resources</span> <span class="slug">resources</span></h3>
             <p class="what">Exercise the standalone parameter-counting and encoder-plus-policy inference measurement command using the saved VQ model. Official resources_test.py with config-path corrected to the existing configs directory; real simulator reset, loaded saved smoke model, 50 warmups and three measured calls in each timing loop. Instrumented timings are not performance benchmarks.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py resources_vq --jobs docs/code_mapping/suite/jobs.json --gpu 0</code>
-            <p class="local">projects/patch_policy/resources_vq.html<span class="sep">/</span>677 KB<span class="sep">/</span>entry <code>__main__</code> &middot; resources_test.py</p>
+            <p class="local">projects/patch_policy/resources_vq.html<span class="sep">/</span>689 KB<span class="sep">/</span>entry <code>__main__</code> &middot; resources_test.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 67.3s</span>
@@ -804,7 +804,7 @@
             <h3 class="title"><span class="name">DINOv2 Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 3 official DINOv2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. Fresh capture after extending inspector sampling to distinguish each config; prior evidence preserved. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dino_contexts --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_dino_contexts.html<span class="sep">/</span>522 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_dino_contexts.html<span class="sep">/</span>530 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 47.6s</span>
@@ -825,7 +825,7 @@
             <h3 class="title"><span class="name">ResNet-18 Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 2 official ResNet-18 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_resnet --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_resnet.html<span class="sep">/</span>514 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_resnet.html<span class="sep">/</span>522 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 45.5s</span>
@@ -846,7 +846,7 @@
             <h3 class="title"><span class="name">WebSSL Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 3 official WebSSL encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. Fresh capture after extending inspector sampling to distinguish each config; prior evidence preserved. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_webssl_contexts --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_webssl_contexts.html<span class="sep">/</span>529 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_webssl_contexts.html<span class="sep">/</span>537 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 92.1s</span>
@@ -867,7 +867,7 @@
             <h3 class="title"><span class="name">SigLIP2 Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 2 official SigLIP2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_siglip2 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_siglip2.html<span class="sep">/</span>521 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_siglip2.html<span class="sep">/</span>529 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 119.8s</span>
@@ -888,7 +888,7 @@
             <h3 class="title"><span class="name">V-JEPA 2 Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 2 official V-JEPA 2 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_vjepa2 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_vjepa2.html<span class="sep">/</span>520 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_vjepa2.html<span class="sep">/</span>528 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 108.2s</span>
@@ -909,7 +909,7 @@
             <h3 class="title"><span class="name">DINOv3 Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 3 official DINOv3 encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dinov3 --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_dinov3.html<span class="sep">/</span>519 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_dinov3.html<span class="sep">/</span>526 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">FAILED · exit 1 · 50.0s · OSError(&#x27;You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/facebook/dinov3-vits16plus-pretrain-lvd1689m.\n403 Cli</span>
@@ -930,7 +930,7 @@
             <h3 class="title"><span class="name">DynaMo checkpoint configuration Encoders</span> <span class="slug">encoder</span></h3>
             <p class="what">Exercise 4 official DynaMo checkpoint configuration encoder configs on two real PushT frames and verify actual output shapes and finite values; preserve configuration/checkpoint failures. One command per encoder family; unchanged constructors and forwards with real pretrained weights (or the explicitly random ResNet baseline). GPU 0, evaluation mode, no gradients; patch, average-pool, and CLS variants where supplied.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py encoders_dynamo --jobs docs/code_mapping/suite/jobs_encoders.json --gpu 0</code>
-            <p class="local">projects/patch_policy/encoders_dynamo.html<span class="sep">/</span>511 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
+            <p class="local">projects/patch_policy/encoders_dynamo.html<span class="sep">/</span>519 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/encoder_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">FAILED · exit 1 · 43.1s</span>
@@ -951,7 +951,7 @@
             <h3 class="title"><span class="name">PushT Simulator</span> <span class="slug">simulator</span></h3>
             <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. Official pusht wrapper and configured environment, seeded 42; one reset and three explicit zero actions; actual observations, rewards, done flags and state info recorded. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
-            <p class="local">projects/patch_policy/pusht_simulator_v2.html<span class="sep">/</span>712 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+            <p class="local">projects/patch_policy/pusht_simulator_v2.html<span class="sep">/</span>724 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 23.3s</span>
@@ -972,7 +972,7 @@
             <h3 class="title"><span class="name">Block Push Simulator</span> <span class="slug">simulator</span></h3>
             <p class="what">Expose actual simulator initialization, reset, physics-facing stepping, image rendering, and reward construction in a same-process Python trace. This is diagnosis with explicit zero actions, not a policy rollout. Official blockpush wrapper and configured environment, seeded 42; one reset and three explicit zero actions; actual observations, rewards, done flags and state info recorded. Repository environment Python is included; native MuJoCo/Bullet/Pymunk and dependency internals remain outside source coverage.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py blockpush_simulator_v2 --jobs docs/code_mapping/suite/jobs_environments.json --gpu 1</code>
-            <p class="local">projects/patch_policy/blockpush_simulator_v2.html<span class="sep">/</span>807 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
+            <p class="local">projects/patch_policy/blockpush_simulator_v2.html<span class="sep">/</span>821 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/environment_probe.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 26.5s</span>
@@ -1035,7 +1035,7 @@
             <h3 class="title"><span class="name">Cube Episode Video Export</span> <span class="slug">utility</span></h3>
             <p class="what">Run the official stored-episode export command: load the first real Cube .pth demonstration, normalize image frames and encode an H.264 video. utils/evaluate_episode.py --episode 1 uses its one-based CLI to select official obses/episode_00000.pth; all 154 frames exported at 30fps. This command exports a recorded demonstration; it does not evaluate a policy.</p>
             <code class="cmd">python docs/code_mapping/suite/run_job.py cube_video_export --jobs docs/code_mapping/suite/jobs_utilities.json --gpu 1</code>
-            <p class="local">projects/patch_policy/cube_video_export.html<span class="sep">/</span>493 KB<span class="sep">/</span>entry <code>__main__</code> &middot; utils/evaluate_episode.py</p>
+            <p class="local">projects/patch_policy/cube_video_export.html<span class="sep">/</span>501 KB<span class="sep">/</span>entry <code>__main__</code> &middot; utils/evaluate_episode.py</p>
           </div>
           <div class="metrics">
             <span class="verdict">SUCCESS · exit 0 · 8.1s</span>
@@ -1096,6 +1096,10 @@
 </div>
 </details>
 <!-- PATCH_POLICY_SUITE_END -->
+
+
+
+
 
 
 

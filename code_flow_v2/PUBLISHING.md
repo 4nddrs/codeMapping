@@ -172,6 +172,14 @@ deployment. Use a browser or browser automation against the actual served URLs.
 5. Check for JavaScript errors and compare the served embedded payload with
    the rendered payload, allowing documented title changes. A successful HTTP
    response or matching JSON alone does not establish working controls.
+6. For functions with different branches across calling contexts, check the
+   scope of the highlights against the actual call edges. Whole-run coverage
+   can include mutually exclusive returns from separate invocations; never
+   present it as a single invocation's path. A call observed only on another
+   call-site card must be distinguished and navigable as another context, not
+   added as an outgoing arrow on the current card. Exercise that context link,
+   the genuine callee arrow, and Back. A single repeated call-site group can
+   legitimately contain both branches when separate invocations took them.
 
 Save the check results as described below. If browser verification is unavailable,
 record that limitation rather than claiming the UI was verified.
