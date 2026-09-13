@@ -733,4 +733,5 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
         "nodes": [nodes[i] for i in sorted(nodes)],
         "edges": edges,
         "workflow": _workflow_from_important(important, nodes),
+        "modules": cg.get("modules") or {},
     }

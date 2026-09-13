@@ -501,6 +501,8 @@
   .vals .sec.io { text-transform: none; letter-spacing: 0; font-size: 17px; color: var(--ink); }
   .vals .sec.io span { color: var(--faint); font-weight: 400; font-size: 14px; margin-left: 10px; }
   .vals .vr.ctx { white-space: normal; padding-top: 8px; font-size: 16px; }
+  /* faint shape hint after a line that assigns a tensor */
+  .row .shint { flex: 0 0 auto; margin-left: 12px; color: var(--faint); font-size: 10.5px; white-space: nowrap; }
 
   .k { color: var(--kw); } .s { color: var(--str); } .c { color: var(--com); font-style: italic; } .nm { color: var(--num); } .d { color: var(--def); font-weight: 600; }
 
@@ -1389,7 +1391,7 @@
         wholeRunCoverage(n) && s.ex[ln] ? "Executed somewhere in the whole run; this color is not per-invocation coverage." : "";
       if (s.innov[ln] !== undefined) lineTitle = attr(((D.innovation && D.innovation.label) || "Innovation") + (s.innov[ln] ? ": " + s.innov[ln] : "")) + (lineTitle ? " — " + lineTitle : "");
       buf.push('<div class="row ' + cls + (isRet ? " ret" : "") + '" data-l="' + ln + '" title="' + lineTitle + '" style="top:' + (i * LH) + 'px"><span class="num">' + ln +
-        '</span><span class="src">' + (n._lines[i] ? hl(n._lines[i], links) : " ") + "</span>" + chips + "</div>");
+        '</span><span class="src">' + (n._lines[i] ? hl(n._lines[i], links) : " ") + "</span>" + chips + shapeHint(n, i) + "</div>");
     }
     n.txtEl.innerHTML = buf.join("");
     // Keep every measured destination usable when source + chips exceed a
@@ -1899,7 +1901,7 @@
     if (e.target.id === "stagebtn" || (e.target.closest && e.target.closest(".stagepick"))) return;
     if (e.target.closest && e.target.closest(".contextlink")) return;
     if (e.target.closest && e.target.closest(".vals summary") && (e.key === "Enter" || e.key === " ")) return;   // Enter/Space open a value row
-    if (e.target.closest && e.target.closest('.callsmore, .calleetarget')) {
+    if (e.target.closest && e.target.closest('.callsmore, .calleetarget, .sibvals')) {
       if (e.key === 'Escape') { e.preventDefault();hideVals(); }
       return; // Enter/Space activate the focused native button
     }
@@ -2076,12 +2078,29 @@
   // type for objects, the value itself for scalars. Statistics, fields, where
   // the value was sampled and any change strip open on click (native <details>,
   // so Enter and Space work as well).
+  // An nn.Module value has a "module" key into D.modules, which holds each module
+  // once: class, extra_repr, parameter shapes, children, observed shapes.
+  function modInfo(v) { return v && v.module && D.modules ? D.modules[v.module] || null : null; }
+  function modValue(key) { var m = D.modules && D.modules[key]; return m ? { t: m.t, module: key } : null; }
+  function fmtShape(s) {
+    if (Array.isArray(s) && s.every(function (x) { return typeof x === "number"; })) return "(" + s.join(", ") + ")";
+    if (Array.isArray(s)) return s.map(fmtShape).join(", ");
+    if (s && typeof s === "object") return "{" + Object.keys(s).map(function (k) { return k + ": " + fmtShape(s[k]); }).join(", ") + "}";
+    return String(s);
+  }
   function valSummary(v) {
     if (!v) return '<span class="vd">?</span>';
     if (v.shape) return '<span class="vs">(' + v.shape.join(", ") + ')</span> <span class="vt">(' + esc(v.dtype) + ')</span>' +
       (v.kind === "param" ? ' <span class="wt">learned</span>' : v.kind === "buffer" ? ' <span class="wt buf">buffer</span>' : "") +
       (v.grad ? ' <span class="wt g">grad</span>' : "") +
       (v.device ? ' <span class="vd">' + esc(v.device) + "</span>" : "") + (v.head ? '  <span class="vv">' + esc(fmtHead(v.head)) + "</span>" : "");
+    var mi = modInfo(v);
+    if (mi) {                                        // Sequential 4 submodules  (8, 5, 512) → (8, 5, 128)
+      var nk = Object.keys(mi.children || {}).length + (mi.more_children || 0), c0 = mi.calls && mi.calls[0];
+      return '<span class="vt">' + esc(mi.t) + "</span>" +
+        (mi.extra ? ' <span class="vd">(' + esc(mi.extra) + ")</span>" : nk ? ' <span class="vd">' + nk + " submodule" + (nk === 1 ? "" : "s") + "</span>" : "") +
+        (c0 ? '  <span class="vv">' + esc(fmtShape(c0.in)) + " → " + esc(fmtShape(c0.out)) + "</span>" : "");
+    }
     if (v.items || (v.head && v.t !== "str")) return '<span class="vt">' + esc(v.t) + "[" + (v.n == null ? "?" : v.n) + "]</span>";
     if (v.fields || v.attrs || v.params) {
       var pn = Object.keys(v.params || {}).length;
@@ -2094,6 +2113,18 @@
   }
   function valDetails(v, depth, out) {
     if (!v) return;
+    var mi = modInfo(v);
+    if (mi && depth < 16) {                          // submodules, parameter shapes, observed calls
+      Object.keys(mi.children || {}).forEach(function (name) { valRow(name, modValue(mi.children[name]), depth, out); });
+      if (mi.more_children) out.push(vrow(depth, "…", ' <span class="vd">+' + mi.more_children + " more submodules</span>"));
+      if (!v.params) Object.keys(mi.params || {}).forEach(function (name) {
+        out.push(vrow(depth, name, ' = <span class="vs">' + esc(fmtShape(mi.params[name])) + "</span>"));
+      });
+      (mi.calls || []).forEach(function (c, i) {
+        out.push(vrow(depth, i ? "also observed" : "observed call", ': <span class="vv">' + esc(fmtShape(c.in)) + " → " + esc(fmtShape(c.out)) + "</span>"));
+      });
+      if (mi.n_params != null) out.push(vrow(depth, "parameters", ' = <span class="vv">' + esc(Number(mi.n_params).toLocaleString()) + "</span>"));
+    }
     if (v.shape) {
       if (v.stats_scope !== undefined) out.push(vrow(depth, "statistics scope", ': <span class="vv">' + esc(v.stats_scope) +
         " · " + esc(v.stats_elements) + " / " + esc(v.size) + " elements</span>"));
@@ -2112,7 +2143,7 @@
       // computation just as much as the arguments are.
       pk.forEach(function (k) { valRow(k, v.params[k], depth, out); });
       kk.forEach(function (k) { valRow(k, kv[k], depth, out); });
-      if (!kk.length && !pk.length) out.push(vrow(depth, "", '<span class="vd">(no public attributes)</span>'));
+      if (!kk.length && !pk.length && !mi) out.push(vrow(depth, "", '<span class="vd">(no public attributes)</span>'));
     } else if (v.t === "str" && v.n != null) {
       out.push(vrow(depth, "length", ' = <span class="vv">' + esc(v.n) + "</span>"));
     }
@@ -2131,31 +2162,42 @@
       '<span class="vk">' + esc(name) + "</span> = " + valSummary(v) + "</" + tag + ">";
     out.push(inner.length ? '<details class="vx"><summary>' + line + "</summary>" + inner.join("") + "</details>" : line);
   }
-  // Scan one line outside strings and comments. Returns the bracket depth after
-  // it, the text before any comment, and the depth-0 positions of `=` that assign
+  // Scan one line. `st` is the state after the previous line, {depth, tq}, with tq
+  // the delimiter of a triple-quoted string still open (or null for none). Returns
+  // the state after this line, its code with string contents blanked and any
+  // comment cut (same offsets), and the depth-0 positions of `=` that assign
   // (not `==`, `!=`, `<=`, `>=`, `:=`; `<<=` and `>>=` do assign).
-  function scanLine(text, depth0) {
-    var depth = depth0 || 0, q = null, eqs = [], cut = text.length;
-    for (var i = 0; i < text.length; i++) {
+  function scanLine(text, st) {
+    var depth = (st && st.depth) || 0, tq = (st && st.tq) || null, q = null, eqs = [], code = "", i = 0;
+    while (i < text.length) {
       var c = text[i];
-      if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
-      if (c === '"' || c === "'") q = c;
-      else if (c === "#") { cut = i; break; }
-      else if (c === "(" || c === "[" || c === "{") depth++;
+      if (tq) {
+        if (text.substr(i, 3) === tq) { tq = null; code += "   "; i += 3; } else { code += " "; i++; }
+        continue;
+      }
+      if (q) {
+        if (c === "\\") { code += text.substr(i, 2).replace(/[\s\S]/g, " "); i += 2; continue; }
+        if (c === q) q = null;
+        code += " "; i++; continue;
+      }
+      if ((c === '"' || c === "'") && text.substr(i, 3) === c + c + c) { tq = c + c + c; code += "   "; i += 3; continue; }
+      if (c === '"' || c === "'") { q = c; code += " "; i++; continue; }
+      if (c === "#") break;
+      if (c === "(" || c === "[" || c === "{") depth++;
       else if (c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
       else if (c === "=" && depth === 0 && text[i + 1] !== "=" &&
                ("=!<>:".indexOf(text[i - 1]) < 0 || /(<<|>>)$/.test(text.slice(0, i)))) eqs.push(i);
+      code += c; i++;
     }
-    return { depth: depth, code: text.slice(0, cut), eqs: eqs };
+    return { depth: depth, tq: tq, code: code, eqs: eqs };
   }
-  // First depth-0 `:` outside strings (a compound header's end), or -1.
+  function contState(st) { return !!(st && (st.depth > 0 || st.tq)); }   // the line continues an earlier one
+  // First depth-0 `:` (a compound header's end), or -1. Expects code with strings blanked.
   function headerColon(text) {
-    var depth = 0, q = null;
+    var depth = 0;
     for (var i = 0; i < text.length; i++) {
       var c = text[i];
-      if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
-      if (c === '"' || c === "'") q = c;
-      else if (c === "(" || c === "[" || c === "{") depth++;
+      if (c === "(" || c === "[" || c === "{") depth++;
       else if (c === ")" || c === "]" || c === "}") depth--;
       else if (c === ":" && depth === 0 && text[i + 1] !== "=") return i;
     }
@@ -2179,14 +2221,14 @@
     return { bare: bare.replace(/^(\s*[A-Za-z_][\w.]*)\s*:.*$/, "$1"), subs: subs };
   }
   // Split one source line into the text it assigns and the text it reads, for the
-  // #output / #input groups. `depth0` is the bracket depth carried in from earlier
-  // lines: a continuation line (`name=value,` inside a call) only reads. Handles
-  // `a = b = …`, `a, b = …`, `x += …`, `x: T = …`, `d[k] = …`, walrus, `for … in …:`,
-  // `with … as a, … as b:`, `return …`, and a compound header with a body on the
-  // same line (`if x: y = f(x)`).
-  function splitAssign(text, depth0) {
-    var sc = scanLine(text, depth0), m;
-    if (depth0 > 0) return { writes: "", reads: sc.code, cont: true };
+  // #output / #input groups. `st` is the scan state before the line: a line that
+  // continues brackets only reads, one inside a triple-quoted string is text.
+  // Handles `a = b = …`, `a, b = …`, `x += …`, `x: T = …`, `d[k] = …`, walrus,
+  // `for … in …:`, `with … as a, … as b:`, `return …`, and a compound header with
+  // a body on the same line (`if x: y = f(x)`).
+  function splitAssign(text, st) {
+    var sc = scanLine(text, st), m;
+    if (contState(st)) return { writes: "", reads: st.tq ? "" : sc.code, cont: true };
     var walrus = [], wre = /([A-Za-z_]\w*)\s*:=/g, wm;
     while ((wm = wre.exec(sc.code))) walrus.push(wm[1]);
     var s = sc.code.replace(/([A-Za-z_]\w*)\s*:=/g, " ");
@@ -2196,12 +2238,12 @@
       return r;
     };
     var body = function (header, rest) {        // header reads + whatever the same-line body does
-      var inner = rest.trim() ? splitAssign(rest, 0) : { writes: "", reads: "" };
+      var inner = rest.trim() ? splitAssign(rest, null) : { writes: "", reads: "" };
       return join(inner.writes, header + " " + inner.reads, inner.ret ? { ret: true } : null);
     };
     if ((m = /^\s*(?:async\s+)?for\s+(.+?)\s+in\s+(.+)$/.exec(s))) {
       var fc = headerColon(m[2]), iter = fc >= 0 ? m[2].slice(0, fc) : m[2];
-      var inner = fc >= 0 && m[2].slice(fc + 1).trim() ? splitAssign(m[2].slice(fc + 1), 0) : { writes: "", reads: "" };
+      var inner = fc >= 0 && m[2].slice(fc + 1).trim() ? splitAssign(m[2].slice(fc + 1), null) : { writes: "", reads: "" };
       return join(m[1] + (inner.writes ? ", " + inner.writes : ""), iter + " " + inner.reads);
     }
     if ((m = /^\s*(?:async\s+)?with\s+(.+)$/.exec(s))) {
@@ -2210,7 +2252,7 @@
         var am = /^(.*)\s+as\s+(.+)$/.exec(item);
         if (am) { writes.push(am[2]); reads.push(am[1]); } else reads.push(item);
       });
-      var wb = wc >= 0 && m[1].slice(wc + 1).trim() ? splitAssign(m[1].slice(wc + 1), 0) : { writes: "", reads: "" };
+      var wb = wc >= 0 && m[1].slice(wc + 1).trim() ? splitAssign(m[1].slice(wc + 1), null) : { writes: "", reads: "" };
       return join(writes.concat(wb.writes ? [wb.writes] : []).join(", "), reads.join(" ") + " " + wb.reads);
     }
     if ((m = /^\s*(?:(?:el)?if|while|except)\b(.*)$/.exec(s)) || (m = /^\s*(?:else|try|finally)\s*(:.*)$/.exec(s))) {
@@ -2218,7 +2260,7 @@
       return hc >= 0 ? body(m[1].slice(0, hc), m[1].slice(hc + 1)) : join("", m[1]);
     }
     if ((m = /^\s*return\b(.*)$/.exec(s))) return join("", m[1], { ret: true });
-    var eqs = scanLine(s, 0).eqs;
+    var eqs = scanLine(s, null).eqs;
     if (!eqs.length) return join("", s);
     var rhs = s.slice(eqs[eqs.length - 1] + 1), bares = [], subs = "", aug = false;
     eqs.forEach(function (pos, i) {
@@ -2233,6 +2275,110 @@
       subs += " " + t.subs;
     });
     return join(bares.join(", "), rhs + " " + subs + (aug ? " " + bares[bares.length - 1] : ""));
+  }
+  // Names bound by comprehensions on a line (they run inline on Python 3.12+, so a
+  // step there can hold the loop variable under an outer name).
+  function compNames(code) {
+    var out = {}, re = /\bfor\s+([A-Za-z_][\w\s,()]*?)\s+in\b/g, m;
+    while ((m = re.exec(code))) {
+      if (!/\S/.test(code.slice(0, m.index))) continue;       // a for statement, not a comprehension
+      (m[1].match(/[A-Za-z_]\w*/g) || []).forEach(function (x) { out[x] = 1; });
+    }
+    return out;
+  }
+  // Per card, computed once: the scan state before each line, the lines that assign
+  // each name (and name.attr), the lines that change one in place (`x.add_()`,
+  // `.append()`, `out=x`), loop spans, and the lines of nested defs and classes.
+  function cardInfo(n) {
+    if (n._ci) return n._ci;
+    var ci = { state: [], code: [], writes: {}, mutates: {}, loops: [], nested: {} }, st = null, loops = [], defs = [];
+    var add = function (map, key, ln) { var a = map[key] = map[key] || []; if (a[a.length - 1] !== ln) a.push(ln); };
+    var inplace = /([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\.\s*(?:append|extend|insert|update|setdefault|pop|popitem|clear|remove|discard|add|sort|reverse|[a-z]\w*_)\s*\(|\bout\s*=\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)/g;
+    n._lines.forEach(function (raw, k) {
+      var txt = raw || "", ln = n.start + k, sc = scanLine(txt, st);
+      ci.state.push(st);
+      ci.code.push(sc.code);
+      if (ln > n.def && !contState(st) && sc.code.trim()) {
+        var ind = txt.search(/\S/);
+        while (loops.length && ind <= loops[loops.length - 1].indent) { var lp = loops.pop(); lp.end = ln - 1; ci.loops.push(lp); }
+        while (defs.length && ind <= defs[defs.length - 1]) defs.pop();
+        if (defs.length) ci.nested[ln] = true;
+        idsOnLine(splitAssign(txt, st).writes).forEach(function (w) {
+          add(ci.writes, w.base + (w.path.length ? "." + w.path[0] : ""), ln);   // `self.x = …` changes self.x, not every read of self
+        });
+        if (/^\s*(?:async\s+)?(?:for|while)\b/.test(sc.code)) loops.push({ start: ln, indent: ind, end: n.end });
+        if (/^\s*(?:async\s+def|def|class)\b/.test(sc.code)) defs.push(ind);
+      } else if (ln > n.def && defs.length) ci.nested[ln] = true;
+      if (ln > n.def) {
+        var m;
+        inplace.lastIndex = 0;
+        while ((m = inplace.exec(sc.code))) {
+          var parts = (m[1] || m[2]).split(".");
+          if (parts.length > 1) add(ci.mutates, parts[0] + "." + parts[1], ln);
+          if (parts.length === 1 || (parts[0] !== "self" && parts[0] !== "cls")) add(ci.mutates, parts[0], ln);
+        }
+      }
+      st = sc;
+    });
+    loops.forEach(function (lp) { ci.loops.push(lp); });
+    ci.next = [];                                    // line of the next statement after index k
+    for (var k = n._lines.length - 1, nxt = n.end + 1; k >= 0; k--) {
+      ci.next[k] = nxt;
+      if (!contState(ci.state[k]) && ci.code[k].trim()) nxt = n.start + k;
+    }
+    return (n._ci = ci);
+  }
+  function nextStatement(n, k) { return cardInfo(n).next[k]; }
+  function ranIn(lines, lo, hi) {
+    return (lines || []).some(function (l) { return l >= lo && l <= hi; });
+  }
+  // Some line in `lines` within [lo, hi] whose statement ran in this sample (all of
+  // them when the sample has no line record): a branch that did not run changed nothing.
+  function hitIn(n, sample, lines, lo, hi) {
+    var ex = sample && sample.executed_lines, ci = cardInfo(n);
+    return (lines || []).some(function (l) {
+      return l >= lo && l <= hi && (!ex || !ex.length || ranIn(ex, l, ci.next[l - n.start] - 1));
+    });
+  }
+  // A name's recorded values in one sample: argument, steps at calls, exit. The exit
+  // snapshot is kept even when it looks like the last step (the only value after it),
+  // and steps on comprehension lines other than `line` are dropped.
+  function nameTimeline(n, sample, base, line) {
+    var ci = cardInfo(n), tl = valTimeline(sample, base);
+    if (sample.locals && sample.locals[base] !== undefined && (!tl.length || tl[tl.length - 1].at !== "exit"))
+      tl = tl.concat([{ at: "exit", line: null, v: sample.locals[base] }]);
+    return tl.filter(function (pt) {
+      var kk = pt.at === "line" ? pt.line - n.start : -1;
+      return !(kk >= 0 && pt.line !== line && kk < ci.code.length && compNames(ci.code[kk])[base]);
+    });
+  }
+  // Faint "name (shape)" after a line that assigns a tensor, from the card's first
+  // sample: the value right after the statement, shown only when no loop surrounds
+  // the line and no line that ran assigns or changes the name before that snapshot.
+  function shapeHint(n, k) {
+    var cache = n._hints || (n._hints = {});
+    if (k in cache) return cache[k];
+    var sample = n.samples && n.samples[0], ln = n.start + k, html = "";
+    cache[k] = "";
+    if (!sample || n.boundary || ln <= n.def) return "";
+    var ci = cardInfo(n), st = ci.state[k];
+    if (contState(st) || ci.nested[ln] || !ci.code[k].trim()) return "";
+    if (ci.loops.some(function (lp) { return lp.start <= ln && ln <= lp.end; })) return "";
+    var next = nextStatement(n, k);
+    if (sample.executed_lines && sample.executed_lines.length && !ranIn(sample.executed_lines, ln, next - 1)) return "";
+    var bits = [];
+    idsOnLine(splitAssign(n._lines[k] || "", st).writes).forEach(function (w) {
+      if (w.path.length || bits.length >= 2) return;
+      var tl = nameTimeline(n, sample, w.base, ln), before = -1, pt = null;
+      tl.forEach(function (p, i) { if (p.at === "entry" || (p.at === "line" && p.line <= ln)) before = i; });
+      for (var i = before + 1; i < tl.length; i++) if (tl[i].at === "exit" || tl[i].line >= next) { pt = tl[i]; break; }
+      if (!pt || !pt.v || !pt.v.shape) return;
+      var hi = pt.at === "exit" ? n.end : pt.line - 1;
+      if (hitIn(n, sample, ci.writes[w.base], ln + 1, hi) || hitIn(n, sample, ci.mutates[w.base], ln + 1, hi)) return;
+      bits.push(esc(w.base) + " " + esc(fmtShape(pt.v.shape)));
+    });
+    if (bits.length) html = '<span class="shint" title="shape right after this line, in the first sampled call">' + bits.join("   ") + "</span>";
+    return (cache[k] = html);
   }
   // Resolve the LONGEST prefix of `path` that actually exists on `v`.
   // A source line like `self.cog_emb.to(x).unsqueeze(0)` yields the path
@@ -2254,6 +2400,8 @@
     for (var i = 0; i < path.length && v; i++) {
       var k = path[i], box = v.items || v.fields || v.attrs || v.params;
       if (box && !(k in box) && v.params && k in v.params) box = v.params;
+      var kids = (!box || !(k in box)) && v.module && D.modules && D.modules[v.module] && D.modules[v.module].children;
+      if (kids && k in kids) { v = modValue(kids[k]); continue; }   // `self.encoder`: a submodule
       if (!box || !(k in box)) return null;
       v = box[k];
     }
@@ -2334,7 +2482,7 @@
       '<button class="x" data-v="close">×</button></div>');
     if (!N) {
       // Values are kept per call-site card, for its first calls; point to the cards that have them.
-      var sibs = nodes.filter(function (o) { return o !== n && o.file === n.file && o.name === n.name && o.samples && o.samples.length; });
+      var sibs = nodes.filter(function (o) { return o !== n && o.file === n.file && o.name === n.name && o.def === n.def && o.samples && o.samples.length; });
       html.push('<div class="empty">No values were recorded on this card.' + (sibs.length ?
         " This function has values at " + sibs.length + " other call site" + (sibs.length === 1 ? "" : "s") + ":" :
         "<br>Values are sampled on the first calls at each call site; re-run without <b>--no-values</b> if you passed it.") + "</div>");
@@ -2355,31 +2503,20 @@
       if (line && !all && !isDef) {
         // #output: what this line assigns (or returns), valued after it runs.
         // #input: what it reads, valued as it starts. Every row opens on click.
-        var depth0 = 0;
-        for (var li = 0; li < line - n.start; li++) depth0 = scanLine(n._lines[li] || "", depth0).depth;
-        var parts = splitAssign(text, depth0), outs = [], ins = [], seenOut = {}, seenIn = {};
-        // Lines of this card that assign each name. A snapshot taken on the other side of
-        // one of them is not this line's value, so such a row says when it was taken.
-        var writesAt = {}, scanDepth = 0;
-        n._lines.forEach(function (txt, k) {
-          if (n.start + k > n.def) idsOnLine(splitAssign(txt || "", scanDepth).writes).forEach(function (w) {
-            var key = w.base + (w.path.length ? "." + w.path[0] : "");   // `self.x = …` changes self.x, not every read of self
-            (writesAt[key] = writesAt[key] || []).push(n.start + k);
-          });
-          scanDepth = scanLine(txt || "", scanDepth).depth;
-        });
-        var writtenIn = function (base, lo, hi) {        // assigned on a line in [lo, hi]
-          return (writesAt[base] || []).some(function (l) { return l >= lo && l <= hi; });
+        var ci = cardInfo(n), k0 = line - n.start, st0 = ci.state[k0] || null;
+        var parts = splitAssign(text, st0), outs = [], ins = [], seenOut = {}, seenIn = {};
+        // A snapshot taken on the other side of a line that assigns or changes the
+        // name is not this line's value, so such a row says when it was taken.
+        var keyIn = function (map, base, path, lo, hi) {   // the name itself, or the attribute shown
+          return hitIn(n, sample, map[base], lo, hi) || (path.length > 0 && hitIn(n, sample, map[base + "." + path[0]], lo, hi));
         };
-        var keyIn = function (base, path, lo, hi) {         // the name itself, or the attribute shown, assigned in [lo, hi]
-          return writtenIn(base, lo, hi) || (path.length > 0 && writtenIn(base + "." + path[0], lo, hi));
+        var changedIn = function (base, path, lo, hi) {    // changed in place: exactly the value shown
+          if (!path.length && (base === "self" || base === "cls")) return false;
+          return hitIn(n, sample, ci.mutates[base + (path.length ? "." + path[0] : "")], lo, hi);
         };
-        var nextStmt = n.end + 1, sd = scanLine(text, depth0).depth;
-        for (var ni = line + 1 - n.start; ni < n._lines.length; ni++) {
-          var nt = n._lines[ni] || "";
-          if (sd === 0 && nt.trim() && !/^\s*#/.test(nt)) { nextStmt = n.start + ni; break; }
-          sd = scanLine(nt, sd).depth;
-        }
+        var loop = null;                                   // outermost loop around this line: its body may run again
+        ci.loops.forEach(function (lp) { if (lp.start <= line && line <= lp.end && (!loop || lp.start < loop.start)) loop = lp; });
+        var nextStmt = nextStatement(n, k0);
         var when = function (pt) {
           return pt.at === "entry" ? "at call entry" : pt.at === "exit" ? "at function exit" : "during line " + pt.line;
         };
@@ -2388,26 +2525,36 @@
             pt.at === "exit" ? "at function exit" + (snapshotsOnly ? " (values between lines were not captured)" : "") :
             "during line " + pt.line + " (at a call it made)") + "</span>");
         };
-        var strip = function (label, pts, at, out) {   // change strip, marking the point shown
+        var strip = function (label, pts, at, out) {   // change strip, marking the point shown; none if nothing changed
           var kept = [], cur = -1;
           pts.forEach(function (pt, i) { if (pt.v) { if (i === at) cur = kept.length; kept.push(pt); } });
-          renderTimeline(label, kept, cur, out);
+          var first = kept.length ? JSON.stringify(kept[0].v) : "";
+          if (kept.some(function (pt) { return JSON.stringify(pt.v) !== first; })) renderTimeline(label, kept, cur, out);
+        };
+        var mutable = function (v) {
+          return !!v && typeof v === "object" && !v.module && v.t !== "str" && !!(v.shape || v.items || v.head || v.attrs || v.fields);
         };
         var addId = function (id, write, rows, seen) {
-          var tl = valTimeline(sample, id.base);
-          // valTimeline drops an exit snapshot that looks like the last step (same
-          // type/shape); keep it here, it is the only value after the last step.
-          if (sample.locals && sample.locals[id.base] !== undefined && (!tl.length || tl[tl.length - 1].at !== "exit"))
-            tl = tl.concat([{ at: "exit", line: null, v: sample.locals[id.base] }]);
+          var tl = nameTimeline(n, sample, id.base, line);
           if (!tl.length) return;
           var before = -1, after = -1;
           tl.forEach(function (pt, i) { if (pt.at === "entry" || (pt.at === "line" && pt.line <= line)) before = i; });
           for (var i = before + 1; i < tl.length; i++) {
-            if (tl[i].at === "exit" || tl[i].line > line) { after = i; break; }
+            // a write is valued after its whole statement, not at a call on its own continuation lines
+            if (tl[i].at === "exit" || tl[i].line >= (write ? nextStmt : line + 1)) { after = i; break; }
           }
           var pick = write ? after : before;
-          // a step taken during an earlier line that assigns the name holds its value from before that assignment
-          if (!write && pick >= 0 && tl[pick].at === "line" && tl[pick].line < line && keyIn(id.base, id.path, tl[pick].line, line - 1)) pick = after;
+          // the part of `x.attr.method` that is a value (`t.sum()` reads t), as the rows below resolve it
+          var bp = pick >= 0 ? id.path.slice(0, digPrefix(tl[pick].v, id.path).depth) : id.path;
+          // a step taken during an earlier line that assigns or changes the name holds its value from before that
+          if (!write && pick >= 0 && tl[pick].at === "line" && tl[pick].line < line &&
+              (keyIn(ci.writes, id.base, bp, tl[pick].line, line - 1) || changedIn(id.base, bp, tl[pick].line, line - 1))) pick = after;
+          // an argument changed by an earlier line (`t.add_(1)`): the next snapshot in this loop pass is
+          // this line's value when nothing from this line up to that snapshot assigns or changes it
+          if (!write && pick >= 0 && tl[pick].at === "entry" && after >= 0 && tl[after].at === "line" &&
+              (!loop || tl[after].line <= loop.end) &&
+              (keyIn(ci.writes, id.base, bp, n.def + 1, line - 1) || changedIn(id.base, bp, n.def + 1, line - 1)) &&
+              !keyIn(ci.writes, id.base, bp, line, tl[after].line - 1) && !changedIn(id.base, bp, line, tl[after].line - 1)) pick = after;
           if (pick < 0) {
             if (write || tl[0].at !== "exit") return;   // never show a later value as this line's input
             pick = 0;
@@ -2415,10 +2562,17 @@
           var point = tl[pick];
           // resolve `self.x` on the point actually shown, so writes keep their attribute
           var usePath = id.path.slice(0, digPrefix(point.v, id.path).depth);
-          var upto = point.at === "exit" ? n.end : point.at === "entry" ? n.def : point.line - 1;
-          var stale = write ? keyIn(id.base, usePath, line + 1, upto)
-                            : point.at === "entry" ? keyIn(id.base, usePath, n.def + 1, line - 1)
-                            : upto >= line ? keyIn(id.base, usePath, line, upto) : false;
+          // the lines that may run between this line and the snapshot shown
+          var lo, hi, later = point.at === "exit" || (point.at === "line" && point.line > line);
+          if (point.at === "entry") { lo = n.def + 1; hi = line - 1; }
+          else if (later) { lo = write ? line + 1 : line; hi = point.at === "exit" ? n.end : point.line - 1; }
+          else { lo = point.line; hi = line - 1; }
+          // a snapshot outside the loop (entry, exit, after it) spans further iterations of its whole body
+          if (loop && (point.at !== "line" || point.line < loop.start || point.line > loop.end)) {
+            lo = Math.min(lo, loop.start); hi = Math.max(hi, loop.end);
+          }
+          var stale = keyIn(ci.writes, id.base, usePath, lo, hi) ||
+                      (mutable(point.v) && changedIn(id.base, usePath, write ? Math.max(lo, line + 1) : lo, hi));
           var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
           if (seen[label]) return;                      // `x.foo` and `x.bar()` both -> `x`
           seen[label] = 1;
@@ -2431,20 +2585,32 @@
           strip(label, pts, pick, extra);
           valRow(label + (stale ? " (" + when(point) + ")" : ""), pts[pick].v, 0, rows, extra);
           shown++;
-          // changed in place by this very line (`grow(items)`): the change is recorded at the next statement
-          if (changed && tl[after].at === "line" && tl[after].line <= nextStmt && !keyIn(id.base, usePath, line + 1, tl[after].line - 1)) {
+          // changed in place by this very line (`grow(items)`): recorded at a call of the
+          // next statement, which does not mention the name itself
+          var mentions = new RegExp("(^|[^\\w.])" + id.base + "\\b"), nk = tl[after] && tl[after].line - n.start;
+          if (changed && !stale && tl[after].at === "line" && tl[after].line === nextStmt && !mentions.test(ci.code[nk] || "") &&
+              !keyIn(ci.writes, id.base, usePath, line + 1, tl[after].line - 1)) {
             var ex2 = [pointNote(tl[after])];
             strip(label, pts, after, ex2);
             valRow(label + " (after)", pts[after].v, 0, outs, ex2);
           }
         };
-        if (parts.ret && sample.ret) { valRow("→ returned", sample.ret, 0, outs); shown++; }
-        idsOnLine(parts.writes).forEach(function (id) { addId(id, true, outs, seenOut); });
-        // keyword-argument names (`f(cond=obs_cond)`, or `cond=obs_cond,` on a continuation line) are not values read here
-        idsOnLine(parts.reads.replace(parts.cont ? /(^\s*|[(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g : /([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1"))
-          .forEach(function (id) { addId(id, false, ins, seenIn); });
-        if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
-        if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
+        // a statement that ran in other sampled calls of this card but not in this one
+        var others = (n.samples || []).filter(function (o) { return o !== sample && o.executed_lines && o.executed_lines.length; });
+        if (!contState(st0) && !ci.nested[line] && ci.code[k0].trim() && sample.executed_lines && sample.executed_lines.length &&
+            !ranIn(sample.executed_lines, line, nextStmt - 1) &&
+            others.some(function (o) { return ranIn(o.executed_lines, line, nextStmt - 1); })) {
+          out.push('<div class="empty">Line ' + line + " did not run in this sampled call; it ran in another. Use ‹ › to switch samples, or <b>show all</b>.</div>");
+          shown++;
+        } else {
+          if (parts.ret && sample.ret) { valRow("→ returned", sample.ret, 0, outs); shown++; }
+          idsOnLine(parts.writes).forEach(function (id) { addId(id, true, outs, seenOut); });
+          // keyword-argument names (`f(cond=obs_cond)`, or `cond=obs_cond,` on a continuation line) are not values read here
+          idsOnLine(parts.reads.replace(parts.cont ? /(^\s*|[(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g : /([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1"))
+            .forEach(function (id) { addId(id, false, ins, seenIn); });
+          if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
+          if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
+        }
       }
       if (!shown || all || isDef) {
         var a = [], l = [], r = [];

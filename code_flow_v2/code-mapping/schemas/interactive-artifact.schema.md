@@ -90,6 +90,7 @@ files above + AST-extracted source). One object:
 | `innovation` | optional; present when an innovation file was applied (`--innovation-file FILE`, or `codetrace_innovation.json` in `--root`): `{label, definition, review, functions, cards, unmatched[]}`. Each marked node carries `innovation: {role, summary, provenance, ranges[{start, end, what, text}]}`; see [innovation.schema.md](innovation.schema.md) |
 | `important_label` | optional legend text for the ★ marks, copied from `important_label` in the applied innovation file (e.g. "★ curated stage (not innovation)"); pages with frames otherwise label ★ "★ curated critical path" |
 | `edges[]` | `{from, line, to, n, seq, via, synthetic}` — `from`/`to` are node ids; `synthetic` marks a fallback edge added so every reached node has *some* path back to the entry |
+| `modules` | optional; copied from `callgraph.json` `modules`. `{key: {t, extra, params, n_params, children, more_children, calls}}` for each PyTorch module that appeared in a sampled value (and its submodules, up to 800 modules): class name, `extra_repr()` (≤160 chars), own parameter/buffer shapes `{name: shape}`, parameter count, `children` `{attribute: key}` (≤32, `more_children` counts the rest), and `calls[]` `{in: [argument shapes], out: shape}` for the first two distinct observed forward signatures. A summarized module value carries `"module": key` |
 
 Back/sideways edges (`to.col <= from.col`) are **grouped by target at render
 time**, in the viewer, not in this payload: a target with two or more of them is

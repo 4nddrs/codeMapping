@@ -125,6 +125,121 @@ def _safe_repr(v, limit=100):
     return r if len(r) <= limit else r[:limit] + "…"
 
 
+# ---- nn.Module structure --------------------------------------------------
+# A module value is summarized with a "module" key into MODULES, which stores
+# each module once and is written to callgraph.json as "modules": class,
+# extra_repr, own parameter/buffer shapes, parameter count, children, and the
+# first observed input -> output shapes of its forward. So `self.encoder` opens
+# into its layers in the viewer without repeating the network in every sample.
+# Shapes come from the profile hook's call/return events of `forward` frames of
+# registered modules (torch's own frames included): nothing is traced inside
+# torch and no torch hook is installed, so dispatch is unchanged.
+MAX_MODULES = 800        # registered modules per run
+MAX_MODULE_CALLS = 2     # distinct input -> output shape signatures kept per module
+MAX_CHILDREN = 32        # children listed per module
+MODULES: dict = {}       # key -> {"t", "calls", "_seen", "_scanned"}; described at dump
+_MODULE_KEYS: dict = {}  # id(module) -> key
+_MODULE_REFS: dict = {}  # key -> module, kept referenced so ids stay unique
+_MODULE_TYPES: dict = {} # type -> is an nn.Module subclass
+
+
+def _is_module(v):
+    t = type(v)
+    hit = _MODULE_TYPES.get(t)
+    if hit is None:
+        hit = _MODULE_TYPES[t] = any(c.__name__ == "Module" and c.__module__ == "torch.nn.modules.module"
+                                     for c in t.__mro__)
+    return hit
+
+
+def _shape_of(x, depth=0):
+    shape = getattr(x, "shape", None)
+    if shape is not None and getattr(x, "dtype", None) is not None and not callable(shape):
+        try:
+            return [int(s) for s in shape]
+        except Exception:
+            return str(shape)[:40]
+    if isinstance(x, (list, tuple)) and depth < 2:
+        return [_shape_of(e, depth + 1) for e in list(x)[:4]]
+    if isinstance(x, dict) and depth < 2:
+        return {str(k)[:30]: _shape_of(e, depth + 1) for k, e in list(x.items())[:4]}
+    return type(x).__name__
+
+
+def _submodules(v):
+    try:
+        kids = vars(v).get("_modules")
+    except TypeError:
+        return []
+    return list(kids.items()) if isinstance(kids, dict) else []
+
+
+def _register_module(v, seen=None):
+    """Key for a module value. Registers it and, when new or rescanned (`seen`
+    given), the submodules it has now. None once MAX_MODULES are registered."""
+    key = _MODULE_KEYS.get(id(v))
+    if key is None:
+        if len(MODULES) >= MAX_MODULES:
+            return None
+        key = "m%d" % len(MODULES)
+        _MODULE_KEYS[id(v)] = key
+        _MODULE_REFS[key] = v
+        MODULES[key] = {"t": type(v).__name__}
+    elif seen is None:
+        return key   # children are rescanned at its first forward and at dump
+    seen = set() if seen is None else seen
+    if key in seen:
+        return key
+    seen.add(key)
+    for _name, child in _submodules(v)[:MAX_CHILDREN]:
+        if child is not None:
+            _register_module(child, seen)
+    return key
+
+
+def _describe_module(v, info):
+    out = {"t": info["t"]}
+    try:
+        extra = v.extra_repr()
+        if extra:
+            out["extra"] = str(extra)[:160]
+    except Exception:
+        pass
+    shapes = {}
+    try:
+        for store in ("_parameters", "_buffers"):
+            for name, t in list((vars(v).get(store) or {}).items())[:12]:
+                if t is not None and getattr(t, "shape", None) is not None:
+                    shapes[name] = _shape_of(t)
+    except Exception:
+        pass
+    if shapes:
+        out["params"] = shapes
+    try:
+        out["n_params"] = int(sum(p.numel() for p in v.parameters()))
+    except Exception:
+        pass
+    kids, children = _submodules(v), {}
+    for name, child in kids[:MAX_CHILDREN]:
+        key = _MODULE_KEYS.get(id(child)) if child is not None else None
+        if key:
+            children[str(name)] = key
+    if children:
+        out["children"] = children
+    if len(kids) > MAX_CHILDREN:
+        out["more_children"] = len(kids) - MAX_CHILDREN
+    if info.get("calls"):
+        out["calls"] = info["calls"]
+    return out
+
+
+def describe_modules():
+    """The "modules" table: registers submodules added since, then describes each module."""
+    for key in list(_MODULE_REFS):
+        _register_module(_MODULE_REFS[key], set())
+    return {key: _describe_module(_MODULE_REFS[key], info) for key, info in list(MODULES.items())}
+
+
 def summarize(v, depth=0, budget=None):
     """JSON-able summary: shape/dtype for arrays, nested keys for dicts, head values."""
     if budget is None:
@@ -143,6 +258,7 @@ def summarize(v, depth=0, budget=None):
             return {"t": tn, "n": len(v)}
         if isinstance(v, type):
             return {"t": "type", "r": getattr(v, "__name__", tn)}
+        mkey = _register_module(v) if _is_module(v) else None   # structure: MODULES[mkey]
         shape = getattr(v, "shape", None)
         dtype = getattr(v, "dtype", None)
         if shape is not None and dtype is not None and not callable(shape):
@@ -176,7 +292,7 @@ def summarize(v, depth=0, budget=None):
                     items[str(k)[:60]] = summarize(x, depth + 1, budget) if depth < 10 else {"t": type(x).__name__}
             except Exception:
                 pass
-            return {"t": tn, "n": n, "items": items}
+            return dict({"t": tn, "n": n, "items": items}, **({"module": mkey} if mkey else {}))
         if isinstance(v, (list, tuple, set, frozenset, range)):
             seq = list(v) if isinstance(v, (set, frozenset)) else v
             head = []
@@ -205,6 +321,8 @@ def summarize(v, depth=0, budget=None):
                     break
                 attrs[k] = summarize(x, depth + 1, budget)
             out = {"t": tn, "attrs": attrs}
+            if mkey:
+                out["module"] = mkey
             # An nn.Module keeps its learned tensors in the underscore-prefixed
             # `_parameters` / `_buffers` dicts, which the loop above skips — so
             # without this a module's own weights (cognition tokens, embeddings,
@@ -227,6 +345,8 @@ def summarize(v, depth=0, budget=None):
                 if learned:
                     out["params"] = learned
             return out
+        if mkey:
+            return {"t": tn, "module": mkey}
         r = _safe_repr(v)
         return {"t": tn, "r": r} if r is not None else {"t": tn}
     except Exception:
@@ -305,6 +425,9 @@ class CallTracer:
         self.frame_inst: dict[int, int] = {}   # live frame id -> inst id
         self.tkey_insts: dict[tuple, int] = {} # tkey -> instances created so far
         self.inst_samples: dict[int, int] = {}  # inst id -> sampled calls kept for that card
+        self._sample_lock = threading.Lock()
+        self._module_frames: dict[int, tuple] = {}   # live forward frame id -> (module key, input shapes)
+        MODULES.clear(); _MODULE_KEYS.clear(); _MODULE_REFS.clear()   # one module table per tracer
         self.seq = count()
         self._orig_thread_start = None
         self._normalized_files = {}
@@ -372,10 +495,13 @@ class CallTracer:
             return
         self.boundaries.profile(frame, event, arg)
         if event == "return":
+            if self._module_frames and id(frame) in self._module_frames:
+                self._module_return(frame, arg)
             inst = self.frame_inst.pop(id(frame), None)
             p = self.pending.pop(id(frame), None)
             if p is not None:
                 p.pop("_fp", None)          # internal change-detector, not payload
+                p.pop("_tries", None); p.pop("_line", None)
                 p["executed_lines"] = sorted(p.pop("_executed_lines", ()))
                 status = self.boundaries._return_status(frame, arg)
                 p["status"] = status
@@ -395,6 +521,12 @@ class CallTracer:
             return
         if event != "call":
             return
+        if _MODULE_KEYS and frame.f_code.co_name == "forward":
+            self._module_call(frame)   # shapes of a registered module, project or torch
+        if self.pending and frame.f_back is not None:
+            q = self.pending.get(id(frame.f_back))
+            if q is not None:
+                self._step(q, frame.f_back)   # any call a sampled frame makes, library calls included
         code = frame.f_code
         tfile = self._norm(code.co_filename)
         if not self._inproj(tfile):
@@ -421,42 +553,7 @@ class CallTracer:
             self.calls[tkey] = [1, s]
         else:
             rec[0] += 1
-        # keep the values of the first few calls (module bodies excluded: too big)
-        if leaf != "<module>" and self._want_sample(tkey, frame):
-            try:
-                self.pending[id(frame)] = {"tkey": tkey, "n": rec[0] if rec else 1,
-                                           "line_scope": "frame_and_synthetic_children",
-                                           "args": summarize_locals(frame.f_locals)}
-            except Exception:
-                pass
-        # --- value timeline -------------------------------------------------
-        # A name that is reassigned (`x = linear1(x); x = linear2(x)`) only ever
-        # shows its FINAL value in the exit snapshot. To show the progression we
-        # snapshot the *caller's* locals here, at each call it makes: by the time
-        # linear2 is called, `x` already holds linear1's output. Entry args +
-        # these steps + the exit locals give the whole sequence.
-        # Bounded twice over: only for frames already being sampled (so the first
-        # MAX_SAMPLES calls of a function), and at most MAX_STEPS snapshots each.
-        cb = frame.f_back
-        q = self.pending.get(id(cb)) if cb is not None else None
-        if q is not None and len(q.get("steps", ())) < MAX_STEPS:
-            try:
-                snap = summarize_locals(cb.f_locals)
-                prev = q.get("_fp")
-                if prev is None:
-                    prev = {k: _fp(v) for k, v in (q.get("args") or {}).items()}
-                changed = {}
-                for k, v in snap.items():
-                    f = _fp(v)
-                    if prev.get(k) != f:
-                        changed[k] = v
-                        prev[k] = f
-                q["_fp"] = prev
-                if changed:
-                    q.setdefault("steps", []).append({"line": cb.f_lineno, "vars": changed})
-            except Exception:
-                pass
-
+        ncall = rec[0] if rec else 1   # values are sampled below, once the call-site card is known
         b, via = self._real_frame(frame.f_back)
         if b is None:
             origin = getattr(threading.current_thread(), "_ct_origin", None)
@@ -507,15 +604,95 @@ class CallTracer:
             "cline": cline, "via": via or "", "count": 0, "seq": s})
         edge["count"] += 1
         self.frame_inst[id(frame)] = inst
-        if id(frame) in self.pending:
-            self.pending[id(frame)]["inst"] = inst
-            # Values are kept per call-site card: each card keeps its own first
-            # MAX_SAMPLES calls, so a later call site (training after validation,
-            # a rollout loop) is not left without values.
-            if self._keep_instance_sample(tkey, inst, frame):
-                self.inst_samples[inst] = self.inst_samples.get(inst, 0) + 1
-            else:
-                del self.pending[id(frame)]
+        # Keep the values of the first MAX_SAMPLES calls of each call-site card
+        # (module bodies excluded: too big), so a later call site (training after
+        # validation, a rollout loop) is not left without values. Decided only now
+        # that the card is known, so calls that are not kept never summarize their
+        # arguments; the check-and-reserve is locked so threads cannot overfill a card.
+        if leaf != "<module>":
+            with self._sample_lock:
+                keep = self._want_sample(tkey, frame) and self._keep_instance_sample(tkey, inst, frame)
+                if keep:
+                    self.inst_samples[inst] = self.inst_samples.get(inst, 0) + 1
+            if keep:
+                try:
+                    self.pending[id(frame)] = {"tkey": tkey, "n": ncall, "inst": inst,
+                                               "line_scope": "frame_and_synthetic_children",
+                                               "args": summarize_locals(frame.f_locals)}
+                except Exception:
+                    pass
+
+    def _step(self, q, cb):
+        """Value timeline: snapshot a sampled frame's changed locals at a call it makes.
+
+        A name that is reassigned (`x = linear1(x); x = linear2(x)`) only ever
+        shows its FINAL value in the exit snapshot. At each call the frame makes,
+        project or library (`self.fc(x)` calls into torch), its locals are
+        snapshotted: by the time linear2 is called, `x` already holds linear1's
+        output. Entry args + these steps + the exit locals give the sequence.
+        Bounded: only frames being sampled, at most MAX_STEPS snapshots and
+        4 * MAX_STEPS attempts each, and one attempt per line event (`f(g(x))`
+        snapshots once; the next pass through the line, in a loop, again).
+        """
+        line = cb.f_lineno
+        tries = q.get("_tries", 0)
+        if line == q.get("_line") or tries >= 4 * MAX_STEPS or len(q.get("steps", ())) >= MAX_STEPS:
+            return
+        q["_tries"], q["_line"] = tries + 1, line
+        try:
+            snap = summarize_locals(cb.f_locals)
+            prev = q.get("_fp")
+            if prev is None:
+                prev = {k: _fp(v) for k, v in (q.get("args") or {}).items()}
+            changed = {}
+            for k, v in snap.items():
+                f = _fp(v)
+                if prev.get(k) != f:
+                    changed[k] = v
+                    prev[k] = f
+            q["_fp"] = prev
+            if changed:
+                q.setdefault("steps", []).append({"line": line, "vars": changed})
+        except Exception:
+            pass
+
+    def _module_call(self, frame):
+        """At a `forward` call of a registered nn.Module, keep its argument shapes
+        until the frame returns (first MAX_MODULE_CALLS distinct signatures)."""
+        code = frame.f_code
+        if not code.co_argcount or code.co_varnames[0] != "self":
+            return
+        try:
+            loc = frame.f_locals
+            key = _MODULE_KEYS.get(id(loc.get("self")))
+            if key is None:
+                return
+            info = MODULES[key]
+            if not info.get("_scanned"):
+                info["_scanned"] = True          # submodules added after registration
+                _register_module(_MODULE_REFS[key], set())
+            if info.get("_seen", 0) >= 4 * MAX_MODULE_CALLS or len(info.get("calls", ())) >= MAX_MODULE_CALLS:
+                return
+            info["_seen"] = info.get("_seen", 0) + 1
+            names = list(code.co_varnames[1:code.co_argcount])
+            args = [loc[n] for n in names if loc.get(n) is not None]
+            if code.co_flags & 0x04:             # *args
+                args += list(loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ()))
+            self._module_frames[id(frame)] = (key, [_shape_of(a) for a in args])
+        except Exception:
+            pass
+
+    def _module_return(self, frame, arg):
+        key, ins = self._module_frames.pop(id(frame))
+        if arg is None:
+            return                               # raised (or returned nothing): no output shape
+        try:
+            sig = {"in": ins, "out": _shape_of(arg)}
+            calls = MODULES[key].setdefault("calls", [])
+            if sig not in calls and len(calls) < MAX_MODULE_CALLS:
+                calls.append(sig)
+        except Exception:
+            pass
 
     def _want_sample(self, tkey, frame):
         """Extension point for bounded context-aware adapters.
@@ -525,7 +702,7 @@ class CallTracer:
         the first MAX_SAMPLES calls of each call-site card.
         """
         return len(self.samples.get(tkey, ())) + sum(
-            1 for q in self.pending.values() if q.get("tkey") == tkey
+            1 for q in list(self.pending.values()) if q.get("tkey") == tkey
         ) < MAX_SAMPLES * (MAX_INSTANCES + 1)
 
     def _keep_instance_sample(self, tkey, inst, frame):
@@ -590,6 +767,8 @@ class CallTracer:
                 state[1] = line
                 if sample is not None:
                     sample.setdefault("_executed_lines", set()).add(line)
+                    if fid in self.pending:
+                        sample.pop("_line", None)   # a new line event: its calls may take a value step again
             elif event == "exception":
                 if sample is not None:
                     kind = arg[0].__module__ + "." + arg[0].__name__
@@ -668,6 +847,8 @@ class CallTracer:
         data["line_capture"] = {"schema": 1, "scope": "call_site_group",
             "note": "Union of observed line events within each calling context; sampled invocations also retain their own line events. Merged helpers are explicitly marked."}
         data.update(self.boundaries.dump())
+        if MODULES:
+            data["modules"] = describe_modules()
         path.write_text(json.dumps(data))
         return len(data["calls"]), len(data["edges"])
 

@@ -281,10 +281,12 @@ Feed these into [phases/05-honest-gaps.md](05-honest-gaps.md) /
   silently; a `via …` label on a chip means the call passed through such a
   frame before landing back in your code.
 - **Values are sampled, not exhaustive.** The stock tracer records the first
-  two calls of each function at exit; a mutated-in-place argument shows its
-  final state. For another saved capture or adapter, describe its actual
-  sampling policy and entry/exit timing instead. Do not imply a line-by-line
-  timeline or coverage of calls that were never sampled.
+  two calls at each call site: arguments at entry, changed locals at each call
+  the function makes (project or library, once per line event, at most 40), and
+  locals at exit. Lines without a call in between are not snapshotted, so the
+  popup labels a value taken at another point. For another saved capture or
+  adapter, describe its actual sampling policy and timing instead. Do not
+  imply coverage of calls that were never sampled.
 - **One run is one path.** Branches this run didn't take are pink
   ("never ran"), not proof the branch is dead or unreachable.
 - **Bundled back-edges understate the arriving edge count** until a circle is

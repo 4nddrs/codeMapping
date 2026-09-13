@@ -188,9 +188,27 @@ change strip. Right-click the header (or press **show all**) for everything the 
 exit). Use ‹ › to step through the sampled calls. A card with no values links to the call
 sites of the same function that have them.
 
-These are real values from **the run you traced** (the first two calls at each call site, since each call site has its own card), not
-re-executed — and captured at function *exit*, so a variable shows its final value. Pass
-`--no-values` to skip this and get a much smaller page.
+These are real values from **the run you traced**, not re-executed: the first two calls at
+each call site (each call site has its own card). A sampled call records its arguments at
+entry, the locals that changed at each call it makes — into your code or into a library, so
+`x = self.fc(x)` is covered (once per line event, at most 40 snapshots) — and its locals at
+exit. A row whose snapshot may not be this line's value, because another line or another pass
+of a loop assigns or changes it in place (`x.add_()`, `.append()`, `out=x`) in between, is
+labelled with its sampling point, e.g. `(at function exit)`. A statement that ran in another
+sampled call but not in this one says so. Pass `--no-values` to skip this and get a much
+smaller page.
+
+**PyTorch modules.** A module value such as `self.encoder` reads
+`Sequential 4 submodules  (8, 5, 512) → (8, 5, 128)`: its class, its `extra_repr` (or how many
+submodules it has) and its first observed input → output shapes. Opening it lists each
+submodule (openable in turn), parameter shapes, the observed calls and the parameter count.
+The structure is stored once per module in the payload's `modules` table. Shapes come from
+the `forward` call and return events the profiler already sees for modules that appeared in
+a sampled value, so nothing inside torch is traced and no torch hook is installed.
+
+**Shape hints.** A line that assigns a tensor gets a faint `name (shape)` after its call
+chips, from the card's first sampled call, when that value is unambiguous: no loop surrounds
+the line, and no line that ran assigns or changes the name before the snapshot.
 
 The popup is a pinned inspector: it closes on an outside click or <kbd>Esc</kbd>, or
 when a jump moves the view — **not** on scroll, so you can wheel through a long value
