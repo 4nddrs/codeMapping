@@ -132,7 +132,7 @@ working-pack path and the local, pushed, and deployed checks.
 | ALOHA policy server | serving | exit 0 · 295.9s · 50×14 actions · value 0.054 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_deploy.html) |
 | ALOHA model-based planning | serving + planning | exit 0 · 507.1s · seed 195 selected · value 0.065 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_planning.html) |
 | LIBERO training | training | exit 0 · 733.1s · losses 14.81 · 15.47 · 3.35 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_libero.html) |
-| ALOHA training | training | exit 0 · 600.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_aloha.html) |
+| ALOHA training | training | exit 0 · 600.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 | [Flow](projects/cosmos_policy/train_aloha.html) |
 | RoboCasa training | training | exit 0 · 829.1s · losses 2.09 · 2.07 · 15.73 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_robocasa.html) |
 | ALOHA T5 text embeddings | data preparation | exit 0 · 208.1s · 1 command · matches release · mapping docs pending | [Flow](projects/cosmos_policy/t5_aloha.html) |
 | ALOHA data preprocessing | data preparation | exit 0 · 150.8s · 1 train + 1 val episode | [Flow](projects/cosmos_policy/aloha_preprocess.html) |
