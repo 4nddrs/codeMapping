@@ -1,0 +1,22 @@
+{
+  "totals": {
+    "Sessions": 11,
+    "Functions traced": 39139,
+    "Calls recorded": 3048386,
+    "Lines executed": 50641,
+    "Lines in scope": 904507
+  },
+  "pages": [
+    "quickstart.html",
+    "libero_eval.html",
+    "robocasa_eval.html",
+    "aloha_deploy.html",
+    "aloha_planning.html",
+    "train_libero.html",
+    "train_aloha.html",
+    "train_robocasa.html",
+    "t5_aloha.html",
+    "aloha_preprocess.html",
+    "verify_install.html"
+  ]
+}

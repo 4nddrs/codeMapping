@@ -44,6 +44,7 @@ code_flow_v2/                   Versioned Code Mapping workflow and portable tra
 | Session | Traced run | Result | Report |
 | --- | --- | --- | --- |
 | Patch Policy | Fresh bounded PushT VQ-BeT training and rollout; 27 command flows in the repository group | Baseline exit 0; 2 updates; 302 simulator steps; task coverage 0.0 | [Code flow](projects/patch_policy/index.html) |
+| Cosmos Policy | 11 bounded command flows (Quick Start, LIBERO/RoboCasa evaluation, ALOHA serving and planning, training, data preparation) in the repository group | 10/11 exit 0 | [Grouped flows](index.html#cosmos-policy) |
 | GAP | `gap run examples/libero_quickstart/graph --sim libero_object_all_variance/0` | Success, reward 1.00 | [Open](projects/gap/index.html) |
 | CAP | `python test_sim.py --model_path checkpoints/pick.pt --condition 3d --num_episodes 12 --seed 0` | Exit 0, 9/12 picked | [Open](projects/cap/index.html) |
 | RLDX-1 | Training and inference traces | Two runs completed | [Training](projects/rldx1/train.html), [Inference](projects/rldx1/inference.html) |
@@ -118,6 +119,40 @@ working-pack path and the local, pushed, and deployed checks.
 | Cube Plan Oracle Collection | utility | SUCCESS · exit 0 · 37.2s | [Flow](projects/patch_policy/cube_generate_play.html) |
 | Cube Markov Oracle Collection | utility | SUCCESS · exit 0 · 40.2s | [Flow](projects/patch_policy/cube_generate_noisy.html) |
 <!-- PATCH_POLICY_RUNS_END -->
+<!-- COSMOS_POLICY_RUNS_BEGIN -->
+## Cosmos Policy execution paths
+
+[Open the grouped flows](https://roaring-kringle-be46b2.netlify.app/#cosmos-policy). Bounded real executions of NVlabs/cosmos-policy commands; deviations are declared per flow in the repository's docs/code_mapping.
+
+| Path | Kind | Recorded outcome | Navigator |
+| --- | --- | --- | --- |
+| Quick Start inference | inference | exit 0 · 535.2s · 16×7 actions · value 0.063 · mapping docs pending | [Flow](projects/cosmos_policy/quickstart.html) |
+| LIBERO evaluation | simulation evaluation | exit 0 · 488.9s · 1/1 success · mapping docs pending | [Flow](projects/cosmos_policy/libero_eval.html) |
+| RoboCasa evaluation | simulation evaluation | exit 0 · 476.3s · 1/1 success · 296 steps · mapping docs pending | [Flow](projects/cosmos_policy/robocasa_eval.html) |
+| ALOHA policy server | serving | exit 0 · 295.9s · 50×14 actions · value 0.054 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_deploy.html) |
+| ALOHA model-based planning | serving + planning | exit 0 · 507.1s · seed 195 selected · value 0.065 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_planning.html) |
+| LIBERO training | training | exit 0 · 733.1s · losses 14.81 · 15.47 · 3.35 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_libero.html) |
+| ALOHA training | training | exit 0 · 600.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_aloha.html) |
+| RoboCasa training | training | exit 0 · 829.1s · losses 2.09 · 2.07 · 15.73 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_robocasa.html) |
+| ALOHA T5 text embeddings | data preparation | exit 0 · 208.1s · 1 command · matches release · mapping docs pending | [Flow](projects/cosmos_policy/t5_aloha.html) |
+| ALOHA data preprocessing | data preparation | exit 0 · 150.8s · 1 train + 1 val episode | [Flow](projects/cosmos_policy/aloha_preprocess.html) |
+| Installation check | utility | exit 1 · 66.6s · 4 packages absent (cosmos-predict2, robocasa, fastapi, uvicorn) | [Flow](projects/cosmos_policy/verify_install.html) |
+
+Not traced on this machine:
+
+- `run_aloha_eval.py` — Needs ALOHA hardware; aloha_utils imports experiments.robot.aloha.real_env, which is absent from the repository; interactive prompts.
+- `debug_deploy.py` — HTTP smoke client posting random images to a live server; superseded by aloha_deploy (real observation, in-process).
+- `regenerate_libero_dataset.py` — Imports cosmos_policy.experiments.robot.libero.compress_libero_dataset, which does not exist in the repository; also needs original raw LIBERO demos.
+- `regenerate_robocasa_dataset.py` — Needs raw RoboCasa v0.1 demonstrations, not available on this machine.
+- `cosmos_policy/install.sh` — Bash installer (pip/uv/git subprocesses); its Python step is covered by verify_install.
+- `save_libero_t5_text_embeddings.py / save_robocasa_t5_text_embeddings.py` — Same T5 path as t5_aloha with a different dataset class constructor; represented by t5_aloha.
+- `aloha_dataset.py / libero_dataset.py / robocasa_dataset.py __main__` — Hard-coded non-existent data paths; the dataset classes run inside the three training traces.
+- `train.py experiment=...__resumeFrom50K_648_rollouts_Vsprime_value_func` — Its 648-rollout planning dataset is not released; its .pt load_path would also be skipped by the dcp checkpointer.
+- `deploy.py --ar_qvalue_prediction True` — Model-free Q(s,a) search branch; no Q-value checkpoint is released, so a run would produce meaningless values. The V(s') planning branch is traced (aloha_planning).
+- `run_libero_eval.py / run_robocasa_eval.py --data_collection True` — Rollout-recording mode that writes the all_episodes training format; not separately traced (the evaluation flows run with the documented --data_collection False).
+- `train.py --dryrun` — Config composition only; the training traces cover the same config path. On this host its import also asserts a GPU (flash_attn), so it cannot run CPU-only.
+- `cosmos_policy/_src/** __main__ scripts, justfile, bin/uv_lock*.sh` — Inherited Imaginaire/Predict2 framework utilities and packaging scripts, not documented Cosmos Policy commands.
+<!-- COSMOS_POLICY_RUNS_END -->
 
 <!-- DREAMZERO_RUNS_BEGIN -->
 ## DreamZero execution paths

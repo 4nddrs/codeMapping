@@ -510,11 +510,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>55</b><span>Sessions</span></div>
-      <div class="tot"><b>40,923</b><span>Functions traced</span></div>
-      <div class="tot"><b>9,575,261</b><span>Calls recorded</span></div>
-      <div class="tot"><b>93,180</b><span>Lines executed</span></div>
-      <div class="tot"><b>226,870</b><span>Lines in scope</span></div>
+      <div class="tot"><b>66</b><span>Sessions</span></div>
+      <div class="tot"><b>80,062</b><span>Functions traced</span></div>
+      <div class="tot"><b>12,623,647</b><span>Calls recorded</span></div>
+      <div class="tot"><b>143,821</b><span>Lines executed</span></div>
+      <div class="tot"><b>1,131,377</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -1096,6 +1096,247 @@
 </div>
 </details>
 <!-- PATCH_POLICY_SUITE_END -->
+<!-- COSMOS_POLICY_SUITE_BEGIN -->
+<details class="shelf repo-shelf" id="cosmos-policy">
+<summary class="shelfhead repo-summary"><h2>Cosmos Policy</h2><span class="n">11 flows</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">11 traced command flows from NVlabs/cosmos-policy: inference, simulation evaluation, policy serving and model-based planning, training per data family, and data preparation. Each run is a real, bounded execution on one shared RTX A6000; declared deviations and the commands that could not be traced here are listed in the repository&#x27;s docs/code_mapping.</p>
+<div class="runs">
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/quickstart.html">
+          <div>
+            <h3 class="title"><span class="name">Quick Start inference</span> <span class="slug">README Quick Start · LIBERO checkpoint</span></h3>
+            <p class="what">The README snippet: load the released LIBERO checkpoint and run one get_action on the bundled libero_10 observation (5 denoising steps), decoding a 16-step action chunk, predicted future images and a value.</p>
+            <code class="cmd">python docs/code_mapping/flows/quickstart/readme_quickstart.py</code>
+            <p class="local">projects/cosmos_policy/quickstart.html<span class="sep">/</span>23.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/flows/quickstart/readme_quickstart.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 535.2s · 16×7 actions · value 0.063 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.1%</b> &middot; 4,840/94,262</span></div>
+              <div class="bar"><i style="width: 5.1%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>3,879</dd></div>
+              <div><dt>Edges</dt><dd>4,003</dd></div>
+              <div><dt>Calls</dt><dd>63,643</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/libero_eval.html">
+          <div>
+            <h3 class="title"><span class="name">LIBERO evaluation</span> <span class="slug">LIBERO.md · libero_10 task 0</span></h3>
+            <p class="what">Closed-loop LIBERO simulation of &#x27;put both the alphabet soup and the tomato sauce in the basket&#x27;: one full episode querying the policy every 16 steps. Documented flags; suite cut to task 0 and one trial.</p>
+            <code class="cmd">python docs/code_mapping/flows/libero_eval/libero_eval_bounded.py</code>
+            <p class="local">projects/cosmos_policy/libero_eval.html<span class="sep">/</span>26.0 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/flows/libero_eval/libero_eval_bounded.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 488.9s · 1/1 success · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.4%</b> &middot; 5,278/98,187</span></div>
+              <div class="bar"><i style="width: 5.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>4,077</dd></div>
+              <div><dt>Edges</dt><dd>4,212</dd></div>
+              <div><dt>Calls</dt><dd>606,755</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/robocasa_eval.html">
+          <div>
+            <h3 class="title"><span class="name">RoboCasa evaluation</span> <span class="slug">ROBOCASA.md · TurnOffMicrowave</span></h3>
+            <p class="what">Closed-loop RoboCasa kitchen simulation of &#x27;press the stop button on the microwave&#x27;: one episode with three cameras, re-querying the policy every 16 steps with 32-step action chunks. Documented flags with one trial.</p>
+            <code class="cmd">python -m cosmos_policy.experiments.robot.robocasa.run_robocasa_eval --config cosmos_predict2_2b_480p_robocasa_50_demos_per_task__inference --ckpt_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B --config_file cosmos_policy/config/config.py --use_wrist_image True --num_wrist_images 1 --use_proprio True --normalize_proprio True --unnormalize_actions True --dataset_stats_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B/robocasa_dataset_statistics.json --t5_text_embeddings_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B/robocasa_t5_embeddings.pkl --trained_with_image_aug True --chunk_size 32 --num_open_loop_steps 16 --task_name TurnOffMicrowave --num_trials_per_task 1 --run_id_note codetrace--1trial--chkpt45000--5stepAct--seed195--deterministic --local_log_dir docs/code_mapping/flows/robocasa_eval/run/logs/ --seed 195 --randomize_seed False --deterministic True --use_variance_scale False --use_jpeg_compression True --flip_images True --num_denoising_steps_action 5 --num_denoising_steps_future_state 1 --num_denoising_steps_value 1 --data_collection False</code>
+            <p class="local">projects/cosmos_policy/robocasa_eval.html<span class="sep">/</span>26.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; cosmos_policy/experiments/robot/robocasa/run_robocasa_eval.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 476.3s · 1/1 success · 296 steps · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.4%</b> &middot; 5,391/99,818</span></div>
+              <div class="bar"><i style="width: 5.4%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>4,120</dd></div>
+              <div><dt>Edges</dt><dd>4,273</dd></div>
+              <div><dt>Calls</dt><dd>706,799</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/aloha_deploy.html">
+          <div>
+            <h3 class="title"><span class="name">ALOHA policy server</span> <span class="slug">deploy.py · policy server</span></h3>
+            <p class="what">The ALOHA policy server&#x27;s request path, called in-process with one observation from a released fold-shirt demonstration (three cameras and joint state) and 10 action denoising steps.</p>
+            <code class="cmd">python docs/code_mapping/harness/aloha_deploy_inproc.py --config cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__inference_only --ckpt_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B --config_file cosmos_policy/config/config.py --use_third_person_image True --use_wrist_image True --num_wrist_images 2 --use_proprio True --normalize_proprio True --unnormalize_actions True --dataset_stats_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B/aloha_dataset_statistics.json --t5_text_embeddings_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B/aloha_t5_embeddings.pkl --trained_with_image_aug True --chunk_size 50 --num_open_loop_steps 50 --use_jpeg_compression False --flip_images False --deterministic True --seed 195 --ar_future_prediction False --ar_value_prediction False --num_denoising_steps_action 10 --num_denoising_steps_future_state 1 --num_denoising_steps_value 1</code>
+            <p class="local">projects/cosmos_policy/aloha_deploy.html<span class="sep">/</span>24.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/harness/aloha_deploy_inproc.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 295.9s · 50×14 actions · value 0.054 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.3%</b> &middot; 5,094/96,121</span></div>
+              <div class="bar"><i style="width: 5.3%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>4,041</dd></div>
+              <div><dt>Edges</dt><dd>4,174</dd></div>
+              <div><dt>Calls</dt><dd>88,243</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/aloha_planning.html">
+          <div>
+            <h3 class="title"><span class="name">ALOHA model-based planning</span> <span class="slug">deploy.py · best-of-N planning</span></h3>
+            <p class="what">Model-based planning on the same request: two serial best-of-N queries (docs: eight parallel), each with 3 future-state and 5 V(s&#x27;) predictions from the ALOHA planning model, then the highest-value action chunk is selected.</p>
+            <code class="cmd">python docs/code_mapping/harness/aloha_deploy_inproc.py --config cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__inference_only --ckpt_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B --config_file cosmos_policy/config/config.py --use_third_person_image True --use_wrist_image True --num_wrist_images 2 --use_proprio True --normalize_proprio True --unnormalize_actions True --dataset_stats_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B/aloha_dataset_statistics.json --t5_text_embeddings_path nvidia/Cosmos-Policy-ALOHA-Predict2-2B/aloha_t5_embeddings.pkl --trained_with_image_aug True --chunk_size 50 --num_open_loop_steps 50 --use_jpeg_compression False --flip_images False --deterministic True --seed 195 --planning_model_config_name cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func__inference_only --planning_model_ckpt_path nvidia/Cosmos-Policy-ALOHA-Planning-Model-Predict2-2B --ar_future_prediction True --ar_value_prediction True --ar_qvalue_prediction False --num_denoising_steps_action 10 --num_denoising_steps_future_state 5 --num_denoising_steps_value 5 --search_depth 1 --value_ensemble_aggregation_scheme majority_mean --randomize_seed False --num_queries_best_of_n 2 --use_parallel_inference False --use_ensemble_value_predictions True --num_value_predictions_in_ensemble 5 --use_ensemble_future_state_predictions True --num_future_state_predictions_in_ensemble 3 --future_state_ensemble_aggregation_scheme average --mask_current_state_action_for_value_prediction True</code>
+            <p class="local">projects/cosmos_policy/aloha_planning.html<span class="sep">/</span>41.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/harness/aloha_deploy_inproc.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 507.1s · seed 195 selected · value 0.065 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.8%</b> &middot; 9,155/157,982</span></div>
+              <div class="bar"><i style="width: 5.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>6,865</dd></div>
+              <div><dt>Edges</dt><dd>7,192</dd></div>
+              <div><dt>Calls</dt><dd>693,315</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/train_libero.html">
+          <div>
+            <h3 class="title"><span class="name">LIBERO training</span> <span class="slug">LIBERO.md · 3 iterations · one rank</span></h3>
+            <p class="what">Fine-tuning from dataset load to checkpoint on a LIBERO demo and rollout subset: VAE encoding, action / future-state / value diffusion losses, backward, gradient clipping, FusedAdam and a DCP save. The DiT starts from random init because the base .pt is skipped.</p>
+            <code class="cmd">python docs/code_mapping/harness/train_inproc.py --config=cosmos_policy/config/config.py -- experiment=cosmos_predict2_2b_480p_libero job.name=codetrace_train_libero job.wandb_mode=disabled trainer.max_iter=3 trainer.grad_accum_iter=1 trainer.logging_iter=1 trainer.callbacks.compile_tokenizer.enabled=False dataloader_train.batch_size=1 dataloader_train.num_workers=0 dataloader_train.persistent_workers=False dataloader_train.pin_memory=False</code>
+            <p class="local">projects/cosmos_policy/train_libero.html<span class="sep">/</span>40.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/harness/train_inproc.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 733.1s · losses 14.81 · 15.47 · 3.35 · checkpoint iter 3 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.8%</b> &middot; 6,600/113,017</span></div>
+              <div class="bar"><i style="width: 5.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>5,131</dd></div>
+              <div><dt>Edges</dt><dd>5,470</dd></div>
+              <div><dt>Calls</dt><dd>370,288</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/train_aloha.html">
+          <div>
+            <h3 class="title"><span class="name">ALOHA training</span> <span class="slug">ALOHA.md · 3 iterations · one rank</span></h3>
+            <p class="what">Fine-tuning on one released fold-shirt episode: MP4 decoding, the 11-latent-frame layout with two wrist cameras, losses, backward, FusedAdam and a DCP save.</p>
+            <code class="cmd">python docs/code_mapping/harness/train_inproc.py --config=cosmos_policy/config/config.py -- experiment=cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80 job.name=codetrace_train_aloha job.wandb_mode=disabled trainer.max_iter=3 trainer.grad_accum_iter=1 trainer.logging_iter=1 trainer.callbacks.compile_tokenizer.enabled=False dataloader_train.batch_size=1 dataloader_train.num_workers=0 dataloader_train.persistent_workers=False dataloader_train.pin_memory=False</code>
+            <p class="local">projects/cosmos_policy/train_aloha.html<span class="sep">/</span>39.5 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/harness/train_inproc.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 600.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>6.0%</b> &middot; 6,716/111,184</span></div>
+              <div class="bar"><i style="width: 6.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>5,179</dd></div>
+              <div><dt>Edges</dt><dd>5,527</dd></div>
+              <div><dt>Calls</dt><dd>257,782</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/train_robocasa.html">
+          <div>
+            <h3 class="title"><span class="name">RoboCasa training</span> <span class="slug">ROBOCASA.md · 3 iterations · one rank</span></h3>
+            <p class="what">Fine-tuning on the TurnOffMicrowave task (first 2 of its 52 demos plus two rollouts): three-camera 11-latent-frame layout with the secondary-image loss branch, backward, FusedAdam and a DCP save.</p>
+            <code class="cmd">python docs/code_mapping/harness/train_inproc.py --config=cosmos_policy/config/config.py -- experiment=cosmos_predict2_2b_480p_robocasa_50_demos_per_task job.name=codetrace_train_robocasa job.wandb_mode=disabled trainer.max_iter=3 trainer.grad_accum_iter=1 trainer.logging_iter=1 trainer.callbacks.compile_tokenizer.enabled=False dataloader_train.batch_size=1 dataloader_train.num_workers=0 dataloader_train.persistent_workers=False dataloader_train.pin_memory=False</code>
+            <p class="local">projects/cosmos_policy/train_robocasa.html<span class="sep">/</span>40.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/harness/train_inproc.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 829.1s · losses 2.09 · 2.07 · 15.73 · checkpoint iter 3 · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>5.9%</b> &middot; 6,652/113,440</span></div>
+              <div class="bar"><i style="width: 5.9%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>5,196</dd></div>
+              <div><dt>Edges</dt><dd>5,545</dd></div>
+              <div><dt>Calls</dt><dd>226,881</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/t5_aloha.html">
+          <div>
+            <h3 class="title"><span class="name">ALOHA T5 text embeddings</span> <span class="slug">save_aloha_t5_text_embeddings.py</span></h3>
+            <p class="what">T5-11B text embeddings for the ALOHA commands of one training episode, writing dataset statistics and t5_embeddings.pkl; the produced &#x27;fold shirt&#x27; embedding matches the released one (cosine 0.9999975).</p>
+            <code class="cmd">python -m cosmos_policy.datasets.save_aloha_t5_text_embeddings --data_dir /mnt/sata1/datasets/cosmos_policy/scratch_t5_aloha/preprocessed</code>
+            <p class="local">projects/cosmos_policy/t5_aloha.html<span class="sep">/</span>1.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; cosmos_policy/datasets/save_aloha_t5_text_embeddings.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 208.1s · 1 command · matches release · mapping docs pending</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>4.8%</b> &middot; 425/8,892</span></div>
+              <div class="bar"><i style="width: 4.8%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>261</dd></div>
+              <div><dt>Edges</dt><dd>260</dd></div>
+              <div><dt>Calls</dt><dd>31,798</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/aloha_preprocess.html">
+          <div>
+            <h3 class="title"><span class="name">ALOHA data preprocessing</span> <span class="slug">ALOHA.md · data preprocessing</span></h3>
+            <p class="what">Raw ALOHA episodes to the training format: 256×256 MP4s per camera, joint data and relative actions, train/val split. Input is derived from released episodes (2×50 steps, frames upsampled to 480×640).</p>
+            <code class="cmd">python -m cosmos_policy.experiments.robot.aloha.preprocess_split_aloha_data --dataset_path /mnt/sata1/datasets/cosmos_policy/aloha_raw_derived/fold_shirt_derived_50steps/ --out_base_dir /mnt/sata1/datasets/cosmos_policy/aloha_preprocess_trace_out/ --percent_val 0.5</code>
+            <p class="local">projects/cosmos_policy/aloha_preprocess.html<span class="sep">/</span>1.9 MB<span class="sep">/</span>entry <code>__main__</code> &middot; cosmos_policy/experiments/robot/aloha/preprocess_split_aloha_data.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 0 · 150.8s · 1 train + 1 val episode</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>3.0%</b> &middot; 262/8,599</span></div>
+              <div class="bar"><i style="width: 3.0%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>203</dd></div>
+              <div><dt>Edges</dt><dd>202</dd></div>
+              <div><dt>Calls</dt><dd>2,345</dd></div>
+            </dl>
+          </div>
+        </a>
+<a class="run" style="--fam: var(--fam-gap)"
+           href="projects/cosmos_policy/verify_install.html">
+          <div>
+            <h3 class="title"><span class="name">Installation check</span> <span class="slug">verify_installation.py</span></h3>
+            <p class="what">The installer&#x27;s import check of core, GPU, simulator and deployment packages, run in the LIBERO environment.</p>
+            <code class="cmd">python -m cosmos_policy.verify_installation</code>
+            <p class="local">projects/cosmos_policy/verify_install.html<span class="sep">/</span>1.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; cosmos_policy/verify_installation.py</p>
+          </div>
+          <div class="metrics">
+            <span class="verdict">exit 1 · 66.6s · 4 packages absent (cosmos-predict2, robocasa, fastapi, uvicorn)</span>
+            <div class="cov">
+              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>7.6%</b> &middot; 228/3,005</span></div>
+              <div class="bar"><i style="width: 7.6%"></i></div>
+            </div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>187</dd></div>
+              <div><dt>Edges</dt><dd>189</dd></div>
+              <div><dt>Calls</dt><dd>537</dd></div>
+            </dl>
+          </div>
+        </a>
+</div>
+</div>
+</details>
+<!-- COSMOS_POLICY_SUITE_END -->
 <!-- DREAMZERO_SUITE_BEGIN -->
 <details class="shelf repo-shelf" id="dreamzero">
 <summary class="shelfhead repo-summary"><h2>DreamZero</h2><span class="n">6 flows</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
