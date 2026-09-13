@@ -55,6 +55,8 @@
     --imp: #7c3aed;
     --imp-soft: rgba(124, 58, 237, 0.16);
     --imp-bg: #f4effd;
+    --innov: #16a34a;
+    --innov-soft: rgba(22, 163, 74, 0.18);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -68,6 +70,7 @@
       --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
       --flash: rgba(79, 209, 197, 0.40);
       --imp: #b794f6; --imp-soft: rgba(183, 148, 246, 0.22); --imp-bg: #191532;
+      --innov: #4ade80; --innov-soft: rgba(74, 222, 128, 0.18);
       color-scheme: dark;
     }
   }
@@ -81,6 +84,7 @@
     --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
     --flash: rgba(79, 209, 197, 0.40);
     --imp: #b794f6; --imp-soft: rgba(183, 148, 246, 0.22); --imp-bg: #191532;
+    --innov: #4ade80; --innov-soft: rgba(74, 222, 128, 0.18);
     color-scheme: dark;
   }
 
@@ -367,6 +371,10 @@
   .chip.self { background: var(--muted); }
   .chip.syn { background: var(--faint); }
   .chip small { font-weight: 400; opacity: 0.85; }
+  .callactions { position: absolute; right: 3px; top: 1px; height: 15px; max-width: 58%; display: inline-flex; align-items: center; gap: 4px; background: var(--surface); padding-left: 4px; }
+  .callactions .chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .callsmore { flex: 0 0 auto; height: 15px; padding: 0 5px; border: 1px solid var(--accent); border-radius: 5px; background: var(--surface); color: var(--accent); font: inherit; font-size: 10px; line-height: 12px; cursor: pointer; }
+  .callsmore:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .contextlink {
     flex: 0 0 auto; margin-left: 6px; padding: 0 5px; height: 15px; line-height: 13px;
     border: 1px solid var(--faint); border-radius: 4px; color: var(--muted); background: var(--surface);
@@ -386,6 +394,24 @@
   body.imponly .wires path { opacity: 0.04; }
   body.imponly .wires path.toimp { opacity: 0.95; stroke: var(--imp); }
   .tb[aria-pressed="true"] { background: var(--imp-soft); color: var(--imp); }
+
+  /* ---- paper-innovation marking (payload `innovation`: reviewed source ranges) ----
+     Only the frame changes, so the code keeps its normal card and coverage colours.
+     An outline adds thickness without shrinking the card's content box. */
+  .legend i.lg-innov { background: transparent; box-shadow: inset 0 0 0 2px var(--innov); }
+  .panel.innov { border-color: var(--innov); outline: 3px solid var(--innov); outline-offset: 0; }
+  .panel.innov.innov-sup { outline-style: dashed; outline-offset: 2px; }
+  .phdr .innovtag {
+    flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; background: var(--innov); color: var(--surface);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .phdr .innovtag.sup { background: transparent; color: var(--innov); box-shadow: inset 0 0 0 1px var(--innov); }
+  .row.innov .num { color: var(--innov); font-weight: 700; box-shadow: inset 6px 0 0 var(--innov); }
+  .row.hit.innov .num { box-shadow: inset 3px 0 0 var(--hit-bar), inset 6px 0 0 var(--innov); }
+  .row.part.innov .num { box-shadow: inset 3px 0 0 var(--partial-bar), inset 6px 0 0 var(--innov); }
+  .row.miss.innov .num { box-shadow: inset 3px 0 0 var(--miss-bar), inset 6px 0 0 var(--innov); }
+  body.innovonly .panel:not(.innov) { opacity: 0.22; }
+  .tb.innovbtn[aria-pressed="true"] { background: var(--innov-soft); color: var(--innov); }
 
   /* ---- return strip + return-line chips ---- */
   .retstrip {
@@ -444,6 +470,8 @@
   /* caller list — right-clicking a bundle's circle */
   .vals .clrow { display: flex; align-items: baseline; gap: 12px; padding: 5px 14px; cursor: pointer; }
   .vals .clrow:hover { background: var(--accent-soft); }
+  .vals button.clrow { width: 100%; border: 0; text-align: left; background: transparent; color: inherit; font: inherit; }
+  .vals button.clrow:hover, .vals button.clrow:focus-visible { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
   .vals .clrow .cll { color: var(--def); font-weight: 600; }
   .vals .clrow .clc { color: var(--muted); font-size: 15px; }
   .vals .clrow .clv { color: var(--faint); font-size: 15px; font-style: italic; }
@@ -519,7 +547,8 @@
     <span><i class="ar"></i>calls →</span>
     <span><i class="arb"></i>calls back / sideways</span>
     <span><i class="bun"></i>bundled callers — hover / right-click</span>
-    <span><i class="lg-imp"></i>★ core contribution</span>
+    <span id="legendimp"><i class="lg-imp"></i>★ core contribution</span>
+    <span id="legendinnov" hidden><i class="lg-innov"></i>innovation</span>
   </div>
   <div class="tools">
     <button id="back" class="backbtn" title="nothing to go back to" disabled>
@@ -547,6 +576,7 @@
       <button id="fit" class="tb" title="fit everything (0)">FIT</button>
       <button id="gomain" class="tb" title="go to the entry point (m)">MAIN</button>
       <button id="imponly" class="tb" title="show only ★ core functions (i)" aria-pressed="false">★ <span id="impn"></span></button>
+      <button id="innovonly" class="tb innovbtn" title="show only the green-framed innovation cards (g)" aria-pressed="false" hidden>◆ <span id="innovn"></span></button>
     </div>
   </div>
 </header>
@@ -610,20 +640,21 @@
   D.edges.forEach(function (e) { byId[e.from].out.push(e); byId[e.to].in.push(e); });
 
   function wholeRunCoverage(n) { return (n.coverage_scope || D.coverage_scope) === "whole_run"; }
-  // Coverage is aggregated across the command; outgoing calls have narrower
-  // recorded parentage. Never copy a sibling's edge onto the current card.
-  // Compare only exact call-site groups, excluding merged or graph-only cards.
+  function contextCoverage(n) { return n.coverage_scope === "call_site_group" || n.coverage_scope === "merged_call_sites"; }
+  // New captures record this context's lines. Legacy captures can only compare
+  // outgoing calls. In either case, navigate to siblings without copying edges.
   var contextGroups = {};
   nodes.forEach(function (n) {
     n._elsewhere = {};
-    if (n.call_scope !== "call_site_group" || !wholeRunCoverage(n)) return;
+    if (n.boundary || n.call_scope !== "call_site_group") return;
     var key = JSON.stringify([n.file, n.name, n.start]);
     (contextGroups[key] = contextGroups[key] || []).push(n);
   });
   Object.keys(contextGroups).forEach(function (key) {
-    var group = contextGroups[key], callersByLine = {};
+    var group = contextGroups[key], callersByLine = {}, contextsByLine = {};
     group.forEach(function (n, index) {
       n._siteIndex = index + 1;
+      n.ex.forEach(function (line) { (contextsByLine[line] = contextsByLine[line] || []).push(n); });
       n.out.forEach(function (e) {
         if (e.synthetic) return;
         var callers = callersByLine[e.line] = callersByLine[e.line] || [];
@@ -631,8 +662,8 @@
       });
     });
     group.forEach(function (n) {
-      n.ex.forEach(function (line) {
-        var callers = callersByLine[line];
+      (contextCoverage(n) ? (n.run_ex || []) : n.ex).forEach(function (line) {
+        var callers = contextCoverage(n) ? contextsByLine[line] : callersByLine[line];
         if (callers && callers.indexOf(n) < 0) n._elsewhere[line] = callers;
       });
     });
@@ -647,6 +678,7 @@
   var t = D.totals;
   var covMissing = D.coverage_status === "not_collected" || D.coverage_status === "not collected";
   var wholeRun = D.coverage_scope === "whole_run" || nodes.some(wholeRunCoverage);
+  var hasContextCoverage = nodes.some(contextCoverage);
   if (wholeRun && !covMissing) {
     $("legendhit").innerHTML = '<i class="lg-hit"></i>executed · whole run';
     $("legendpart").innerHTML = '<i class="lg-part"></i>partial branch · whole run';
@@ -655,20 +687,43 @@
     $("legendpart").title = "Some branches were not executed anywhere in this command.";
     $("legendmiss").title = "This line was not executed anywhere in this command.";
   }
+  if (hasContextCoverage && !covMissing) {
+    $("legendhit").innerHTML = '<i class="lg-hit"></i>executed · this context';
+    $("legendpart").innerHTML = '<i class="lg-part"></i>partial branch · this context';
+    $("legendmiss").innerHTML = '<i class="lg-miss"></i>not run · this context';
+    $("legendhit").title = "Lines observed across this card's repeated calls, not a single invocation. Merged cards are labeled separately.";
+    $("legendpart").title = "A possible branch was not observed in this caller context.";
+    $("legendmiss").title = "This executable line was not observed in this caller context.";
+  }
   $("legendelsewhere").hidden = !nodes.some(function (n) { return Object.keys(n._elsewhere).length; });
-  $("legendelsewhere").title = "An outgoing call was recorded on another card for this function, but not on this card. Full per-call line coverage was not collected.";
+  $("legendelsewhere").title = hasContextCoverage ? "This line ran in another caller context. Open that card to follow its measured calls." : "An outgoing call was recorded on another card for this function, but not on this card. Full per-call line coverage was not collected.";
+  // Reviewed paper-innovation ranges (payload `innovation`): green frames and green gutter marks.
+  var innovMeta = D.innovation || null, innovCards = nodes.filter(function (n) { return n.innovation; });
+  if (D.important_label) $("legendimp").innerHTML = '<i class="lg-imp"></i>' + esc(D.important_label);
+  if (innovCards.length) {
+    var innovSup = innovCards.some(function (n) { return n.innovation.role === "supporting"; });
+    $("legendinnov").hidden = false;
+    $("legendinnov").innerHTML = '<i class="lg-innov"></i>◆ ' + esc((innovMeta && innovMeta.label) || "innovation") + (innovSup ? " · dashed = supporting" : "");
+    $("legendinnov").title = (innovMeta && innovMeta.definition) || "";
+    $("innovonly").hidden = false;
+    $("innovn").textContent = innovCards.length;
+    var innovHint = document.createElement("div");
+    innovHint.className = "hr";
+    innovHint.innerHTML = '<span class="hl"><kbd>g</kbd></span><span class="hd">show only the <b>green-framed</b> innovation cards; green line numbers mark the reviewed ranges</span>';
+    $("hintbody").appendChild(innovHint);
+  }
   var fnN = t.profiled_functions != null ? t.profiled_functions : t.functions;
   $("stats").innerHTML =
     st(t.distinct_functions != null ? t.distinct_functions : fnN, t.profiled_functions != null ? "profiled functions" : "functions") +
     (t.distinct_functions != null ? st(t.functions, "call-site cards") : "") +
     st(t.calls.toLocaleString(), t.profiled_functions != null ? "Python calls · all PIDs" : "calls made") +
-    st(t.edges, "arrows") + st(t.columns, "levels deep") +
+    st(t.edges, "arrows") + (t.boundaries ? st(t.boundaries, "external boundaries") : "") + st(t.columns, "levels deep") +
     st(covMissing ? "not collected" : (t.executed.toLocaleString() + " / " + t.lines.toLocaleString()),
-       covMissing ? "line coverage" : (wholeRun ? "whole-run lines / drawn" : "lines ran / drawn"));
+       covMissing ? "line coverage" : (hasContextCoverage ? (t.boundaries ? "context lines / project source" : "context lines / drawn") : wholeRun ? (t.boundaries ? "whole-run lines / project source" : "whole-run lines / drawn") : "lines ran / drawn"));
   function st(v, l) { return '<div class="stat"><b>' + v + "</b><span>" + l + "</span></div>"; }
   $("scopenote").textContent = D.scope_note || ("Every function this run reached, placed one column right of whoever called it first. " +
-    "Third-party code is not drawn" + (D.totals.dropped ? ", nor " + D.totals.dropped + " function(s) that only ran at import time." : "."));
-  if (wholeRun && !covMissing) $("scopenote").textContent += " Line colors summarize the whole run, not one invocation. Gray call rows link to other call sites where that outgoing call was recorded. Arrows belong to the current card's recorded calls.";
+    (t.boundaries ? "External/native call boundaries are included; their source is reference only." : "Third-party code is not drawn.") + (D.totals.dropped ? " " + D.totals.dropped + " cards are outside this entry's reachable tree." : ""));
+  if (!covMissing && D.coverage_note) $("scopenote").textContent += " " + D.coverage_note;
 
   // ---------- highlighter ----------
   var KW = {};
@@ -712,7 +767,11 @@
     n.ex.forEach(function (v) { ex[v] = 1; stmt[v] = 1; });
     n.mi.forEach(function (v) { stmt[v] = 1; });
     n.partial.forEach(function (v) { part[v] = 1; });
-    return (n._st = { ex: ex, stmt: stmt, part: part, elsewhere: n._elsewhere });
+    var innov = {};
+    if (n.innovation) (n.innovation.ranges || []).forEach(function (r) { for (var l = r.start; l <= r.end; l++) innov[l] = r.what || ""; });
+    return (n._st = { ex: ex, stmt: stmt, part: part, elsewhere: n._elsewhere, innov: innov });
+  }
+  function attr(v) { return esc(v).replace(/"/g, "&quot;");
   }
   function shortName(n) {
     var parts = n.name.split(".");
@@ -721,7 +780,7 @@
     return { leaf: leaf, cls: cls };
   }
   function callCountLabel(n) {
-    return n.call_scope === "call_site_group" ? "calls at this site" :
+    return n.boundary ? "observed external calls at this site" : n.call_scope === "call_site_group" ? "calls at this site" :
       n.call_scope === "merged_call_sites" ? "calls across merged sites" : "recorded calls";
   }
   function contextLabel(n) {
@@ -1207,7 +1266,7 @@
 
   function mount(n) {
     var el = document.createElement("div");
-    el.className = "panel" + (n.id === D.main ? " root" : "") + (n.id === focusId ? " focus" : "") + (n.match ? " match" : "") + (isImp(n) ? " imp" : "");
+    el.className = "panel" + (n.id === D.main ? " root" : "") + (n.id === focusId ? " focus" : "") + (n.match ? " match" : "") + (isImp(n) ? " imp" : "") + (n.innovation ? " innov" + (n.innovation.role === "supporting" ? " innov-sup" : "") : "");
     el.style.cssText = "left:" + n.x + "px;top:" + n.y + "px;width:" + n.w + "px;height:" + n.h + "px";
     el.dataset.id = n.id;
     var sn = shortName(n);
@@ -1217,8 +1276,11 @@
       '<span class="fn">' + (sn.cls ? '<span class="cls">' + esc(sn.cls) + ".</span>" : "") + esc(sn.leaf) + "</span>" +
       '<span class="loc">' + esc(n.file) + ":" + n.def + "</span>" +
       '<span class="meta">' +
+        (n.innovation ? '<span class="innovtag' + (n.innovation.role === "supporting" ? " sup" : "") + '" title="' + attr(n.innovation.summary || "") + '">◆ ' + (n.innovation.role === "supporting" ? "supports innovation" : "innovation") + "</span>" : "") +
         (n.via ? '<span class="via" title="entered from outside the repo">via ' + esc(n.via) + "</span>" : "") +
-        (wholeRunCoverage(n) && !covMissing ? '<span class="covscope" title="Line colors combine all calls in the command; they are not per-invocation coverage.">whole-run coverage</span>' : "") +
+        (n.boundary ? '<span class="covscope" title="This call boundary was observed. Internal implementation lines were not traced.">' + esc(n.boundary.kind) + ' boundary · ' + (n.boundary.source_reference_only ? 'source reference only' : 'source unavailable') + '</span>' :
+         contextCoverage(n) ? '<span class="covscope" title="Lines recorded across the calls grouped on this card; not a single invocation.">' + (n.coverage_scope === 'merged_call_sites' ? 'merged-context coverage' : 'this-context coverage') + '</span>' :
+         wholeRunCoverage(n) && !covMissing ? '<span class="covscope" title="Line colors combine all calls in the command; they are not per-invocation coverage.">whole-run coverage</span>' : "") +
         '<span class="callcount" title="' + callCountLabel(n) + '">×' + n.calls.toLocaleString() + (n.call_scope === "call_site_group" ? " here" : "") + "</span>" +
         (n.in.length ? '<button class="callers" data-id="' + n.id + '">↩ ' + n.in.length + (n.in.length === 1 ? " caller" : " callers") + "</button>" : "") +
         '<button class="star" data-id="' + n.id + '" title="mark / unmark as a core-contribution function">★</button>' +
@@ -1238,6 +1300,7 @@
     var s = status(n), g = cv.getContext("2d"), css = getComputedStyle(document.documentElement);
     var hitC = css.getPropertyValue("--hit-bar").trim(), partC = css.getPropertyValue("--partial-bar").trim(), missC = css.getPropertyValue("--miss-bar").trim();
     var faintC = css.getPropertyValue("--faint").trim() || "#8a9db2";
+    var innovC = css.getPropertyValue("--innov").trim() || "#16a34a";
     // No coverage.py data (ex and mi both empty): still draw the source shape
     // in muted ink. Otherwise far-zoom cards are blank rectangles and read as
     // "nothing ran", which is the opposite of what a missing overlay means.
@@ -1246,7 +1309,7 @@
     g.clearRect(0, 0, cv.width, cv.height);
     for (var i = 0; i < n.nlines; i++) {
       var ln = n.start + i;
-      var c = s.elsewhere[ln] ? faintC : s.ex[ln] ? (s.part[ln] ? partC : hitC) : s.stmt[ln] ? missC : (noCov ? faintC : null);
+      var c = s.innov[ln] !== undefined ? innovC : s.elsewhere[ln] ? faintC : s.ex[ln] ? (s.part[ln] ? partC : hitC) : s.stmt[ln] ? missC : (noCov ? faintC : null);
       if (!c) continue;
       var L = n._lines[i] || "";
       var ind = Math.round(((L.length - L.replace(/^\s+/, "").length) / maxCh) * 60);
@@ -1261,6 +1324,7 @@
     for (var i = 0; i < n.nlines; i++) {
       var ln = n.start + i;
       var cls = s.elsewhere[ln] ? "elsewhere" : s.ex[ln] ? (s.part[ln] ? "part" : "hit") : s.stmt[ln] ? "miss" : "none";
+      if (s.innov[ln] !== undefined) cls += " innov";
       var chips = "", links = null;
       if (outByLine[ln]) {
         links = {};
@@ -1270,6 +1334,11 @@
         outByLine[ln].forEach(function (e) {           // exact name match first
           var leaf = shortName(byId[e.to]).leaf;
           if (calls.some(function (c) { return c.name === leaf; }) && links[leaf] === undefined) links[leaf] = e.to;
+          else if (e.boundary && e.expression_exact && leaf === "forward") {
+            var exprCall = /(?:^|\.)([A-Za-z_]\w*)\s*\(/.exec(e.expression || "");
+            if (exprCall && calls.some(function (c) { return c.name === exprCall[1]; })) links[exprCall[1]] = e.to;
+          }
+          else if (e.boundary) { /* Multiple runtime endpoints use explicit chips; do not guess a source token. */ }
           else pending.push(e);
         });
         var free = calls.filter(function (c) { return links[c.name] === undefined; })
@@ -1278,8 +1347,9 @@
         outByLine[ln].forEach(function (e) {
           var b = byId[e.to], kind = e.to === n.id ? "self" : b.col <= n.col ? "back" : "";
           var viaTxt = e.via ? " <small>· " + esc(e.via) + "</small>" : "";
-          chips += '<span class="chip ' + kind + (e.synthetic ? " syn" : "") + '" data-to="' + e.to + '" title="' + esc(b.file) + ":" + b.def + (e.via ? " · reached via " + esc(e.via) : "") + '">' +
-            (kind === "self" ? "↻ " : e.via ? "⇢ " : "→ ") + esc(shortName(b).leaf) + (e.n > 1 ? " <small>×" + e.n.toLocaleString() + "</small>" : "") + viaTxt + "</span>";
+          var boundaryTip = b.boundary ? " · observed " + b.boundary.kind + " boundary; internal lines not traced" : "";
+          chips += '<span class="chip ' + kind + (e.synthetic ? " syn" : "") + '" data-to="' + e.to + '"' + (e.boundary ? ' data-boundary="' + e.boundary_id + '"' : '') + ' title="' + esc(b.file) + ":" + b.def + (e.via ? " · reached via " + esc(e.via) : "") + boundaryTip + '">' +
+            (kind === "self" ? "↻ " : e.via ? "⇢ " : "→ ") + esc(b.boundary ? b.name : shortName(b).leaf) + (e.n > 1 ? " <small>×" + e.n.toLocaleString() + "</small>" : "") + viaTxt + "</span>";
         });
       }
       if (s.elsewhere[ln]) {
@@ -1291,12 +1361,43 @@
       }
       var isRet = /^\s*return\b/.test(n._lines[i] || "");
       if (isRet && !s.elsewhere[ln] && returnTarget(n)) chips += '<span class="chip retchip" data-ret="' + n.id + '" title="navigate to the caller (Enter); this does not mark a measured return branch">↩ caller</span>';
-      var lineTitle = s.elsewhere[ln] ? "Outgoing call recorded at another call site, not this one. Open that caller card to follow its call arrow. This is not per-invocation line coverage." :
+      var lineTitle = n.boundary ? "Reference source only; this endpoint was called but its internal lines were not traced." :
+        s.elsewhere[ln] ? (contextCoverage(n) ? "This line was not observed in this context. Open another caller card where it ran." : "Outgoing call recorded at another call site, not this one. Open that caller card to follow its call arrow. This is not per-invocation line coverage.") :
+        contextCoverage(n) && s.ex[ln] ? "Executed in this caller context, grouped across its repeated calls." :
         wholeRunCoverage(n) && s.ex[ln] ? "Executed somewhere in the whole run; this color is not per-invocation coverage." : "";
+      if (s.innov[ln] !== undefined) lineTitle = attr(((D.innovation && D.innovation.label) || "Innovation") + (s.innov[ln] ? ": " + s.innov[ln] : "")) + (lineTitle ? " — " + lineTitle : "");
       buf.push('<div class="row ' + cls + (isRet ? " ret" : "") + '" data-l="' + ln + '" title="' + lineTitle + '" style="top:' + (i * LH) + 'px"><span class="num">' + ln +
         '</span><span class="src">' + (n._lines[i] ? hl(n._lines[i], links) : " ") + "</span>" + chips + "</div>");
     }
     n.txtEl.innerHTML = buf.join("");
+    // Keep every measured destination usable when source + chips exceed a
+    // fixed-height row. Preserve the primary arrow and expose the rest through
+    // a keyboard-accessible menu, instead of silently clipping overflow.
+    n.txtEl.querySelectorAll('.row').forEach(function (row) {
+      var chips = Array.from(row.querySelectorAll('.chip[data-to]'));
+      if (!chips.length || !chips.some(function (chip) { return chip.offsetLeft + chip.offsetWidth > row.clientWidth; })) return;
+      var line = +row.dataset.l, lineEdges = outByLine[line] || [];
+      function rank(chip) {
+        var target = byId[+chip.dataset.to];
+        if (target.boundary && /\.forward$/.test(target.name)) return 0;
+        if (!target.boundary) return 1;
+        if (target.boundary.kind === 'python' && !/\.__\w+__$/.test(target.name)) return 2;
+        return 3;
+      }
+      var primary = chips.slice().sort(function (a,b) { return rank(a)-rank(b); })[0];
+      chips.forEach(function (chip) { if (chip !== primary) chip.style.display = 'none'; });
+      var actions = document.createElement('span');actions.className = 'callactions';
+      actions.appendChild(primary);
+      if (chips.length > 1) {
+        var more = document.createElement('button');more.type = 'button';more.className = 'callsmore';
+        more.dataset.from = n.id;more.dataset.line = line;more.dataset.primary = primary.dataset.to;
+        more.textContent = '+' + (chips.length - 1) + ' calls';
+        more.title = 'Show all ' + lineEdges.length + ' recorded destinations on line ' + line;
+        more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');
+        actions.appendChild(more);
+      }
+      row.appendChild(actions);
+    });
   }
 
   // ---------- interaction ----------
@@ -1335,9 +1436,9 @@
     setFocus(n ? n.id : null);
     if (!n || z >= TEXT_Z) { tip.style.display = "none"; return; }
     var sn = shortName(n);
-    var covTip = (!n.ex.length && !n.mi.length)
+    var covTip = n.boundary ? "observed boundary; internal line coverage not collected" : (!n.ex.length && !n.mi.length)
       ? "line coverage not collected"
-      : (n.ex.length + " of " + n.nlines + " lines ran" + (wholeRunCoverage(n) ? " across the whole command" : ""));
+      : (n.ex.length + " of " + n.nlines + " lines ran" + (contextCoverage(n) ? " in this caller context" : wholeRunCoverage(n) ? " across the whole command" : ""));
     tip.innerHTML = "<b>" + esc(n.name) + "</b><span>" + esc(n.file) + ":" + n.def + "</span><span>called ×" + n.calls.toLocaleString() +
       " from " + n.in.length + " site" + (n.in.length === 1 ? "" : "s") + " · calls " + n.out.length + " · " + covTip + "</span>" +
       (n.via ? "<span>entered via " + esc(n.via) + "</span>" : "");
@@ -1361,6 +1462,7 @@
     var wasDrag = moved > 4, t = downTarget || e.target; downTarget = null;
     endDrag(e);
     if (wasDrag || !t || !t.closest) return;
+    if (t.closest('.callsmore')) return; // native button click supports pointer and keyboard equally
     var context = t.closest(".contextlink");
     if (context) { e.preventDefault(); switchContext(context); return; }
     var rc = t.closest(".retchip, .retstrip");
@@ -1402,6 +1504,10 @@
   $("back").addEventListener("click", goBack);
   $("imponly").addEventListener("click", function () {
     var on = document.body.classList.toggle("imponly");
+    this.setAttribute("aria-pressed", String(on));
+  });
+  $("innovonly").addEventListener("click", function () {
+    var on = document.body.classList.toggle("innovonly");
     this.setAttribute("aria-pressed", String(on));
   });
   // Shortcut list: collapsible, and the choice is remembered per viewer.
@@ -1770,6 +1876,10 @@
     if (e.target.tagName === "INPUT" || (resBox.contains && resBox.contains(e.target))) return;
     if (e.target.id === "stagebtn" || (e.target.closest && e.target.closest(".stagepick"))) return;
     if (e.target.closest && e.target.closest(".contextlink")) return;
+    if (e.target.closest && e.target.closest('.callsmore, .calleetarget')) {
+      if (e.key === 'Escape') { e.preventDefault();hideVals(); }
+      return; // Enter/Space activate the focused native button
+    }
     var r = vp.getBoundingClientRect();
     if (e.key === "/") { e.preventDefault(); if (window.__closeStages) window.__closeStages(); q.focus(); }
     else if (e.key === "0") fit();
@@ -1777,6 +1887,7 @@
     else if (e.key === "Backspace" || e.key === "b" || (e.altKey && e.key === "ArrowLeft")) { e.preventDefault(); goBack(); }
     else if (e.key === "Enter") { e.preventDefault(); returnFrom(cur || centerNode()); }
     else if (e.key === "i") $("imponly").click();
+    else if (e.key === "g" && !$("innovonly").hidden) $("innovonly").click();
     else if (e.key === "Escape") hideVals();
     else if (e.key === "?") { e.preventDefault(); $("hinttoggle").click(); }
     else if (e.key === "+" || e.key === "=") zoomAt(r.width / 2, r.height / 2, 1.5);
@@ -1785,7 +1896,9 @@
   // ---------- right-click: what the variables on this line held ----------
   var vals = $("vals");
   function hideVals() {
+    if (vals.contains(document.activeElement)) document.activeElement.blur();
     vals.style.display = "none";
+    document.querySelectorAll('.callsmore[aria-expanded="true"]').forEach(function (button) { button.setAttribute('aria-expanded','false'); });
     // release a bundle that was pinned only to keep its menu company
     if (menuAutoPinned !== null) {
       var mb = bundles[menuAutoPinned];
@@ -1802,6 +1915,32 @@
     vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
     vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
   }
+  function showDestinations(button) {
+    var caller = byId[+button.dataset.from], line = +button.dataset.line;
+    var entries = caller.out.filter(function (edge) { return edge.line === line; });
+    var r = button.getBoundingClientRect();
+    var html = ['<div class="vh"><b>Calls on line ' + line + '</b><span>' + entries.length + ' recorded destinations</span><button class="x" data-op="close">esc</button></div>'];
+    entries.forEach(function (edge) {
+      var target = byId[edge.to], scope = target.boundary ? target.boundary.kind + ' boundary' : 'project call';
+      html.push('<button type="button" class="clrow calleetarget" data-to="' + edge.to + '"' +
+        (edge.boundary ? ' data-boundary="' + edge.boundary_id + '"' : '') + '>' +
+        '<span class="cll">→ ' + esc(target.name) + '</span><span class="clc">×' + edge.n.toLocaleString() +
+        '</span><span class="clv">' + esc(scope) + '</span></button>');
+    });
+    html.push('<div class="foot">Each destination is backed by a recorded call from this card at line ' + line + '. Select one to open it; Enter returns to this caller.</div>');
+    vals.innerHTML = html.join('');vals.setAttribute('role','dialog');vals.setAttribute('aria-label','Recorded call destinations');
+    button.setAttribute('aria-expanded','true');placeVals(r.left,r.bottom);
+    vals.onclick = function (event) {
+      var selected = event.target.closest('.calleetarget');
+      if (selected) { hideVals();follow(caller,line,byId[+selected.dataset.to]);return; }
+      if (event.target.closest('[data-op="close"]')) { hideVals();button.focus({preventScroll:true}); }
+    };
+    var first = vals.querySelector('.calleetarget');if (first) first.focus({preventScroll:true});
+  }
+  vp.addEventListener('click',function (event) {
+    var button = event.target.closest && event.target.closest('.callsmore');
+    if (button) { event.preventDefault();showDestinations(button); }
+  });
   // ---------- right-click a bundle circle: who calls this function ----------
   function showCallers(tid, x, y) {
     var b = bundles[tid];
@@ -2074,6 +2213,7 @@
       }
       if (!shown || all || isDef) {
         var a = [], l = [], r = [];
+        if (n.boundary && sample.receiver) renderVal("receiver", sample.receiver, 0, a);
         Object.keys(sample.args || {}).forEach(function (k) {
           renderVal(k, sample.args[k], 0, a);
           renderTimeline(k, valTimeline(sample, k), 0, a);
@@ -2091,6 +2231,24 @@
         if (!a.length && !l.length && !r.length) out.push('<div class="empty">Nothing bound in this call.</div>');
       }
       html = html.concat(out);
+      if (sample.yielded) {
+        var yielded = [];renderVal("→",sample.yielded,0,yielded);
+        html = html.concat('<div class="sec">yielded at suspension</div>',yielded);
+      }
+      if (n.boundary) {
+        html.push('<div class="sec">observed boundary</div><div class="foot">' + esc(n.boundary.kind) +
+          ' · ' + esc(n.boundary.expression) + '<br>Sample outcome: ' + esc(sample.status || 'unknown') +
+          '<br>Recorded outcomes: ' + esc(JSON.stringify(n.boundary.outcomes || {})) +
+          (n.boundary.outcomes_note ? '<br>' + esc(n.boundary.outcomes_note) : '') +
+          (sample.args_unavailable ? '<br>Arguments: ' + esc(sample.args_unavailable) : '') +
+          (sample.ret_unavailable ? '<br>Return: ' + esc(sample.ret_unavailable) : '') +
+          (sample.exception_unavailable ? '<br>Exception: ' + esc(sample.exception_unavailable) : '') +
+          '<br>Internal implementation lines were not traced. Source, when available, is reference only.</div>');
+      } else if ((sample.status && sample.status !== 'returned') || sample.ret_unavailable || sample.exception_unavailable) {
+        html.push('<div class="sec">recorded call outcome</div><div class="foot">Sample outcome: ' + esc(sample.status || 'unknown') +
+          (sample.ret_unavailable ? '<br>Return: ' + esc(sample.ret_unavailable) : '') +
+          (sample.exception_unavailable ? '<br>Exception: ' + esc(sample.exception_unavailable) : '') + '</div>');
+      }
       html.push('<div class="foot">Arrays show shape, dtype, first values and any recorded statistics with their scope. ' +
         (snapshotsOnly ? 'Only entry/exit snapshots were captured; values between lines are unknown. ' :
          'An <b>entry → L… → exit</b> strip shows recorded value changes. ') +
@@ -2100,6 +2258,7 @@
         'No values are re-executed.</div>');
     }
     vals.innerHTML = html.join("");
+    vals.setAttribute('role','dialog');vals.setAttribute('aria-label','Recorded values');
     vals.style.display = "block";
     var vw = window.innerWidth, vh = window.innerHeight, w = vals.offsetWidth, h = vals.offsetHeight;
     vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";

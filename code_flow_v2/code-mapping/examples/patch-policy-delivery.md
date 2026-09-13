@@ -1,78 +1,87 @@
-# Patch Policy: rebuild and deliver the saved code flow
+# Patch Policy: rebuild and deliver the saved command suite
 
-Use this example when updating the existing Patch Policy session on this
-machine. For another project, use its own brief, trace, and curated symbols.
+The current publication contains 27 fresh command captures, including the PushT
+VQ-BeT baseline. Use the suite manifest to update these existing URLs together.
 The general publishing procedure is [PUBLISHING.md](../../PUBLISHING.md).
 
-## Rebuild from saved evidence
+## Rebuild and audit saved evidence
 
 ```bash
 cd /mnt/sata1/code/robo/patch_policy
-python docs/code_mapping/tools/render_success.py
-python docs/code_mapping/tools/verify_viewer.py
+python docs/code_mapping/suite/render_suite.py \
+  --plan docs/code_mapping/suite/publication_plan_rerun.json
+python docs/code_mapping/suite/verify_call_evidence.py \
+  --plan docs/code_mapping/suite/publication_plan_rerun.json \
+  --output docs/code_mapping/suite/call-evidence-rerun.json
 ```
 
-This uses `docs/code_mapping/line_coverage/success/` and the same
-`docs/code_mapping/important.txt` as the mapping. The renderer adapts this
-capture's primitives, array summaries, and sample contexts and uses its copied
-viewer template. A stock `codetrace.py --rebuild` bypasses that adapter. Preserve
-`callgraph.json`, `coverage.json`, and `run.json`; do not run
-`run_capture.sh` merely to refresh the page. The scripts and raw evidence live
-with the target repository; these instructions do not bundle or recreate them.
+The plan selects immutable raw evidence under
+`docs/code_mapping/suite/runs/<id>/trace/`. The project renderer adapts primitives,
+array summaries, receivers, yielded values and execution contexts. A stock
+`codetrace.py --rebuild` bypasses this adapter. The PushT diffusion run's
+`innovation.json` retains the existing reviewed green frames; its ranges are
+validated against the freshly rendered source cards. Keep these annotations
+separate from observed execution coverage.
 
-## Update the existing menu entry
+Preserve `callgraph.json`, `coverage.json` and `run.json`. A rebuild cannot recover
+call events absent from an older capture. When fresh execution is requested,
+create distinct run IDs and output directories using the project launcher and
+job manifest; record real prerequisite failures. Do not overwrite prior runs.
+The scripts, datasets, checkpoints and raw traces live with the target project;
+cloning the menu retrieves the reusable pack and published pages, not those
+machine-specific resources.
+
+## Replace the existing grouped pages
 
 After checking the menu checkout and updating it from `origin/main`, run from
 the Patch Policy repository:
 
 ```bash
-python /mnt/sata1/andres/code/code_flow/code_flow_v2/code-mapping/codetrace/menu_card.py \
-  --out docs/code_mapping/line_coverage/success \
-  --slug patch_policy --name 'Patch Policy' \
-  --title 'Patch Policy · PushT Call Tree' \
-  --tag 'Push-T · training and rollout' \
-  --what 'One epoch on two demonstrations, 21 policy updates, and a 302-step simulator rollout; rollout coverage was 0.0.' \
-  --fam cap --copy --force
+python docs/code_mapping/suite/publish_suite.py \
+  --plan docs/code_mapping/suite/publication_plan_rerun.json \
+  --menu /mnt/sata1/andres/menuCodeMapping \
+  --catalog docs/code_mapping/suite/publication_catalog_rerun.json
+python docs/code_mapping/suite/make_call_fix_report.py \
+  --plan docs/code_mapping/suite/publication_plan_rerun.json \
+  --output /mnt/sata1/andres/menuCodeMapping/projects/patch_policy/CALL_CAPTURE_FIX.md
 ```
 
-These numbers describe the saved SUCCESS trial; derive replacements from new
-evidence if the trial changes. The command replaces
-`projects/patch_policy/index.html` in the shared menu. Replace its existing
-card and README row rather than adding a duplicate. Label 260 as function
-cards, representing 122 distinct functions. For an unchanged capture the menu
-totals remain unchanged; the helper's proposed add-one totals do not apply to
-this replacement.
+`publication_id` maps fresh capture IDs to stable page URLs. The publisher
+replaces the baseline and other 26 pages, reconciles menu totals, and preserves
+the single closed-by-default repository group. The current baseline has two
+optimizer updates and a complete 302-step rollout; the older 21-update SUCCESS
+trace remains historical evidence. Always derive counts from the selected run.
 
 ## Verify localhost, push, then verify Netlify
 
-Reuse the existing menu server on port 8766, or start it as documented in
-PUBLISHING.md. The browser checks below require Google Chrome and the Python
-`websocket-client` module. They open the actual menu, click the Patch Policy
-card, compare the payload, check the 32-stage list, and exercise search, value
-inspection, and all 16 selected execution-context samples. Also select a stage
-to confirm it navigates to the expected card.
+Reuse the existing server on port 8766. The browser scripts require Google
+Chrome and Python's `websocket-client` module. From the project root:
 
 ```bash
-cd /mnt/sata1/code/robo/patch_policy
-python docs/code_mapping/tools/verify_delivery.py http://localhost:8766 \
-  --output docs/code_mapping/runs/local_delivery_verification.json
+python docs/code_mapping/suite/verify_site.py \
+  --base-url http://localhost:8766 \
+  --catalog docs/code_mapping/suite/publication_catalog_rerun.json \
+  --output docs/code_mapping/suite/delivery-local-rerun.json
+python docs/code_mapping/suite/verify_call_navigation.py \
+  --base-url http://localhost:8766 \
+  --catalog docs/code_mapping/suite/publication_catalog_rerun.json \
+  --output docs/code_mapping/suite/delivery-calls-local-rerun.json
+python docs/code_mapping/suite/verify_sample_fields.py \
+  --base-url http://localhost:8766 \
+  --catalog docs/code_mapping/suite/publication_catalog_rerun.json \
+  --output docs/code_mapping/suite/delivery-sample-fields-local-rerun.json
 ```
 
-After the local checks pass, complete the authorized commit/push in
-`/mnt/sata1/andres/menuCodeMapping` using PUBLISHING.md. Include the updated
-versioned `code_flow_v2/` when changing the pack. Then verify the public site:
+These checks cover the actual menu, stage navigation, context values, observed
+call arrows, mutually exclusive returns, native/module endpoints, crowded-line
+menus, real pointer hit testing and keyboard activation. Preserve existing
+reviewed innovation frames when replacing the diffusion page.
 
-```bash
-python docs/code_mapping/tools/verify_delivery.py https://roaring-kringle-be46b2.netlify.app/ \
-  --output docs/code_mapping/runs/public_delivery_verification.json
-```
+After local checks pass, complete the authorized menu commit/push, including
+intended reusable `code_flow_v2/` changes. Repeat these commands with
+`--base-url https://roaring-kringle-be46b2.netlify.app/` and distinct public report
+paths after deployment. A push alone does not prove deployment.
 
-Keep the publication record in `docs/code_mapping/runs/PUBLISHED.md` current
-with the actual commit, check results, and these verified page URLs:
-
-- http://localhost:8766/projects/patch_policy/index.html
-- https://roaring-kringle-be46b2.netlify.app/projects/patch_policy/
-
-Link the record from `MAPPING.md` and `runs/SUCCESS.md`, and update the brief,
-gaps, and completion checklist. An exit-zero capture establishes execution;
-this short saved run's task coverage was 0.0.
+Record the commit, verified payloads, local/public URLs and remaining limits in
+`docs/code_mapping/suite/RERUN_PUBLISHED.md`. The published issue report is
+[CALL_CAPTURE_FIX.md](../../../projects/patch_policy/CALL_CAPTURE_FIX.md).

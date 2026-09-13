@@ -20,6 +20,7 @@ See README.md for options.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import io
 import json
 import os
@@ -32,6 +33,10 @@ from itertools import count
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+_boundary_spec = importlib.util.spec_from_file_location("_codetrace_boundaries", HERE / "_boundaries.py")
+_boundary_module = importlib.util.module_from_spec(_boundary_spec)
+_boundary_spec.loader.exec_module(_boundary_module)
+BoundaryRecorder = _boundary_module.BoundaryRecorder
 
 DENY_DIRS = {
     ".git", ".hg", ".svn", ".venv", "venv", "env", ".env", "node_modules",
@@ -301,19 +306,41 @@ class CallTracer:
         self.tkey_insts: dict[tuple, int] = {} # tkey -> instances created so far
         self.seq = count()
         self._orig_thread_start = None
+        self._normalized_files = {}
+        self._project_files = {}
+        self.instance_edges = {}
+        self._line_frames = {}
+        self._previous_trace = None
+        self._previous_thread_trace = None
+        self._thread_traces = threading.local()
+        self._active = False
+        self.boundaries = BoundaryRecorder(
+            root, self.frame_inst, lambda fn: self._inproj(self._norm(fn)), summarize, summarize_locals,
+            max_samples=MAX_SAMPLES, context=lambda f: self.context(f) if hasattr(self, "context") else None,
+            next_seq=self.seq.__next__,
+            exclude=lambda fn: self._norm(fn).startswith(self.self_dir + os.sep),
+        )
 
     def _norm(self, fn: str) -> str:
-        if not os.path.isabs(fn):
-            fn = os.path.join(self.root, fn)
-        return fn
+        cached = self._normalized_files.get(fn)
+        if cached is not None:
+            return cached
+        normalized = fn if os.path.isabs(fn) else os.path.join(self.root, fn)
+        if len(self._normalized_files) < 8192:
+            self._normalized_files[fn] = normalized
+        return normalized
 
     def _inproj(self, fn: str) -> bool:
-        if fn.startswith(self.self_dir):
-            return False
-        for p in self.prefixes:
-            if fn == p or fn.startswith(p + os.sep) or fn == p + ".py":
-                return True
-        return False
+        cached = self._project_files.get(fn)
+        if cached is not None:
+            return cached
+        matched = not fn.startswith(self.self_dir) and any(
+            fn == p or fn.startswith(p + os.sep) or fn == p + ".py"
+            for p in self.prefixes
+        )
+        if len(self._project_files) < 8192:
+            self._project_files[fn] = matched
+        return matched
 
     def _real_frame(self, f):
         """Nearest in-project *named* caller frame, plus what we walked past."""
@@ -340,14 +367,27 @@ class CallTracer:
         return None, via
 
     def _profile(self, frame, event, arg):
+        if not self._active:
+            return
+        self.boundaries.profile(frame, event, arg)
         if event == "return":
-            self.frame_inst.pop(id(frame), None)
+            inst = self.frame_inst.pop(id(frame), None)
             p = self.pending.pop(id(frame), None)
             if p is not None:
                 p.pop("_fp", None)          # internal change-detector, not payload
+                p["executed_lines"] = sorted(p.pop("_executed_lines", ()))
+                status = self.boundaries._return_status(frame, arg)
+                p["status"] = status
                 try:
                     p["locals"] = summarize_locals(frame.f_locals)
-                    p["ret"] = summarize(arg)
+                    if status == "returned":
+                        p["ret"] = summarize(arg)
+                    elif status == "suspended":
+                        p["yielded"] = summarize(arg)
+                    elif status == "raised":
+                        p["ret_unavailable"] = "exceptional exit; this invocation did not return a value"
+                    else:
+                        p["ret_unavailable"] = "profile event could not distinguish suspension from exceptional exit"
                 except Exception:
                     pass
                 self.samples.setdefault(p.pop("tkey"), []).append(p)
@@ -362,6 +402,16 @@ class CallTracer:
         leaf = tname.rsplit(".", 1)[-1]
         if leaf.startswith("<"):
             if leaf != "<module>" or tfile != self.main_file:
+                if leaf != "<module>":
+                    # Synthetic project frames share the enclosing card, but
+                    # retain actual line events and observed calls from their body.
+                    caller = frame.f_back
+                    while caller is not None:
+                        parent = self.frame_inst.get(id(caller))
+                        if parent is not None:
+                            self.frame_inst[id(frame)] = parent
+                            break
+                        caller = caller.f_back
                 return  # comprehension / lambda / an imported module body
         s = next(self.seq)
         tkey = (tfile, tname, code.co_firstlineno)
@@ -371,10 +421,10 @@ class CallTracer:
         else:
             rec[0] += 1
         # keep the values of the first few calls (module bodies excluded: too big)
-        if leaf != "<module>" and len(self.samples.get(tkey, ())) + \
-                sum(1 for q in self.pending.values() if q.get("tkey") == tkey) < MAX_SAMPLES:
+        if leaf != "<module>" and self._want_sample(tkey, frame):
             try:
                 self.pending[id(frame)] = {"tkey": tkey, "n": rec[0] if rec else 1,
+                                           "line_scope": "frame_and_synthetic_children",
                                            "args": summarize_locals(frame.f_locals)}
             except Exception:
                 pass
@@ -424,6 +474,10 @@ class CallTracer:
         # --- call-tree instance ---------------------------------------------
         parent = self.frame_inst.get(id(b), -1) if b is not None else -1
         cline = b.f_lineno if b is not None else 0
+        immediate = frame.f_back
+        if immediate is not None and id(immediate) in self.frame_inst:
+            parent = self.frame_inst[id(immediate)]
+            cline = immediate.f_lineno
         ikey = (tkey, parent, cline)
         inst = self.insts.get(ikey)
         if inst is None:
@@ -445,12 +499,93 @@ class CallTracer:
                                        "via": via or "", "count": 0, "seq": s,
                                        "merged": False})
         self.inst_meta[inst]["count"] += 1
+        self.inst_meta[inst].setdefault("executed_lines", set())
+        self.inst_meta[inst].setdefault("executed_arcs", set())
+        edge_key = (parent, inst, cline, via or "")
+        edge = self.instance_edges.setdefault(edge_key, {"parent": parent, "to": inst,
+            "cline": cline, "via": via or "", "count": 0, "seq": s})
+        edge["count"] += 1
         self.frame_inst[id(frame)] = inst
         if id(frame) in self.pending:
             self.pending[id(frame)]["inst"] = inst
 
+    def _want_sample(self, tkey, frame):
+        """Extension point for bounded context-aware adapters."""
+        return len(self.samples.get(tkey, ())) + sum(
+            1 for q in self.pending.values() if q.get("tkey") == tkey
+        ) < MAX_SAMPLES
+
+    def _line_trace(self, frame, event, arg):
+        """Compose line evidence with the existing coverage tracer.
+
+        Only included project frames retain this local hook. Library internals
+        keep coverage's own callback and do not acquire per-line capture work.
+        """
+        fid = id(frame)
+        if not self._active:
+            previous = (self._previous_trace if threading.current_thread() is threading.main_thread()
+                        else getattr(self._thread_traces, "previous", self._previous_thread_trace))
+            sys.settrace(previous)
+            state = self._line_frames.pop(fid, None)
+            local = state[0] if state else previous
+            return local(frame, event, arg) if local else None
+        if event == "call":
+            previous = self._previous_trace
+            if threading.current_thread() is not threading.main_thread():
+                if not hasattr(self._thread_traces, "previous"):
+                    previous = self._previous_thread_trace
+                    local = previous(frame, event, arg) if previous else None
+                    installed = sys.gettrace()
+                    self._thread_traces.previous = installed if installed != self._line_trace else previous
+                    sys.settrace(self._line_trace)
+                else:
+                    previous = self._thread_traces.previous
+                    local = previous(frame, event, arg) if previous else None
+            else:
+                local = previous(frame, event, arg) if previous else None
+            if not self._inproj(self._norm(frame.f_code.co_filename)):
+                return local
+            self._line_frames[fid] = [local, None]
+            return self._line_trace
+        state = self._line_frames.get(fid)
+        if state is None:
+            return None
+        if state[0] is not None:
+            state[0] = state[0](frame, event, arg)
+        inst = self.frame_inst.get(fid)
+        if inst is not None:
+            record = self.inst_meta[inst]
+            sample = self.pending.get(fid)
+            if sample is None and frame.f_code.co_name.startswith("<"):
+                caller = frame.f_back
+                while caller is not None:
+                    if self.frame_inst.get(id(caller)) != inst:
+                        break
+                    sample = self.pending.get(id(caller))
+                    if sample is not None:
+                        break
+                    caller = caller.f_back
+            if event == "line":
+                line = frame.f_lineno
+                record["executed_lines"].add(line)
+                if state[1] is not None:
+                    record["executed_arcs"].add((state[1], line))
+                state[1] = line
+                if sample is not None:
+                    sample.setdefault("_executed_lines", set()).add(line)
+            elif event == "exception":
+                if sample is not None:
+                    kind = arg[0].__module__ + "." + arg[0].__name__
+                    sample.setdefault("exception_types", {})[kind] = sample.get("exception_types", {}).get(kind, 0) + 1
+        if event == "return":
+            self._line_frames.pop(fid, None)
+        return self._line_trace
+
     def start(self):
         tracer = self
+        previous = sys.gettrace()
+        if type(previous).__module__.startswith("coverage") and type(previous).__name__ == "CTracer":
+            raise RuntimeError("CallTracer context lines require coverage.Coverage(timid=True); CTracer replaces the composed line hook")
 
         orig = threading.Thread.start
         self._orig_thread_start = orig
@@ -464,12 +599,20 @@ class CallTracer:
             return orig(self)
 
         threading.Thread.start = start_with_origin
+        self._active = True
+        self._previous_trace = sys.gettrace()
+        self._previous_thread_trace = getattr(threading, "_trace_hook", None)
+        threading.settrace(self._line_trace)
+        sys.settrace(self._line_trace)
         threading.setprofile(self._profile)
         sys.setprofile(self._profile)
 
     def stop(self):
+        self._active = False
         sys.setprofile(None)
         threading.setprofile(None)
+        sys.settrace(self._previous_trace)
+        threading.settrace(self._previous_thread_trace)
         if self._orig_thread_start is not None:
             threading.Thread.start = self._orig_thread_start
 
@@ -494,6 +637,8 @@ class CallTracer:
                 {"file": rel(m["tkey"][0]), "name": m["tkey"][1], "first": m["tkey"][2],
                  "parent": m["parent"], "cline": m["cline"], "via": m["via"],
                  "count": m["count"], "seq": m["seq"], "merged": m["merged"]}
+                | {"executed_lines": sorted(m.get("executed_lines", ())),
+                   "executed_arcs": sorted(m.get("executed_arcs", ()))}
                 for m in self.inst_meta
             ],
             "edges": [
@@ -502,6 +647,10 @@ class CallTracer:
                 for k, v in self.edges.items()
             ],
         }
+        data["instance_edges"] = list(self.instance_edges.values())
+        data["line_capture"] = {"schema": 1, "scope": "call_site_group",
+            "note": "Union of observed line events within each calling context; sampled invocations also retain their own line events. Merged helpers are explicitly marked."}
+        data.update(self.boundaries.dump())
         path.write_text(json.dumps(data))
         return len(data["calls"]), len(data["edges"])
 
@@ -664,13 +813,13 @@ def main() -> int:
     print(f"codetrace: running {' '.join(argv)}\n", flush=True)
     log_path = out / "run.log"
     log = log_path.open("w", errors="replace")
-    tracer = CallTracer(root, roots, HERE)
     if args.no_values:
         global MAX_SAMPLES
         MAX_SAMPLES = 0
+    tracer = CallTracer(root, roots, HERE)
 
     cov = coverage.Coverage(
-        branch=True, cover_pylib=False, concurrency="thread",
+        branch=True, cover_pylib=False, concurrency="thread", timid=True,
         data_file=str(out / ".coverage"),
         include=[pat for r in roots
                  for pat in ([str(root / r)] if (root / r).is_file()

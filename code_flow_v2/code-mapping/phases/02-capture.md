@@ -42,6 +42,16 @@ Rules:
 
 - Prefer **one real run** over static analysis.
 - Record include roots (`--include`) so vendored noise is limited.
+- Use the complete current `codetrace/` bundle, including `_boundaries.py`.
+  Fresh captures record project line events per calling context, exact instance
+  edges, and direct observed dependency boundaries. Keep the boundary metadata
+  and unavailable-value reasons with the raw evidence. The bundled runner uses
+  coverage's Python tracer (`timid=True`) so its coverage hook composes with
+  context line capture; adapters must preserve this configuration.
+- Audit capture errors, dropped boundary records and unfinished samples. Check
+  representative actual library/module calls before launching an expensive
+  command suite. Boundary source is reference material, not internal execution
+  evidence; native values unavailable from the profiler must stay unavailable.
 - Save outputs under something like `docs/code_mapping/line_coverage/` or `codetrace_out/`, and link them from the brief / runs note.
 
 ## `exit 0` is not evidence the right run happened

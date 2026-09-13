@@ -15,6 +15,43 @@ COL_GAP, ROW_GAP = 150, 28
 MIN_W, MAX_W = 380, 1000
 
 
+_NONE_SUSPENSION_NOTE = (
+    "The saved profiler event cannot distinguish yield None from generator.close() "
+    "or generator.throw(); this sample's outcome is unknown."
+)
+
+
+def _normalize_sample_outcome(sample):
+    """Interpret an ambiguous legacy profile result without changing raw evidence."""
+    value = sample.get("yielded")
+    is_none = value is None or isinstance(value, dict) and value.get("t") == "NoneType"
+    if sample.get("status") != "suspended" or "yielded" not in sample or not is_none:
+        return sample
+    normalized = dict(sample)
+    normalized.pop("yielded")
+    normalized["status"] = "unknown"
+    normalized["ret_unavailable"] = _NONE_SUSPENSION_NOTE
+    normalized["outcome_provenance"] = {
+        "raw_status": sample["status"], "raw_field": "yielded", "raw_value": value,
+        "note": "Conservative interpretation of a saved profile event; raw capture was not modified.",
+    }
+    return normalized
+
+
+def _boundary_outcomes(record, capture):
+    outcomes = dict(record.get("outcomes") or {})
+    if capture.get("none_suspension_outcomes") == "unknown" or not outcomes.get("suspended"):
+        return outcomes, None
+    raw = dict(outcomes)
+    # First-N samples cannot reveal the outcome split for all other entries.
+    # Keep the entire aggregate count in a broad, truthful legacy category.
+    outcomes["suspension_or_exception"] = outcomes.pop("suspended")
+    return outcomes, {
+        "raw_outcomes": raw,
+        "note": "Legacy suspension counts may include generator.close() or throw(); the full outcome split cannot be recovered from bounded samples.",
+    }
+
+
 class _Defs(ast.NodeVisitor):
     """Every def in a file, keyed by qualified name, as (start, def_line, end).
 
@@ -177,13 +214,14 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
     # construction — unlike a first_caller graph rebuilt at render time.
     insts = cg.get("instances")
     nodes, edges, first_caller = {}, [], {}
+    boundary_exclusions = []
     if insts:
         # samples are recorded per function; each carries the instance it came from
         by_inst = {}
         for c in cg["calls"]:
             for smp in (c.get("samples") or []):
                 if "inst" in smp:
-                    by_inst.setdefault(smp["inst"], []).append(smp)
+                    by_inst.setdefault(smp["inst"], []).append(_normalize_sample_outcome(smp))
 
         inst_node = {}          # instance index -> node id
         dropped_inst = set()    # instances with no card (module bodies, unlocatable)
@@ -206,10 +244,18 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                 st, df, en = loc
             lines = sources[mfile][st - 1:en]
             cv = cov_files.get(mfile, {})
-            ex = sorted(x for x in cv.get("executed_lines", []) if st <= x <= en)
-            mi = sorted(x for x in cv.get("missing_lines", []) if st <= x <= en)
+            run_ex = sorted(x for x in cv.get("executed_lines", []) if st <= x <= en)
+            run_mi = sorted(x for x in cv.get("missing_lines", []) if st <= x <= en)
+            context_coverage = "executed_lines" in m
+            ex = sorted(x for x in m["executed_lines"] if st <= x <= en) if context_coverage else run_ex
+            mi = sorted((set(run_ex) | set(run_mi)) - set(ex)) if context_coverage else run_mi
             exs = set(ex)
-            part = sorted({b[0] for b in (cv.get("missing_branches") or []) if b and b[0] in exs})
+            if context_coverage:
+                observed_arcs = {tuple(arc) for arc in m.get("executed_arcs", [])}
+                possible_arcs = (cv.get("executed_branches") or []) + (cv.get("missing_branches") or [])
+                part = sorted({arc[0] for arc in possible_arcs if arc and arc[0] in exs and tuple(arc) not in observed_arcs})
+            else:
+                part = sorted({b[0] for b in (cv.get("missing_branches") or []) if b and b[0] in exs})
             maxlen = max((len(l) for l in lines), default=0)
             nid_ = len(nodes)
             inst_node[idx] = nid_
@@ -219,8 +265,9 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                 "start": st, "def": df, "end": en,
                 "src": "\n".join(lines), "nlines": len(lines),
                 "ex": ex, "mi": mi, "partial": part,
-                "coverage_scope": "whole_run",
+                "coverage_scope": ("merged_call_sites" if m["parent"] == -2 else "call_site_group") if context_coverage else "whole_run",
                 "call_scope": "merged_call_sites" if m["parent"] == -2 else "call_site_group",
+                "raw_instance": idx, "run_ex": run_ex,
                 "calls": m["count"], "seq": m["seq"],
                 "w": max(MIN_W, min(MAX_W, round(GUT + maxlen * CHW + 26))),
                 "h": HDR + len(lines) * LH + RET,
@@ -265,70 +312,159 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                       if insts[j]["seq"] <= m["seq"]]
             return (max(before, key=lambda j: insts[j]["seq"]), e["cline"]) if before else None
 
-        for idx, m in enumerate(insts):
-            n = inst_node.get(idx)
-            if n is None:
-                continue
-            par = m["parent"]
-            if par == -1:
-                tp = thread_parent(idx)
-                if tp is None:
-                    continue                   # the run's own root
-                c, cline = inst_node[tp[0]], tp[1]
+        if "instance_edges" in cg:
+            # New captures preserve the actual parent even when a hot callee is
+            # merged. Never project function-level edges onto sibling cards.
+            for record in sorted(cg["instance_edges"], key=lambda e: e["seq"]):
+                c = inst_node.get(record["parent"])
+                n = inst_node.get(record["to"])
+                if c is None or n is None:
+                    continue
+                cline = record["cline"]
                 edges.append({"from": c, "line": cline, "to": n,
-                              "n": m["count"], "seq": m["seq"], "via": "thread"})
+                              "n": record["count"], "seq": record["seq"],
+                              "via": pretty_via(record.get("via", "")),
+                              "provenance": "instance_edge"})
+                if n not in first_caller and c != n:
+                    walk, seen = c, set()
+                    while walk not in seen and walk != n and walk in first_caller:
+                        seen.add(walk)
+                        walk = first_caller[walk][0]
+                    if walk != n:
+                        first_caller[n] = (c, cline, record["seq"])
+            for idx, m in enumerate(insts):
+                if m["parent"] != -1 or idx not in inst_node:
+                    continue
+                origin = thread_parent(idx)
+                if origin is None:
+                    continue
+                c, cline = inst_node[origin[0]], origin[1]
+                n = inst_node[idx]
+                edges.append({"from": c, "line": cline, "to": n, "n": m["count"],
+                              "seq": m["seq"], "via": "thread", "provenance": "thread_origin"})
                 if n not in first_caller and c != n:
                     first_caller[n] = (c, cline, m["seq"])
-                continue
-            if par == -2:
-                continue                       # merged hot helper: wired below
-            anc = par if par in inst_node else nearest_drawn_ancestor(idx)
-            if anc is None:
-                # only reachable by importing a module — same rule as the graph path
-                if drop_imports:
-                    nodes.pop(n, None)
-                    inst_node.pop(idx, None)
-                continue
-            c = inst_node[anc]
-            edges.append({"from": c, "line": m["cline"], "to": n,
-                          "n": m["count"], "seq": m["seq"], "via": pretty_via(m.get("via", ""))})
-            if n not in first_caller and c != n:
-                first_caller[n] = (c, m["cline"], m["seq"])
+        else:
+            for idx, m in enumerate(insts):
+                n = inst_node.get(idx)
+                if n is None:
+                    continue
+                par = m["parent"]
+                if par == -1:
+                    tp = thread_parent(idx)
+                    if tp is None:
+                        continue                   # the run's own root
+                    c, cline = inst_node[tp[0]], tp[1]
+                    edges.append({"from": c, "line": cline, "to": n,
+                                  "n": m["count"], "seq": m["seq"], "via": "thread"})
+                    if n not in first_caller and c != n:
+                        first_caller[n] = (c, cline, m["seq"])
+                    continue
+                if par == -2:
+                    continue                       # merged hot helper: wired below
+                anc = par if par in inst_node else nearest_drawn_ancestor(idx)
+                if anc is None:
+                    # only reachable by importing a module — same rule as the graph path
+                    if drop_imports:
+                        nodes.pop(n, None)
+                        inst_node.pop(idx, None)
+                    continue
+                c = inst_node[anc]
+                edges.append({"from": c, "line": m["cline"], "to": n,
+                              "n": m["count"], "seq": m["seq"], "via": pretty_via(m.get("via", ""))})
+                if n not in first_caller and c != n:
+                    first_caller[n] = (c, m["cline"], m["seq"])
 
-        # merged instances have many call sites and no single parent; wire them
-        # from the graph edges, exactly as the merged (graph) view did.
-        merged = {idx: inst_node[idx] for idx, m in enumerate(insts)
-                  if m["parent"] == -2 and idx in inst_node}
-        if merged:
-            fn_nodes = {}
-            for idx, nid_ in inst_node.items():
-                key = (insts[idx]["file"], insts[idx]["name"], insts[idx]["first"])
-                fn_nodes.setdefault(key, []).append(nid_)
-            for idx, tgt in merged.items():
-                tkey = (insts[idx]["file"], insts[idx]["name"], insts[idx]["first"])
-                for e in cg["edges"]:
-                    if (e["tfile"], e["tname"], e["tfirst"]) != tkey:
-                        continue
-                    if not e["cfile"]:
-                        continue
-                    for src in fn_nodes.get((e["cfile"], e["cname"], e["cfirst"]), []):
-                        if src == tgt:
+            # merged instances have many call sites and no single parent; wire them
+            # from the graph edges, exactly as the merged (graph) view did.
+            merged = {idx: inst_node[idx] for idx, m in enumerate(insts)
+                      if m["parent"] == -2 and idx in inst_node}
+            if merged:
+                fn_nodes = {}
+                for idx, nid_ in inst_node.items():
+                    key = (insts[idx]["file"], insts[idx]["name"], insts[idx]["first"])
+                    fn_nodes.setdefault(key, []).append(nid_)
+                for idx, tgt in merged.items():
+                    tkey = (insts[idx]["file"], insts[idx]["name"], insts[idx]["first"])
+                    for e in cg["edges"]:
+                        if (e["tfile"], e["tname"], e["tfirst"]) != tkey:
                             continue
-                        edges.append({"from": src, "line": e["cline"], "to": tgt,
-                                      "n": e["count"], "seq": e["seq"],
-                                      "via": pretty_via(e.get("via", ""))})
-                        # never let a merged node become its own ancestor
-                        if tgt not in first_caller:
-                            walk, hop, ok = src, 0, True
-                            while walk is not None and hop < 10000:
-                                if walk == tgt:
-                                    ok = False
-                                    break
-                                fc = first_caller.get(walk)
-                                walk = fc[0] if fc else None
-                                hop += 1
-                            if ok:
-                                first_caller[tgt] = (src, e["cline"], e["seq"])
+                        if not e["cfile"]:
+                            continue
+                        for src in fn_nodes.get((e["cfile"], e["cname"], e["cfirst"]), []):
+                            if src == tgt:
+                                continue
+                            edges.append({"from": src, "line": e["cline"], "to": tgt,
+                                          "n": e["count"], "seq": e["seq"],
+                                          "via": pretty_via(e.get("via", ""))})
+                            # never let a merged node become its own ancestor
+                            if tgt not in first_caller:
+                                walk, hop, ok = src, 0, True
+                                while walk is not None and hop < 10000:
+                                    if walk == tgt:
+                                        ok = False
+                                        break
+                                    fc = first_caller.get(walk)
+                                    walk = fc[0] if fc else None
+                                    hop += 1
+                                if ok:
+                                    first_caller[tgt] = (src, e["cline"], e["seq"])
+        # External/native endpoints are measured calls, with source as reference
+        # only. They are attached before reachability and layout so every visible
+        # caller can open its actual observed destination.
+        for boundary_index, record in enumerate(cg.get("external_calls") or []):
+            c = inst_node.get(record["parent"])
+            boundary_id = record.get("id", boundary_index)
+            if c is None or c not in nodes:
+                boundary_exclusions.append({"id": boundary_id, "reason": "project caller has no rendered source card"})
+                continue
+            cline = record["cline"]
+            if not nodes[c]["start"] <= cline <= nodes[c]["end"]:
+                boundary_exclusions.append({"id": boundary_id, "reason": "recorded call line is outside caller source", "line": cline})
+                continue
+            target = record["target"]
+            outcomes, outcomes_provenance = _boundary_outcomes(record, cg.get("external_capture") or {})
+            source = target.get("source") or ""
+            source_available = bool(source)
+            if not source_available:
+                source = "\n".join([
+                    "# Observed " + target.get("kind", "external") + " call boundary",
+                    "# Target: " + target.get("module", "") + "." + target.get("name", "unknown"),
+                    "# Python source is unavailable; internal execution was not traced.",
+                    "# Open the recorded values to inspect available arguments and outcomes.",
+                ])
+            lines = source.rstrip("\n").split("\n")
+            st = max(1, target.get("first") or 1) if source_available else 1
+            n = max(nodes, default=-1) + 1
+            maxlen = max((len(line) for line in lines), default=0)
+            nodes[n] = {
+                "id": n, "file": target.get("file") or "<" + target.get("kind", "external") + ">",
+                "name": target.get("name") or "observed external call",
+                "start": st, "def": st, "end": st + len(lines) - 1,
+                "src": "\n".join(lines), "nlines": len(lines),
+                "ex": [], "mi": [], "partial": [], "run_ex": [],
+                "coverage_scope": "boundary_only", "call_scope": "call_site_group",
+                "calls": record["count"], "seq": record.get("seq", 0),
+                "samples": [_normalize_sample_outcome(s) for s in record.get("samples") or []], "important": False,
+                "w": max(MIN_W, min(MAX_W, round(GUT + maxlen * CHW + 26))),
+                "h": HDR + len(lines) * LH + RET,
+                "boundary": {"id": boundary_id, "parent_instance": record["parent"],
+                             "kind": target.get("kind", "external"), "target": target,
+                             "expression": record.get("expression", ""),
+                             "expression_exact": record.get("expression_exact", False),
+                             "expression_note": record.get("expression_note", ""),
+                             "outcomes": outcomes,
+                             "outcomes_provenance": outcomes_provenance,
+                             "outcomes_note": outcomes_provenance["note"] if outcomes_provenance else "",
+                             "contexts": record.get("contexts") or [],
+                             "source_reference_only": source_available},
+            }
+            edges.append({"from": c, "line": cline, "to": n, "n": record["count"],
+                          "seq": record.get("seq", 0), "via": "", "boundary": True,
+                          "boundary_id": boundary_id, "expression": record.get("expression", ""),
+                          "expression_exact": record.get("expression_exact", False),
+                          "provenance": "external_call"})
+            first_caller[n] = (c, cline, record.get("seq", 0))
     else:
         # ---------- one card per function ----------
         nodes, nid = {}, {}
@@ -365,7 +501,7 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                 "calls": c["count"], "seq": c["seq"],
                 "w": max(MIN_W, min(MAX_W, round(GUT + maxlen * CHW + 26))),
                 "h": HDR + len(lines) * LH + RET,
-                "samples": c.get("samples") or [],
+                "samples": [_normalize_sample_outcome(s) for s in c.get("samples") or []],
                 "important": _is_important(c["file"], disp, important),
             }
 
@@ -471,13 +607,24 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
         placed.add(i)
 
     entry_name = nodes[entry_id]["name"]
+    context_coverage = any(n["coverage_scope"] in ("call_site_group", "merged_call_sites") for n in nodes.values())
+    drawn_boundary_ids = {n["boundary"]["id"] for n in nodes.values() if n.get("boundary")}
+    excluded_ids = {record["id"] for record in boundary_exclusions}
+    for index, record in enumerate(cg.get("external_calls") or []):
+        boundary_id = record.get("id", index)
+        if boundary_id not in drawn_boundary_ids and boundary_id not in excluded_ids:
+            boundary_exclusions.append({"id": boundary_id, "reason": "caller is outside the selected entry's reachable tree"})
     return {
         "title": title,
         "brand": brand,
         "command": command,
         "outcome": outcome,
-        "coverage_scope": "whole_run",
+        "coverage_scope": "call_site_group" if context_coverage else "whole_run",
         "coverage_note": (
+            "Line colors show lines recorded in this card's caller context, grouped across its repeated calls. "
+            "Merged helpers are explicitly labeled. Other-call-site links open the context where a line ran. "
+            "External and native cards prove the observed call boundary; their reference source has no internal line coverage."
+        ) if context_coverage else (
             "Line coverage combines every invocation in the recorded command. "
             "A call-site card groups repeated calls from one calling context, not one invocation. "
             "Its call arrows describe that context; lines with calls observed only on other "
@@ -490,13 +637,18 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
             "functions": len(nodes),
             "edges": len(edges),
             "calls": sum(n["calls"] for n in nodes.values()),
-            "lines": sum(n["nlines"] for n in nodes.values()),
+            "lines": sum(n["nlines"] for n in nodes.values() if not n.get("boundary")),
+            "reference_lines": sum(n["nlines"] for n in nodes.values() if n.get("boundary")),
             "executed": sum(len(n["ex"]) for n in nodes.values()),
             "columns": ncols,
             "dropped": dropped,
             "important": sum(1 for n in nodes.values() if n["important"]),
             "sampled": sum(1 for n in nodes.values() if n["samples"]),
+            "boundaries": len(drawn_boundary_ids),
         },
+        "boundary_audit": {"recorded": len(cg.get("external_calls") or []),
+                           "rendered": len(drawn_boundary_ids), "excluded": boundary_exclusions},
+        "external_capture": cg.get("external_capture"),
         "main": entry_id,
         "nodes": [nodes[i] for i in sorted(nodes)],
         "edges": edges,

@@ -1,0 +1,951 @@
+{
+  "flows": 27,
+  "totals": {
+    "project_edges": 5049,
+    "boundary_edges": 22677,
+    "project_cards": 4172,
+    "context_lines": 34322,
+    "project_samples": 3096,
+    "genuine_yield_samples_preserved": 409,
+    "python_boundaries": 13563,
+    "boundary_samples": 35142,
+    "native_boundaries": 9114,
+    "legacy_boundary_outcome_groups": 239,
+    "legacy_suspension_or_exception_calls": 29477,
+    "zero_yield_samples_preserved": 32,
+    "project_source_lines": 76897,
+    "reference_source_lines": 493974,
+    "succeeded": 25,
+    "legacy_none_samples_normalized": 60,
+    "input_emb_regression_cards": 15,
+    "return_branch_checks": 30,
+    "failed": 2
+  },
+  "runs": [
+    {
+      "id": "pusht_vq_v3",
+      "publication_id": "index",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 173.674,
+      "call_evidence": {
+        "id": "pusht_vq_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 305,
+          "boundary_edges": 1623,
+          "project_cards": 270,
+          "context_lines": 2255,
+          "project_samples": 229,
+          "genuine_yield_samples_preserved": 23,
+          "python_boundaries": 1024,
+          "boundary_samples": 2585,
+          "native_boundaries": 599,
+          "legacy_boundary_outcome_groups": 13,
+          "legacy_suspension_or_exception_calls": 888,
+          "zero_yield_samples_preserved": 4,
+          "project_source_lines": 5307,
+          "reference_source_lines": 37584
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "6dda54973364095fb7aabad7e996a0e407d0368a2ac3a55caa5fce9d96144234",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_diffusion_v3",
+      "publication_id": "pusht_diffusion",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 445.158,
+      "call_evidence": {
+        "id": "pusht_diffusion_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 187,
+          "boundary_edges": 1021,
+          "project_cards": 164,
+          "context_lines": 1371,
+          "project_samples": 153,
+          "genuine_yield_samples_preserved": 43,
+          "python_boundaries": 653,
+          "boundary_samples": 1426,
+          "native_boundaries": 368,
+          "legacy_boundary_outcome_groups": 27,
+          "legacy_suspension_or_exception_calls": 2876,
+          "zero_yield_samples_preserved": 3,
+          "legacy_none_samples_normalized": 10,
+          "input_emb_regression_cards": 3,
+          "return_branch_checks": 6,
+          "project_source_lines": 3171,
+          "reference_source_lines": 22121
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "771d386ccfe20afefb668dc895c225f08e27468dd20b77a9a484621ecfde21e8",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 180
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "blockpush_vq_v3",
+      "publication_id": "blockpush_vq",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 199.712,
+      "call_evidence": {
+        "id": "blockpush_vq_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 295,
+          "boundary_edges": 1616,
+          "project_cards": 264,
+          "context_lines": 2238,
+          "project_samples": 224,
+          "genuine_yield_samples_preserved": 23,
+          "python_boundaries": 1015,
+          "boundary_samples": 2567,
+          "native_boundaries": 601,
+          "legacy_boundary_outcome_groups": 13,
+          "legacy_suspension_or_exception_calls": 888,
+          "zero_yield_samples_preserved": 4,
+          "project_source_lines": 5289,
+          "reference_source_lines": 37257
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "a81c777eecf0e657ae7534e1f85c08eb751f2f4ff6e288f2bd01d707862cf2b0",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "blockpush_diffusion_v3",
+      "publication_id": "blockpush_diffusion",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 1597.419,
+      "call_evidence": {
+        "id": "blockpush_diffusion_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 176,
+          "boundary_edges": 1021,
+          "project_cards": 157,
+          "context_lines": 1355,
+          "project_samples": 147,
+          "genuine_yield_samples_preserved": 43,
+          "python_boundaries": 651,
+          "boundary_samples": 1443,
+          "native_boundaries": 370,
+          "legacy_boundary_outcome_groups": 27,
+          "legacy_suspension_or_exception_calls": 4310,
+          "zero_yield_samples_preserved": 3,
+          "legacy_none_samples_normalized": 10,
+          "input_emb_regression_cards": 3,
+          "return_branch_checks": 6,
+          "project_source_lines": 3142,
+          "reference_source_lines": 22128
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "c523864a5ca194869dbf6c2fceb45c43176a2fd9ca2e7af55d66ace87621bc95",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 180
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_vq_v3",
+      "publication_id": "cube_vq",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 186.814,
+      "call_evidence": {
+        "id": "cube_vq_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 297,
+          "boundary_edges": 1630,
+          "project_cards": 266,
+          "context_lines": 2242,
+          "project_samples": 225,
+          "genuine_yield_samples_preserved": 23,
+          "python_boundaries": 1028,
+          "boundary_samples": 2572,
+          "native_boundaries": 602,
+          "legacy_boundary_outcome_groups": 13,
+          "legacy_suspension_or_exception_calls": 888,
+          "zero_yield_samples_preserved": 4,
+          "project_source_lines": 5275,
+          "reference_source_lines": 37699
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "d3fbe8a9e68757dbdeaa2d4567f9b4649fd23898f1b047f304e4140928807ec8",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 156
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_diffusion_v3",
+      "publication_id": "cube_diffusion",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 627.347,
+      "call_evidence": {
+        "id": "cube_diffusion_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 178,
+          "boundary_edges": 1023,
+          "project_cards": 159,
+          "context_lines": 1349,
+          "project_samples": 149,
+          "genuine_yield_samples_preserved": 43,
+          "python_boundaries": 657,
+          "boundary_samples": 1428,
+          "native_boundaries": 366,
+          "legacy_boundary_outcome_groups": 27,
+          "legacy_suspension_or_exception_calls": 3110,
+          "zero_yield_samples_preserved": 3,
+          "legacy_none_samples_normalized": 10,
+          "input_emb_regression_cards": 3,
+          "return_branch_checks": 6,
+          "project_source_lines": 3127,
+          "reference_source_lines": 22216
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "8c91f112c83f20fa2e726edc05eac97e1f2ce435dbade4f5abc9bcccf63f20d4",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 181
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "libero_goal_vq_v3",
+      "publication_id": "libero_goal_vq",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 157.953,
+      "call_evidence": {
+        "id": "libero_goal_vq_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 285,
+          "boundary_edges": 1637,
+          "project_cards": 254,
+          "context_lines": 2281,
+          "project_samples": 209,
+          "genuine_yield_samples_preserved": 29,
+          "python_boundaries": 1038,
+          "boundary_samples": 2699,
+          "native_boundaries": 599,
+          "legacy_boundary_outcome_groups": 15,
+          "legacy_suspension_or_exception_calls": 1834,
+          "zero_yield_samples_preserved": 2,
+          "project_source_lines": 5309,
+          "reference_source_lines": 40008
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "161d83744a1d833aa886c565fa7b40a0c61e7a63e31bc43a7d15803225e313b4",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "libero_goal_diffusion_v3",
+      "publication_id": "libero_goal_diffusion",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 551.882,
+      "call_evidence": {
+        "id": "libero_goal_diffusion_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 167,
+          "boundary_edges": 1040,
+          "project_cards": 148,
+          "context_lines": 1396,
+          "project_samples": 133,
+          "genuine_yield_samples_preserved": 49,
+          "python_boundaries": 673,
+          "boundary_samples": 1575,
+          "native_boundaries": 367,
+          "legacy_boundary_outcome_groups": 29,
+          "legacy_suspension_or_exception_calls": 4128,
+          "zero_yield_samples_preserved": 1,
+          "legacy_none_samples_normalized": 10,
+          "input_emb_regression_cards": 3,
+          "return_branch_checks": 6,
+          "project_source_lines": 3163,
+          "reference_source_lines": 24860
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "2ae13b51e156189f9e64facbcb32da5c7e178176566abd6630a3c4c067a05a8f",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 180
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_online_v3",
+      "publication_id": "pusht_online",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 144.432,
+      "call_evidence": {
+        "id": "pusht_online_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 289,
+          "boundary_edges": 1551,
+          "project_cards": 254,
+          "context_lines": 2159,
+          "project_samples": 213,
+          "genuine_yield_samples_preserved": 21,
+          "python_boundaries": 986,
+          "boundary_samples": 2529,
+          "native_boundaries": 565,
+          "legacy_boundary_outcome_groups": 11,
+          "legacy_suspension_or_exception_calls": 886,
+          "zero_yield_samples_preserved": 2,
+          "project_source_lines": 5123,
+          "reference_source_lines": 36208
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "5ff798c319cb2ec9210af396e4eac64df3217a6f3bec91bee13c82de46bdd948",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_checkpoint_eval_v3",
+      "publication_id": "pusht_checkpoint_eval",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 136.295,
+      "call_evidence": {
+        "id": "pusht_checkpoint_eval_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 135,
+          "boundary_edges": 681,
+          "project_cards": 114,
+          "context_lines": 935,
+          "project_samples": 120,
+          "genuine_yield_samples_preserved": 15,
+          "python_boundaries": 432,
+          "boundary_samples": 932,
+          "native_boundaries": 249,
+          "legacy_boundary_outcome_groups": 8,
+          "legacy_suspension_or_exception_calls": 780,
+          "zero_yield_samples_preserved": 2,
+          "project_source_lines": 2247,
+          "reference_source_lines": 13609
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "488321f9c6ccabaa5734f9439ff0cd95c4207c5faa6ef0d1deeca403f5a614d6",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_resume_v3",
+      "publication_id": "pusht_resume",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 145.74,
+      "call_evidence": {
+        "id": "pusht_resume_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 220,
+          "boundary_edges": 1210,
+          "project_cards": 198,
+          "context_lines": 1643,
+          "project_samples": 207,
+          "genuine_yield_samples_preserved": 20,
+          "python_boundaries": 798,
+          "boundary_samples": 1839,
+          "native_boundaries": 412,
+          "legacy_boundary_outcome_groups": 11,
+          "legacy_suspension_or_exception_calls": 885,
+          "zero_yield_samples_preserved": 2,
+          "project_source_lines": 3785,
+          "reference_source_lines": 31078
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "e0804d9818316554bc96ac6f777e76bf471e585f7b6f57d4396b7a703dda7014",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 155
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_diffusion_resume_v3",
+      "publication_id": "pusht_diffusion_resume",
+      "kind": "training",
+      "target_exit": 0,
+      "seconds": 640.298,
+      "call_evidence": {
+        "id": "pusht_diffusion_resume_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 233,
+          "boundary_edges": 1157,
+          "project_cards": 187,
+          "context_lines": 1549,
+          "project_samples": 158,
+          "genuine_yield_samples_preserved": 41,
+          "python_boundaries": 749,
+          "boundary_samples": 1610,
+          "native_boundaries": 408,
+          "legacy_boundary_outcome_groups": 26,
+          "legacy_suspension_or_exception_calls": 3228,
+          "zero_yield_samples_preserved": 2,
+          "legacy_none_samples_normalized": 10,
+          "input_emb_regression_cards": 3,
+          "return_branch_checks": 6,
+          "project_source_lines": 3613,
+          "reference_source_lines": 24759
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "7e80fec566f7722778b2e689cf45abcbb580f51d348a11144704c8c5197a0744",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 180
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "resources_vq_v3",
+      "publication_id": "resources_vq",
+      "kind": "resources",
+      "target_exit": 0,
+      "seconds": 103.433,
+      "call_evidence": {
+        "id": "resources_vq_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 102,
+          "boundary_edges": 583,
+          "project_cards": 89,
+          "context_lines": 687,
+          "project_samples": 60,
+          "python_boundaries": 371,
+          "boundary_samples": 996,
+          "native_boundaries": 212,
+          "legacy_boundary_outcome_groups": 5,
+          "legacy_suspension_or_exception_calls": 777,
+          "genuine_yield_samples_preserved": 10,
+          "project_source_lines": 1591,
+          "reference_source_lines": 8667
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "5a852ecafd65b7003c05c538e7f03e014f637e4230a00f0c08b09dfc366ccbba",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 145
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_dino_v3",
+      "publication_id": "encoders_dino_contexts",
+      "kind": "encoder",
+      "target_exit": 0,
+      "seconds": 88.203,
+      "call_evidence": {
+        "id": "encoders_dino_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 12,
+          "boundary_edges": 187,
+          "project_cards": 13,
+          "context_lines": 186,
+          "project_samples": 15,
+          "python_boundaries": 91,
+          "boundary_samples": 309,
+          "native_boundaries": 96,
+          "legacy_boundary_outcome_groups": 1,
+          "legacy_suspension_or_exception_calls": 525,
+          "genuine_yield_samples_preserved": 2,
+          "project_source_lines": 364,
+          "reference_source_lines": 3914
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "8fef047c1be70319e2b8ce3e882538515c7ed7c00f706a0642647aaf778da740",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_resnet_v3",
+      "publication_id": "encoders_resnet",
+      "kind": "encoder",
+      "target_exit": 0,
+      "seconds": 94.13,
+      "call_evidence": {
+        "id": "encoders_resnet_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 12,
+          "boundary_edges": 178,
+          "project_cards": 13,
+          "context_lines": 176,
+          "project_samples": 14,
+          "python_boundaries": 86,
+          "boundary_samples": 286,
+          "native_boundaries": 92,
+          "legacy_boundary_outcome_groups": 2,
+          "legacy_suspension_or_exception_calls": 140,
+          "genuine_yield_samples_preserved": 4,
+          "project_source_lines": 351,
+          "reference_source_lines": 3188
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "6448bb9f92ab2d8b77163b135b65109390f3af7a6c46394f07dd2f22b79cb63e",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_webssl_v3",
+      "publication_id": "encoders_webssl_contexts",
+      "kind": "encoder",
+      "target_exit": 0,
+      "seconds": 398.038,
+      "call_evidence": {
+        "id": "encoders_webssl_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 12,
+          "boundary_edges": 198,
+          "project_cards": 13,
+          "context_lines": 195,
+          "project_samples": 15,
+          "python_boundaries": 100,
+          "boundary_samples": 340,
+          "native_boundaries": 98,
+          "legacy_boundary_outcome_groups": 4,
+          "legacy_suspension_or_exception_calls": 1332,
+          "genuine_yield_samples_preserved": 9,
+          "legacy_none_samples_normalized": 6,
+          "project_source_lines": 376,
+          "reference_source_lines": 4136
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "7cd57a946c86884f33f0eecd48098faa2987785364bda7629b373c379dc11bb2",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_siglip2_v3",
+      "publication_id": "encoders_siglip2",
+      "kind": "encoder",
+      "target_exit": 0,
+      "seconds": 238.519,
+      "call_evidence": {
+        "id": "encoders_siglip2_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 12,
+          "boundary_edges": 200,
+          "project_cards": 13,
+          "context_lines": 199,
+          "project_samples": 14,
+          "python_boundaries": 102,
+          "boundary_samples": 329,
+          "native_boundaries": 98,
+          "legacy_boundary_outcome_groups": 4,
+          "legacy_suspension_or_exception_calls": 826,
+          "genuine_yield_samples_preserved": 7,
+          "legacy_none_samples_normalized": 4,
+          "project_source_lines": 390,
+          "reference_source_lines": 4322
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "b1d9173a96eb3e7fd0abbb5c2caf814dd1ed272b918c8569656379006c7292de",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_vjepa2_v3",
+      "publication_id": "encoders_vjepa2",
+      "kind": "encoder",
+      "target_exit": 0,
+      "seconds": 171.662,
+      "call_evidence": {
+        "id": "encoders_vjepa2_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 12,
+          "boundary_edges": 190,
+          "project_cards": 13,
+          "context_lines": 191,
+          "project_samples": 14,
+          "python_boundaries": 95,
+          "boundary_samples": 306,
+          "native_boundaries": 95,
+          "legacy_boundary_outcome_groups": 1,
+          "legacy_suspension_or_exception_calls": 1174,
+          "genuine_yield_samples_preserved": 2,
+          "project_source_lines": 370,
+          "reference_source_lines": 4129
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "598c0df19739e6bea37e0e1ddeb8bfd7cb308eee6d246f1dce5328aac2343c34",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_dinov3_v3",
+      "publication_id": "encoders_dinov3",
+      "kind": "encoder",
+      "target_exit": 1,
+      "seconds": 105.422,
+      "call_evidence": {
+        "id": "encoders_dinov3_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 11,
+          "boundary_edges": 134,
+          "project_cards": 12,
+          "context_lines": 152,
+          "project_samples": 11,
+          "python_boundaries": 69,
+          "boundary_samples": 169,
+          "native_boundaries": 65,
+          "project_source_lines": 343,
+          "reference_source_lines": 2625
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "d6d62c982651ff2dbca9b81b71e2bd7455332be3e62929031e59474d384133fc",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "encoders_dynamo_v3",
+      "publication_id": "encoders_dynamo",
+      "kind": "encoder",
+      "target_exit": 1,
+      "seconds": 75.587,
+      "call_evidence": {
+        "id": "encoders_dynamo_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 10,
+          "boundary_edges": 118,
+          "project_cards": 11,
+          "context_lines": 136,
+          "project_samples": 12,
+          "python_boundaries": 56,
+          "boundary_samples": 166,
+          "native_boundaries": 62,
+          "project_source_lines": 311,
+          "reference_source_lines": 2108
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "28c5bb1ddf39cd2a38c57ae80a0189a38b327b82ed36ed8e78565cd1ac34e70b",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 10
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "pusht_simulator_v3",
+      "publication_id": "pusht_simulator_v2",
+      "kind": "simulator",
+      "target_exit": 0,
+      "seconds": 51.259,
+      "call_evidence": {
+        "id": "pusht_simulator_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 96,
+          "boundary_edges": 571,
+          "project_cards": 87,
+          "context_lines": 839,
+          "project_samples": 66,
+          "python_boundaries": 322,
+          "boundary_samples": 879,
+          "native_boundaries": 249,
+          "project_source_lines": 1735,
+          "reference_source_lines": 8641
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "39ffcb055c9f3f886d8c81040590870c5ac7862b9b99d2b6196292139fafd95a",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 19
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "blockpush_simulator_v3",
+      "publication_id": "blockpush_simulator_v2",
+      "kind": "simulator",
+      "target_exit": 0,
+      "seconds": 55.464,
+      "call_evidence": {
+        "id": "blockpush_simulator_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 115,
+          "boundary_edges": 472,
+          "project_cards": 113,
+          "context_lines": 1105,
+          "project_samples": 73,
+          "python_boundaries": 252,
+          "boundary_samples": 640,
+          "native_boundaries": 220,
+          "project_source_lines": 2441,
+          "reference_source_lines": 8701
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "0745cabef47358937a203d98458df15c75890883704baa41f426b4bada313449",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 11
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_simulator_v3",
+      "publication_id": "cube_simulator_v2",
+      "kind": "simulator",
+      "target_exit": 0,
+      "seconds": 27.098,
+      "call_evidence": {
+        "id": "cube_simulator_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 511,
+          "boundary_edges": 1213,
+          "project_cards": 350,
+          "context_lines": 2418,
+          "project_samples": 135,
+          "python_boundaries": 574,
+          "boundary_samples": 1877,
+          "native_boundaries": 639,
+          "project_source_lines": 4964,
+          "reference_source_lines": 27457
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "2e99ab741e666eeed75ff63a46ba821b7b82232d85a539f110d056e7e545b5c1",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 9
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "libero_simulator_v3",
+      "publication_id": "libero_simulator_v2",
+      "kind": "simulator",
+      "target_exit": 0,
+      "seconds": 157.926,
+      "call_evidence": {
+        "id": "libero_simulator_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 362,
+          "boundary_edges": 1018,
+          "project_cards": 318,
+          "context_lines": 2357,
+          "project_samples": 242,
+          "python_boundaries": 575,
+          "boundary_samples": 1984,
+          "native_boundaries": 443,
+          "project_source_lines": 5045,
+          "reference_source_lines": 10820
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "5b95d6b882c565f8d52dbc319ff18d270fc3994c5a253ab6f5547dc8e6888de4",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 104
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_video_export_v3",
+      "publication_id": "cube_video_export",
+      "kind": "utility",
+      "target_exit": 0,
+      "seconds": 15.533,
+      "call_evidence": {
+        "id": "cube_video_export_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 4,
+          "boundary_edges": 49,
+          "project_cards": 5,
+          "context_lines": 68,
+          "project_samples": 4,
+          "python_boundaries": 36,
+          "boundary_samples": 57,
+          "native_boundaries": 13,
+          "project_source_lines": 205,
+          "reference_source_lines": 931
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "fc60837dcc7846450c5e690370b35bfac63a42814d93ad5e36e1b75cdc4b1f83",
+        "boundary_exclusions": {},
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_generate_play_v3",
+      "publication_id": "cube_generate_play",
+      "kind": "utility",
+      "target_exit": 0,
+      "seconds": 37.217,
+      "call_evidence": {
+        "id": "cube_generate_play_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 506,
+          "boundary_edges": 1177,
+          "project_cards": 344,
+          "context_lines": 2420,
+          "project_samples": 128,
+          "python_boundaries": 565,
+          "boundary_samples": 1798,
+          "native_boundaries": 612,
+          "legacy_boundary_outcome_groups": 1,
+          "legacy_suspension_or_exception_calls": 1,
+          "genuine_yield_samples_preserved": 1,
+          "project_source_lines": 4932,
+          "reference_source_lines": 27370
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "80facb04ef6c8c42973125d3079d094ce3e6dfe56d1b2ab29540446c0b9ba6d5",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 9
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    },
+    {
+      "id": "cube_generate_noisy_v3",
+      "publication_id": "cube_generate_noisy",
+      "kind": "utility",
+      "target_exit": 0,
+      "seconds": 40.195,
+      "call_evidence": {
+        "id": "cube_generate_noisy_v3",
+        "passed": true,
+        "counts": {
+          "project_edges": 505,
+          "boundary_edges": 1179,
+          "project_cards": 343,
+          "context_lines": 2420,
+          "project_samples": 126,
+          "python_boundaries": 565,
+          "boundary_samples": 1801,
+          "native_boundaries": 614,
+          "legacy_boundary_outcome_groups": 1,
+          "legacy_suspension_or_exception_calls": 1,
+          "genuine_yield_samples_preserved": 1,
+          "project_source_lines": 4928,
+          "reference_source_lines": 27438
+        },
+        "raw_evidence_unchanged": true,
+        "raw_callgraph_sha256": "71c2ebcffdeb2e1dfb55eda683db46a37f04c42444d7284a4276a040eab9f86a",
+        "boundary_exclusions": {
+          "project caller has no rendered source card": 9
+        },
+        "errors": [],
+        "scope": "Every rendered project line, observed project instance edge and observed dependency boundary; static call syntax alone is not execution evidence."
+      },
+      "render_passed": true
+    }
+  ],
+  "scope": "Fresh parent-process captures; all rendered project edges and observed dependency endpoints reconciled against raw events. Native calls without profiler events and dependency internals remain explicit limits."
+}

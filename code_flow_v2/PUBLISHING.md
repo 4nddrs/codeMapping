@@ -180,6 +180,26 @@ deployment. Use a browser or browser automation against the actual served URLs.
    added as an outgoing arrow on the current card. Exercise that context link,
    the genuine callee arrow, and Back. A single repeated call-site group can
    legitimately contain both branches when separate invocations took them.
+7. Audit every displayed call expression across the command collection, not
+   only the user's example. Reconcile observed project instance edges and
+   dependency boundary records with rendered arrows. Classify unmatched static
+   expressions as unobserved or outside the capture contract; a covered line
+   does not prove every nested or short-circuited call executed. Check concrete
+   module dispatch, native tensor methods, generated functions, multiline calls,
+   comprehensions, exceptions, and helpers exceeding the instance cap.
+8. For fresh traces, verify each card's highlights against its recorded
+   `executed_lines` and each sampled invocation's lines against that group.
+   Open representative dependency arrows with real clicks and inspect their
+   inputs/outputs or explicit unavailable fields. Dependency source must remain
+   a reference without fabricated internal coverage. Verify capture limits,
+   recorder errors, unfinished samples and dropped records before publishing.
+   If a capture lacks necessary evidence, preserve it and create a fresh run
+   when authorized; rebuilding HTML cannot recover events that were never saved.
+9. Check visibility as well as DOM existence. A long source line or several
+   nested calls can push an arrow beyond a clipped card. Use a real browser
+   pointer at the visible arrow's screen coordinates and keyboard activation;
+   synthetic events on an off-screen element do not prove a usable control.
+   Exercise the overflow control when a line has multiple destinations.
 
 Save the check results as described below. If browser verification is unavailable,
 record that limitation rather than claiming the UI was verified.

@@ -7,27 +7,63 @@ You get two standalone HTML pages, each an infinite zoomable canvas (scroll to p
 
 | page | what it shows |
 |---|---|
-| **call-tree.html** | Every function the run reached. The entry point sits alone on the left; each function it called is one column to the **right**, with an arrow from the exact calling line to the callee's card. Card = that function's full source, with executed lines highlighted. |
+| **call-tree.html** | Reached project functions and observed dependency endpoints. The entry point sits on the left; calls lead to cards to the **right**. Project cards show full source and recorded context lines; dependency source is an unhighlighted reference. |
 | **mosaic.html** | Every source file, complete and untruncated, laid out as blocks. Executed lines highlighted, never-imported files collapsed into a labelled band. |
 
 Arrows and coverage both come from **one real run** — not static analysis — so what
 you see is what happened, including dynamic dispatch, decorators and callbacks.
 
-Line highlights combine all invocations in that run. A function can take one
-return during training and another during inference, so both lines appear in
-whole-run coverage. Each call-site card groups repeated calls from one calling
-context; its outgoing arrows belong to that context. Call lines observed only
-on another card are muted and link to that other call site. They are not added
-as outgoing arrows on the current card. Per-invocation line coverage is not
-recorded by this tracer; captured value samples also have their own call scope.
+Fresh captures record line events for each calling context. Each call-site card
+groups repeated calls from one caller and line; its highlights and outgoing
+arrows describe that group. Value samples retain their own invocation's line
+events. A group can contain both returns if different invocations took different
+branches. Older captures have only whole-run line coverage and remain explicitly
+labelled as such. Other-context links navigate to the caller card where a call
+was observed. The mosaic continues to show whole-run coverage.
+
+Observed calls into dependencies also have right-arrow endpoints. For example,
+`self.input_emb(x)` resolves through the recorded PyTorch dispatch to the actual
+`Linear.forward`, with bounded real input/output samples. Its source is a
+reference: dependency internals are not recursively traced or highlighted.
+Native calls retain the observed callable and receiver, but the profiler does
+not supply their arguments or return values. Operators without profiler call
+events cannot produce observed arrows. Do not infer execution from an AST call
+expression or a covered line alone, especially for short circuits and nested
+calls. See `external_capture` in `callgraph.json` for limits and dropped events.
+
+Some explicit native calls also emit no profiler event: for example, the
+`dict`, `map`, and `functools.partial` constructors, or a native function invoked
+through a native protocol. A measured PyTorch probe produced tensors from
+`map(partial(torch.stack, dim=-1), inputs)` without any call event, while a direct
+`torch.stack(...)` emitted `c_call`/`c_return`. Such expressions cannot receive an
+observed arrow from this capture API. Their missing arrows do not prove that
+they were skipped, and static source analysis must not fabricate destinations.
+
+The profiler can report both `yield None` and generator closure at the same
+instruction with the same value. These samples are labeled `unknown`; they do
+not claim a successful return or yield. When rebuilding older captures, the
+builder conservatively relabels ambiguous saved samples and aggregate counts,
+preserves their original labels as provenance, and leaves raw files unchanged.
+Non-None yielded values, including zero, remain available in the inspector.
 
 ## Install
 
-Copy the `codetrace/` folder into the root of your repo. One dependency:
+Copy the complete `codetrace/` folder into the root of your repo. Use Python 3.9
+or newer with the target project's environment. One required dependency:
 
 ```bash
 pip install coverage        # or: uv pip install coverage
 ```
+
+The bundled regression suite runs with that same interpreter:
+
+```bash
+python -m unittest discover -s codetrace/tests -v
+```
+
+Its PyTorch-specific test uses the project's installed PyTorch and skips when
+PyTorch is absent. The other tests cover context lines, exact caller edges,
+dependency records, exceptions, threads, and compatibility with saved traces.
 
 > If you use `uv`, install coverage **into the project environment** and run with
 > `uv run --no-sync`. Do **not** use `uv run --with coverage` — that builds an overlay
@@ -233,8 +269,10 @@ line of the *same* card share one card and its `×N` count goes up — a loop bo
 spawn a card per iteration.
 
 **The cap.** `MAX_INSTANCES = 8` in `codetrace.py` bounds cards per function. Past it,
-further call sites collapse into one **merged** card wired from the call graph rather than
-from a specific caller. Hot utilities are what hit this: a `rank_zero_print` or a config
+further call sites collapse into one **merged** card. Fresh captures retain exact
+parent-instance edges even for this card; its body combines its recorded contexts.
+Legacy captures fall back to their explicitly aggregate graph. Hot utilities are
+what hit this: a `rank_zero_print` or a config
 `__getattr__` called from thirty places gets eight cards plus a merged ninth. Raise the
 constant if you need more; the page grows roughly linearly with it.
 
