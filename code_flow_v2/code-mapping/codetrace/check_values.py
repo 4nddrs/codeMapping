@@ -4,7 +4,11 @@
     python check_values.py PAGE --card TEXT [--lines A-B] [--popup LINE ...]
                            [--expect FILE] [--shot PNG] [--json]
 
-PAGE is a call-tree.html path or URL (the served page, not the template).
+PAGE is a call-tree.html path or URL. A URL is fetched over HTTP first (no
+cache) and the served bytes are opened from a temporary file, so the check
+covers exactly what the server delivers even where headless Chrome has no
+network; a host's injected script tags (Netlify's /.netlify/scripts/) are
+dropped from that copy.
 --card TEXT     text typed into the page's search box; the first match is the card
 --lines A-B     print the shape hints shown after lines A..B of that card
 --popup LINE    right-click LINE (a real contextmenu gesture) and print the value
@@ -29,6 +33,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import shutil
 import socket
 import struct
@@ -234,7 +239,18 @@ def main():
     ap.add_argument("--shot", help="screenshot path (png)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
-    url = args.page if "://" in args.page else "file://" + os.path.abspath(args.page)
+    fetched = None
+    if args.page.startswith(("http://", "https://")):
+        req = urllib.request.Request(args.page + ("&" if "?" in args.page else "?") + "nocache=%d" % int(time.time()),
+                                     headers={"Cache-Control": "no-cache", "User-Agent": "codetrace-check"})
+        body = urllib.request.urlopen(req, timeout=180).read().decode("utf-8")
+        body = re.sub(r'\s*<script[^>]*src="/\.netlify/scripts/[^"]*"[^>]*></script>', "", body)
+        fetched = tempfile.NamedTemporaryFile("w", suffix=".html", prefix="check-values-", delete=False, encoding="utf-8")
+        fetched.write(body); fetched.close()
+        print(f"fetched {len(body):,} bytes from {args.page}")
+        url = "file://" + fetched.name
+    else:
+        url = args.page if "://" in args.page else "file://" + os.path.abspath(args.page)
     checks = json.load(open(args.expect)) if args.expect else []
     if args.card or args.lines or args.popup:
         c = {"card": args.card}
@@ -289,9 +305,11 @@ def main():
             failures.append("JavaScript error: " + e)
     finally:
         page.close()
+        if fetched:
+            os.unlink(fetched.name)
 
     if args.json:
-        print(json.dumps({"page": url, "checks": report, "js_errors": errors, "failures": failures}, ensure_ascii=False, indent=1))
+        print(json.dumps({"page": args.page, "checks": report, "js_errors": errors, "failures": failures}, ensure_ascii=False, indent=1))
     else:
         for entry in report:
             print(f"== card {entry.get('found', {}).get('name', '?')}  {entry.get('found', {}).get('loc', '')}  (search {entry.get('card')!r})")
