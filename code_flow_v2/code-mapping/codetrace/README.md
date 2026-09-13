@@ -190,13 +190,26 @@ sites of the same function that have them.
 
 These are real values from **the run you traced**, not re-executed: the first two calls at
 each call site (each call site has its own card). A sampled call records its arguments at
-entry, the locals that changed at each call it makes — into your code or into a library, so
-`x = self.fc(x)` is covered (once per line event, at most 40 snapshots) — and its locals at
-exit. A row whose snapshot may not be this line's value, because another line or another pass
-of a loop assigns or changes it in place (`x.add_()`, `.append()`, `out=x`) in between, is
-labelled with its sampling point, e.g. `(at function exit)`. A statement that ran in another
-sampled call but not in this one says so. Pass `--no-values` to skip this and get a much
-smaller page.
+entry, **what each statement changed** as the next statement starts, and its locals at exit.
+So the popup shows every name as the clicked statement first ran in that call — **#input** as
+it started, **#output** right after it — even when the same name is reassigned line after line
+(`x = self.encoder(x)`, `x = x[:, 1:]`, `memory = x`). A multi-line call is one statement, so
+clicking any of its lines shows the whole statement. A change is detected with a cheap token
+rather than a full summary: a new object (held by weak reference, so a reused memory address
+does not hide it), a tensor's shape and in-place version, a numpy array's shape and first
+bytes, a container's length and its first 16 items. So `batch["obs"] = batch["obs"][:, :2]`,
+`x.add_(1)` and `items.append(v)` are recorded, and an in-place change gets an `(after)` row.
+A change deeper in a container, or in an object's attributes, is not detected. A statement
+inside a loop shows its first run and says how many runs there were; later passes are
+recorded in bulk, which keeps the values exact where each statement first runs. An attribute
+(`self.x = …`, `self.history`) keeps its object's identity, so its row is labelled with the
+sampling point, e.g. `(at function exit)`, whenever another line or loop run may change it in
+between. A statement that ran in another sampled call but not this one says so. Each sampled
+call keeps at most 300 steps (the popup says when a line's values fell past that). Pass
+`--no-values` to skip values and get a much smaller page.
+
+Captures made before this per-statement recording (samples without `stmt_first`) are shown as
+before: values sampled at entry, at calls and at exit, with rows labelled by sampling point.
 
 **PyTorch modules.** A module value such as `self.encoder` reads
 `Sequential 4 submodules  (8, 5, 512) → (8, 5, 128)`: its class, its `extra_repr` (or how many
@@ -206,9 +219,11 @@ The structure is stored once per module in the payload's `modules` table. Shapes
 the `forward` call and return events the profiler already sees for modules that appeared in
 a sampled value, so nothing inside torch is traced and no torch hook is installed.
 
-**Shape hints.** A line that assigns a tensor gets a faint `name (shape)` after its call
-chips, from the card's first sampled call, when that value is unambiguous: no loop surrounds
-the line, and no line that ran assigns or changes the name before the snapshot.
+**Shape hints.** Every statement that assigns a tensor gets a faint `name (shape)` after its
+call chips, from the card's first sampled call, so a reassigned name reads line by line down
+the card: `x (8, 513, 256)`, `x (8, 513, 256)`, `x (8, 6, 256)`, `x (8, 6, 2)`. Inside a loop
+the hint is the statement's first run (its tooltip gives the run count). Older captures show a
+hint only where the value is unambiguous (no loop, no later assignment before the snapshot).
 
 The popup is a pinned inspector: it closes on an outside click or <kbd>Esc</kbd>, or
 when a jump moves the view — **not** on scroll, so you can wheel through a long value
@@ -225,6 +240,35 @@ anywhere outside it, on <kbd>Esc</kbd>, or when a navigation moves the view.
 > handler therefore checks a flag set by the `contextmenu` handler *as well as* the button,
 > because filtering on the button alone lets those two gestures run the whole left-click
 > chain on release: following chips, toggling ★, and closing the popup that had just opened.
+
+## Checking a page
+
+`check_values.py` opens a rendered page in headless Chrome (nothing else needed),
+finds a card by a search text, prints the shape hints of its lines, right-clicks
+lines with a real context-menu gesture and prints the popup rows, and fails on
+any JavaScript error. It is the standard acceptance check for values; run it on
+the local page, then on the served one.
+
+```bash
+python codetrace/check_values.py codetrace_out/call-tree.html \
+    --card "x = self.drop(cond_embeddings + position_embeddings)" --lines 462-495 --popup 473
+python codetrace/check_values.py https://…/projects/<slug>/index.html --expect docs/code_mapping/checks.json
+```
+
+An expectation file lists what a reader must see and is kept with the mapping:
+
+```json
+[{"card": "x = self.drop(cond_embeddings + position_embeddings)",
+  "hints": {"473": "x (8, 513, 256)", "493": "x (8, 6, 2)"},
+  "popup": 473,
+  "rows": ["x = (8, 513, 256)", "cond_embeddings = (8, 513, 256)"],
+  "not_rows": ["(at function exit)"]}]
+```
+
+Cover at least one function whose names are reassigned line by line (a
+`forward` with `x = …` several times) and one line that calls a submodule.
+The exit code is 1 when a hint or row differs, a line is not visible, a card is
+not found, or the page throws.
 
 ## Core-contribution functions (★)
 
@@ -386,8 +430,12 @@ The leftmost card is the entry point, and everything else is to the right of it.
 ## Cost
 
 The profiler hook adds roughly 10–15% wall time on a mixed workload; coverage adds its
-own overhead. Fine for a single run of most commands; not something to leave on in
-production.
+own overhead. Recording values per statement costs extra only inside the sampled calls
+(the first two at each call site): each statement of such a call compares its locals
+by cheap tokens, and summarizes only what changed. A hot pure-Python loop inside a
+sampled call is the worst case (about 1.5× the round-3 tracer on a 300k-iteration
+loop); GPU workloads barely notice. Fine for a single run of most commands; not
+something to leave on in production.
 
 ## Files
 
@@ -395,9 +443,13 @@ production.
 codetrace/
   codetrace.py    CLI, the tracer, and orchestration
   _calltree.py    call graph + coverage -> laid-out tree
+  _boundaries.py  observed dependency call boundaries
   _mosaic.py      coverage -> file mosaic
   _render.py      payload + template -> standalone HTML
+  check_values.py headless-browser check of a rendered page (values, shapes, errors)
+  menu_card.py    card + README row for the shared menu
   templates/      the two canvas viewers
+  tests/          run with `python -m unittest discover -s tests` in the project's environment
 ```
 
 Output goes to `--out` (default `codetrace_out/`): the two HTML pages, plus

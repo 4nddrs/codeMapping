@@ -52,6 +52,20 @@ Rules:
   representative actual library/module calls before launching an expensive
   command suite. Boundary source is reference material, not internal execution
   evidence; native values unavailable from the profiler must stay unavailable.
+- Keep values on (no `--no-values`). The current bundle records, for the first
+  two calls at each call site, what every statement changed, so a reassigned
+  name (`x = self.encoder(x)`, `x = x[:, 1:]`) has its own shape after each
+  line, and the PyTorch modules it touched are stored once with their layers,
+  parameter shapes and observed input → output shapes. Earlier captures have
+  only entry/exit values and values at calls; when the reader needs values per
+  line, recapture with the current bundle rather than re-rendering.
+- A project adapter that subclasses `CallTracer` or replaces `summarize` must
+  keep the bundle's bounds (`MAX_SAMPLES`, `MAX_STEPS`, `MAX_PASSES`) — do not
+  set `MAX_STEPS` to 0 — and must return the same shapes of summary. Patch
+  Policy's adapter did the former, so its cards showed only exit values.
+- After rendering, run `codetrace/check_values.py` on the page with an
+  expectation file for representative lines (see the bundle README); its
+  results are part of the run inventory.
 - Save outputs under something like `docs/code_mapping/line_coverage/` or `codetrace_out/`, and link them from the brief / runs note.
 
 ## `exit 0` is not evidence the right run happened

@@ -53,6 +53,9 @@ skipping delivery. Capture-time checks below apply to the saved run too.
       the tracer wraps the work, and out-of-process layers are either brought
       in-process for the capture or recorded as unmapped
 - [ ] Page inspected in a browser; entry point and relevant UI controls verified
+- [ ] `check_values.py --expect` passes on the local page: per-statement values
+      and shape hints on a card with reassigned names, module rows on a
+      submodule call, no JavaScript errors
 - [ ] Page has a real project title
 - [ ] `call-tree.html` copied to `menuCodeMapping/projects/<slug>/`; card and
       README row added or updated; shelf count and totals updated

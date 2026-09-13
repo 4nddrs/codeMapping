@@ -91,8 +91,8 @@ working-pack path and the local, pushed, and deployed checks.
 
 | Path | Kind | Recorded outcome | Navigator |
 | --- | --- | --- | --- |
-| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 136.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
-| PushT Diffusion | training | SUCCESS · exit 0 · 445.2s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
+| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 132.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
+| PushT Diffusion | training | SUCCESS · exit 0 · 348.3s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
 | Blockpush VQ-BeT | training | SUCCESS · exit 0 · 199.7s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_vq.html) |
 | Blockpush Diffusion | training | SUCCESS · exit 0 · 1597.4s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_diffusion.html) |
 | Cube VQ-BeT | training | SUCCESS · exit 0 · 186.8s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0 | [Flow](projects/patch_policy/cube_vq.html) |

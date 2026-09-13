@@ -57,6 +57,8 @@ work; do not describe an unavailable page or deployment as finished.
 - [ ] Served-page stage/search navigation and value-inspector gestures/pagination
       checked against saved samples; shapes, statistics scopes, and contexts
       agree with the evidence (see [browser checks](../../PUBLISHING.md#browser-acceptance-checks))
+- [ ] `codetrace/check_values.py --expect <checks.json>` passed on the local
+      and the deployed page; the expectation file is kept with the mapping
 - [ ] Authorized menu changes committed and pushed to configured `origin/main`,
       or explicit local-only choice / push blocker recorded (see `PUBLISHING.md`)
 - [ ] Deployed menu and direct page verified at the configured URL, or deployment

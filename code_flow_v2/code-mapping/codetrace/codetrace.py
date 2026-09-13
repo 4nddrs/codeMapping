@@ -20,15 +20,21 @@ See README.md for options.
 from __future__ import annotations
 
 import argparse
+import ast
+import collections
 import importlib.util
 import io
+import itertools
 import json
+import linecache
 import os
 import runpy
 import shutil
 import sys
 import threading
 import time
+import weakref
+import zlib
 from itertools import count
 from pathlib import Path
 
@@ -75,7 +81,8 @@ import dataclasses
 
 MAX_SAMPLES = 2        # calls whose values we keep for each call-site card (first N)
 NODE_BUDGET = 900      # summary nodes per sample, so a giant dict can't blow up the page
-MAX_STEPS = 40         # in-function snapshots per sample (see CallTracer._profile)
+MAX_STEPS = 300        # value steps per sampled call: what each statement changed (CallTracer._line_step)
+MAX_PASSES = 2         # runs of a statement whose changes are recorded as they happen; later loop passes are coalesced
 MAX_INSTANCES = 8      # separate cards per function, one per distinct call site.
                        # A function entered from two places can execute different
                        # branches and call different things (BasePolicy.get_action
@@ -238,6 +245,208 @@ def describe_modules():
     for key in list(_MODULE_REFS):
         _register_module(_MODULE_REFS[key], set())
     return {key: _describe_module(_MODULE_REFS[key], info) for key, info in list(MODULES.items())}
+
+
+# ---- statements and change tokens (per-statement value steps) --------------
+# A sampled call records, at each statement it enters, the locals the previous
+# statement changed (CallTracer._line_step). Statements come from the AST so a
+# call spanning lines is one statement; a cheap token plus a weak reference
+# decide "changed" without summarizing every local at every statement.
+_STMT_MAPS: dict = {}    # (filename, co_firstlineno) -> (statements, withs, extra), see _stmt_maps_for_file
+_STMT_FILES: set = set() # files already parsed
+_STMT_LOCK = threading.Lock()
+_TENSOR: list = []       # torch.Tensor once torch is imported
+_NDARRAY: list = []      # (numpy.ndarray, numpy.generic) once numpy is imported
+_NO_WEAKREF: set = set() # types whose instances cannot be weakly referenced
+_VALUE_TYPES = frozenset((int, float, complex, bool, type(None)))
+_TOKEN_ITEMS = 16        # container items looked at by a change token
+_DIGEST_ELEMENTS = 65536 # numpy elements digested in full; larger arrays are sampled
+
+
+def _stmt_maps_for_file(filename):
+    """Statement maps for every function in a file, from one parse:
+    ({line: statement start}, {with header: (body start, body end)},
+     {"returns": {return lines}, "finally": [(start, end) of finally bodies]})."""
+    maps = {}
+    source = "".join(linecache.getlines(filename))
+    if not source:
+        return maps
+    for fn in ast.walk(ast.parse(source)):
+        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        mapping, withs, extra, merged = {}, {}, {"returns": set(), "finally": []}, set()
+        for node in ast.walk(fn):              # breadth first: inner statements overwrite their parents
+            if node is fn or not isinstance(node, (ast.stmt, ast.excepthandler)) or id(node) in merged:
+                continue
+            kids = [c.lineno for f in ("body", "orelse", "handlers", "finalbody")
+                    for c in (getattr(node, f, None) or []) if hasattr(c, "lineno")]
+            end = min(kids) - 1 if kids else (getattr(node, "end_lineno", None) or node.lineno)
+            # a body on the last line of a multi-line header (`if (a and\n b): y = 5`) shares
+            # that line's events with the header: keep it part of the header's statement
+            header_end = max([getattr(c, "end_lineno", None) or c.lineno for c in ast.iter_child_nodes(node)
+                              if not isinstance(c, ast.stmt) and hasattr(c, "lineno")] + [node.lineno])
+            for c in (getattr(node, "body", None) or []):
+                if isinstance(c, ast.stmt) and c.lineno <= header_end:
+                    merged.add(id(c))
+                    end = max(end, getattr(c, "end_lineno", None) or c.lineno)
+            for line in range(node.lineno, end + 1):
+                mapping[line] = node.lineno
+            if isinstance(node, (ast.With, ast.AsyncWith)) and node.body:
+                withs[node.lineno] = (node.body[0].lineno, getattr(node, "end_lineno", None) or node.body[-1].lineno)
+            if isinstance(node, ast.Return):
+                extra["returns"].add(node.lineno)
+            if isinstance(node, ast.Try) and node.finalbody:
+                extra["finally"].append((node.finalbody[0].lineno,
+                                         getattr(node.finalbody[-1], "end_lineno", None) or node.finalbody[-1].lineno))
+        maps.setdefault((filename, min([fn.lineno] + [d.lineno for d in fn.decorator_list])), (mapping, withs, extra))
+    return maps
+
+
+def _stmt_map(code):
+    """The statement maps of a code object (see _stmt_maps_for_file); empty when unknown."""
+    key = (code.co_filename, code.co_firstlineno)
+    entry = _STMT_MAPS.get(key)
+    if entry is None:
+        with _STMT_LOCK:                       # built completely before any thread can see it
+            entry = _STMT_MAPS.get(key)
+            if entry is None:
+                if code.co_filename not in _STMT_FILES:
+                    _STMT_FILES.add(code.co_filename)
+                    try:
+                        _STMT_MAPS.update(_stmt_maps_for_file(code.co_filename))
+                    except Exception:
+                        pass
+                entry = _STMT_MAPS.setdefault(key, ({}, {}, {"returns": set(), "finally": []}))
+    return entry
+
+
+def _in_spans(spans, line):
+    return any(a <= line <= b for a, b in spans)
+
+
+def _array_types():
+    if not _TENSOR and "torch" in sys.modules:
+        _TENSOR.append(getattr(sys.modules["torch"], "Tensor", type(None)))
+    if not _NDARRAY and "numpy" in sys.modules:
+        np = sys.modules["numpy"]
+        _NDARRAY.append((getattr(np, "ndarray", type(None)), getattr(np, "generic", type(None))))
+
+
+def _np_digest(v):
+    """crc32 of an array's contents: all of it up to _DIGEST_ELEMENTS, else a strided sample."""
+    n = v.size
+    if not n:
+        return 0
+    if n <= _DIGEST_ELEMENTS:
+        data = v.tobytes()
+    else:
+        data = v.flat[::max(1, n // (4096 if n <= 1 << 20 else 256))].tobytes()
+    return zlib.crc32(data)
+
+
+def _token(v, depth=0):
+    """Equal tokens (plus a live reference, see _ident) mean "unchanged" for a
+    local between two compared events: scalars, strings and numpy scalars by
+    value; tensors by shape and in-place version (inference tensors, which have
+    none, by data pointer and first values); numpy arrays by shape, dtype, data
+    pointer and a content digest; containers by length and their first items."""
+    t = type(v)
+    if t in _VALUE_TYPES:
+        return (t, repr(v) if t is float else v)
+    if t is str or t is bytes:
+        return (t, len(v), v if len(v) <= 256 else hash(v))
+    _array_types()
+    try:
+        if _TENSOR and issubclass(t, _TENSOR[0]):
+            try:
+                version = v._version
+            except Exception:                  # inference tensors keep no version counter
+                version = ("inference", v.data_ptr(), tuple(v.detach().reshape(-1)[:8].tolist()))
+            return (t, tuple(v.shape), version)
+        if _NDARRAY and issubclass(t, _NDARRAY[0][0]):
+            return (t, v.shape, str(v.dtype), v.__array_interface__["data"][0], _np_digest(v))
+        if _NDARRAY and issubclass(t, _NDARRAY[0][1]):
+            return (t, v.tobytes())
+        if depth:                              # a container's item: nested containers by address and size
+            return (t, id(v), len(v)) if issubclass(t, (dict, list, tuple, set, frozenset, collections.deque)) else (t,)
+        if issubclass(t, dict):
+            return (t, len(v), tuple((k if type(k) in _VALUE_TYPES or type(k) is str else id(k), _token(x, 1))
+                                     for k, x in itertools.islice(v.items(), _TOKEN_ITEMS)))
+        if issubclass(t, (list, tuple, collections.deque)):
+            return (t, len(v), tuple(_token(x, 1) for x in itertools.islice(v, _TOKEN_ITEMS)))
+        if issubclass(t, (set, frozenset)):
+            return (t, len(v))
+    except Exception:
+        return (t, id(v))
+    return (t,)
+
+
+def _ref(v):
+    """A weak reference to the object, its id when it cannot be weakly referenced,
+    None for values compared by their token alone."""
+    t = type(v)
+    if t in _VALUE_TYPES or t is str or t is bytes:
+        return None
+    if _NDARRAY and issubclass(t, _NDARRAY[0][1]):
+        return None
+    if t not in _NO_WEAKREF:
+        try:
+            return weakref.ref(v)
+        except TypeError:
+            _NO_WEAKREF.add(t)
+    return id(v)
+
+
+def _items(v):
+    t = type(v)
+    if issubclass(t, dict):
+        return itertools.islice(v.values(), _TOKEN_ITEMS)
+    if issubclass(t, (list, tuple, collections.deque)):
+        return itertools.islice(v, _TOKEN_ITEMS)
+    return ()
+
+
+def _ident(v, token=None):
+    """(token, refs): the change token plus live references to the object and,
+    for a container, its first items, so a freed object's address reused by a
+    new one does not look unchanged."""
+    token = _token(v) if token is None else token
+    try:
+        refs = (_ref(v),) + tuple(_ref(x) for x in _items(v))
+    except Exception:
+        refs = (id(v),)
+    return (token, refs)
+
+
+def _ref_ok(r, v):
+    if r is None:
+        return True
+    if type(r) is int:
+        return r == id(v)
+    return r() is v
+
+
+def _same(old, v, token):
+    token_old, refs = old
+    if token_old != token or not _ref_ok(refs[0], v):
+        return False
+    try:
+        for r, x in zip(refs[1:], _items(v)):
+            if not _ref_ok(r, x):
+                return False
+    except Exception:
+        return False
+    return True
+
+
+def _idents(local_values):
+    out = {}
+    for k, v in local_values.items():
+        try:
+            out[k] = _ident(v)
+        except Exception:
+            pass
+    return out
 
 
 def summarize(v, depth=0, budget=None):
@@ -500,8 +709,21 @@ class CallTracer:
             inst = self.frame_inst.pop(id(frame), None)
             p = self.pending.pop(id(frame), None)
             if p is not None:
-                p.pop("_fp", None)          # internal change-detector, not payload
-                p.pop("_tries", None); p.pop("_line", None)
+                if "_ids" in p:
+                    self._line_step(p, frame, None)   # the call's last changes, as a final step
+                    stmts, withs, extra = _stmt_map(frame.f_code)
+                    ended = stmts.get(frame.f_lineno, frame.f_lineno)
+                    # the statement that ended the call: a `return` inside `with` or try/finally
+                    # reports the header's exit or the finally body here, not the return
+                    last_return = p.get("_last_return")
+                    if last_return is not None and ended != last_return and (ended in withs or _in_spans(extra["finally"], ended)):
+                        ended = last_return
+                    p["exit_after"] = ended
+                for key in ("_fp", "_tries", "_line", "_ids", "_map", "_with", "_extra", "_prev", "_elasti",
+                            "_skipped", "_resumed", "_last_return"):
+                    p.pop(key, None)        # internal change-detection state, not payload
+                if not p.get("steps"):
+                    p.pop("steps", None)    # as before: no key when nothing was recorded
                 p["executed_lines"] = sorted(p.pop("_executed_lines", ()))
                 status = self.boundaries._return_status(frame, arg)
                 p["status"] = status
@@ -523,10 +745,6 @@ class CallTracer:
             return
         if _MODULE_KEYS and frame.f_code.co_name == "forward":
             self._module_call(frame)   # shapes of a registered module, project or torch
-        if self.pending and frame.f_back is not None:
-            q = self.pending.get(id(frame.f_back))
-            if q is not None:
-                self._step(q, frame.f_back)   # any call a sampled frame makes, library calls included
         code = frame.f_code
         tfile = self._norm(code.co_filename)
         if not self._inproj(tfile):
@@ -616,45 +834,112 @@ class CallTracer:
                     self.inst_samples[inst] = self.inst_samples.get(inst, 0) + 1
             if keep:
                 try:
+                    stmts, withs, extra = _stmt_map(code)
+                    # a resumed generator/coroutine continues the statement it suspended in
+                    resumed = stmts.get(frame.f_lineno) if code.co_flags & 0x3a0 and frame.f_lasti > 0 else None
                     self.pending[id(frame)] = {"tkey": tkey, "n": ncall, "inst": inst,
                                                "line_scope": "frame_and_synthetic_children",
-                                               "args": summarize_locals(frame.f_locals)}
+                                               "args": summarize_locals(frame.f_locals),
+                                               "steps": [], "stmt_first": {}, "stmt_left": {}, "stmt_hits": {},
+                                               "_ids": _idents(frame.f_locals), "_map": stmts, "_with": withs, "_extra": extra,
+                                               "_prev": resumed, "_resumed": resumed, "_elasti": frame.f_lasti, "_skipped": False}
+                    if resumed is not None:
+                        self.pending[id(frame)]["resumed"] = resumed
                 except Exception:
                     pass
 
-    def _step(self, q, cb):
-        """Value timeline: snapshot a sampled frame's changed locals at a call it makes.
+    def _line_step(self, q, frame, line):
+        """Values per statement: at a line event of sampled frame `q` that starts a
+        statement run (line None: the call's exit), record what changed since.
 
-        A name that is reassigned (`x = linear1(x); x = linear2(x)`) only ever
-        shows its FINAL value in the exit snapshot. At each call the frame makes,
-        project or library (`self.fc(x)` calls into torch), its locals are
-        snapshotted: by the time linear2 is called, `x` already holds linear1's
-        output. Entry args + these steps + the exit locals give the sequence.
-        Bounded: only frames being sampled, at most MAX_STEPS snapshots and
-        4 * MAX_STEPS attempts each, and one attempt per line event (`f(g(x))`
-        snapshots once; the next pass through the line, in a loop, again).
+        steps[i] = {line, after, vars}: `vars` holds the locals that changed since
+        the previous step, taken as statement `line` starts (None at exit); `after`
+        is the statement that just ran. stmt_first[s] / stmt_left[s] are the step
+        counts when s was first entered / first left, so a name's value before s
+        first ran is its last step below stmt_first[s], and after, its last step
+        below stmt_left[s]. A resumed generator or coroutine finishes the statement
+        it suspended in: that leave is `resumed_left`, not stmt_left, so a later
+        run of the same statement in this call keeps the pair consistent.
+        Bounded per call: locals are compared (see _token, _same) only while the
+        statement that just ran is in its first MAX_PASSES runs, when a statement
+        is first entered or left, and at exit. Changes made in skipped loop passes
+        are picked up at the next compared event, so the points above stay exact;
+        that step is marked `coalesced` because its `after` did not make all of
+        them. At most MAX_STEPS steps; then steps_truncated = the count, and
+        later stmt_first/stmt_left read count + 1.
         """
-        line = cb.f_lineno
-        tries = q.get("_tries", 0)
-        if line == q.get("_line") or tries >= 4 * MAX_STEPS or len(q.get("steps", ())) >= MAX_STEPS:
-            return
-        q["_tries"], q["_line"] = tries + 1, line
-        try:
-            snap = summarize_locals(cb.f_locals)
-            prev = q.get("_fp")
+        prev = q["_prev"]
+        if line is None:
+            cur = None
             if prev is None:
-                prev = {k: _fp(v) for k, v in (q.get("args") or {}).items()}
-            changed = {}
-            for k, v in snap.items():
-                f = _fp(v)
-                if prev.get(k) != f:
-                    changed[k] = v
-                    prev[k] = f
-            q["_fp"] = prev
+                return
+        else:
+            cur = q["_map"].get(line, line)
+            lasti = frame.f_lasti
+            if cur == prev:
+                if lasti > q["_elasti"]:
+                    return                   # another line of the same statement
+                # a backward jump to the statement's start: it runs again
+            q["_elasti"] = lasti
+        q["_prev"] = cur
+        hits, first, left = q["stmt_hits"], q["stmt_first"], q["stmt_left"]
+        resumed = q["_resumed"]
+        new_first = cur is not None and cur not in first
+        resume_left = prev is not None and prev == resumed and prev not in first and "resumed_left" not in q
+        new_left = prev is not None and prev not in left and not (prev == resumed and prev not in first)
+        if cur is not None:
+            body = q["_with"].get(cur)
+            with_exit = body is not None and prev is not None and body[0] <= prev <= body[1] and not new_first
+            refire = (cur in q["_extra"]["returns"] and cur in hits and prev is not None
+                      and _in_spans(q["_extra"]["finally"], prev))   # a return finishing after its finally body
+            if not with_exit and not refire:
+                hits[cur] = hits.get(cur, 0) + 1
+                if cur in q["_extra"]["returns"]:
+                    q["_last_return"] = cur
+        if not (cur is None or new_first or new_left or resume_left or hits.get(prev, 0) <= MAX_PASSES):
+            q["_skipped"] = True             # a later loop pass: caught up at the next compared event
+            return
+        steps = q["steps"]
+        try:
+            loc, ids = frame.f_locals, q["_ids"]
+            changed = []
+            for k, v in loc.items():
+                if k.startswith("__"):
+                    continue
+                token = _token(v)
+                old = ids.get(k)
+                if old is None or not _same(old, v, token):
+                    changed.append((k, v, token))
+            for k in [k for k in ids if k not in loc]:
+                del ids[k]                       # deleted: a new binding is a change again
             if changed:
-                q.setdefault("steps", []).append({"line": line, "vars": changed})
+                if len(steps) >= MAX_STEPS:
+                    q.setdefault("steps_truncated", len(steps))
+                else:
+                    recorded = {}
+                    for k, v, token in changed:  # each name with its own summary budget
+                        try:
+                            summary = summarize_locals({k: v})
+                        except Exception:
+                            continue
+                        if k in summary:
+                            recorded[k] = summary[k]
+                            ids[k] = _ident(v, token)
+                    if recorded:
+                        step = {"line": cur, "after": prev, "vars": recorded}
+                        if q["_skipped"]:
+                            step["coalesced"] = True
+                        steps.append(step)
+            q["_skipped"] = False
         except Exception:
             pass
+        mark = len(steps) + (1 if "steps_truncated" in q else 0)
+        if new_first:
+            first[cur] = mark
+        if new_left:
+            left[prev] = mark
+        if resume_left:
+            q["resumed_left"] = mark
 
     def _module_call(self, frame):
         """At a `forward` call of a registered nn.Module, keep its argument shapes
@@ -768,7 +1053,7 @@ class CallTracer:
                 if sample is not None:
                     sample.setdefault("_executed_lines", set()).add(line)
                     if fid in self.pending:
-                        sample.pop("_line", None)   # a new line event: its calls may take a value step again
+                        self._line_step(sample, frame, line)   # values per statement
             elif event == "exception":
                 if sample is not None:
                     kind = arg[0].__module__ + "." + arg[0].__name__

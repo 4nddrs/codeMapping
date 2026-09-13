@@ -1,0 +1,8 @@
+[
+ {"card": "x = self.drop(cond_embeddings + position_embeddings)",
+  "hints": {"468": "cond_embeddings (8, 513, 256)", "473": "x (8, 513, 256)", "475": "memory (8, 513, 256)", "481": "position_embeddings (1, 6, 256)", "484": "x (8, 6, 256)", "493": "x (8, 6, 2)"},
+  "popup": 473,
+  "rows": ["x = (8, 513, 256)", "cond_embeddings = (8, 513, 256)", "position_embeddings = (1, 513, 256)"],
+  "not_rows": ["(at function exit)", "(8, 6, 2)"]},
+ {"card": "x = self.head(x)", "popup": 493, "rows": ["x = (8, 6, 2)", "x = (8, 6, 256)"]}
+]

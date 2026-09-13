@@ -70,9 +70,12 @@ arrays, sample IDs, and execution contexts before using the stock rebuild.
 Adapt the saved evidence at render time when needed, preserving entry/exit
 timing, statistics scopes, omitted/truncated data, and distinct run phases.
 Keep raw trace files unchanged and save the adapter and exact rebuild command
-with the mapping. Verify the values in the rendered inspector; populated JSON
-alone is insufficient. Only recapture when required evidence is actually
-missing or cannot be recovered by rendering; document why and reconcile
+with the mapping. Verify the values in the rendered inspector with
+`codetrace/check_values.py` and an expectation file (values per statement, shape
+hints, module rows, no JavaScript errors); populated JSON alone is insufficient.
+Only recapture when required evidence is actually missing or cannot be
+recovered by rendering — values per statement and module structure are such
+evidence when the saved capture predates them; document why and reconcile
 phases 2–6 with that run before delivering.
 
 1. **Install codetrace if needed.**
@@ -281,12 +284,12 @@ Feed these into [phases/05-honest-gaps.md](05-honest-gaps.md) /
   silently; a `via …` label on a chip means the call passed through such a
   frame before landing back in your code.
 - **Values are sampled, not exhaustive.** The stock tracer records the first
-  two calls at each call site: arguments at entry, changed locals at each call
-  the function makes (project or library, once per line event, at most 40), and
-  locals at exit. Lines without a call in between are not snapshotted, so the
-  popup labels a value taken at another point. For another saved capture or
-  adapter, describe its actual sampling policy and timing instead. Do not
-  imply coverage of calls that were never sampled.
+  two calls at each call site: arguments at entry, what each statement changed
+  (read as the next statement starts; a loop's later passes in bulk), and locals
+  at exit. A popup row is the value as that statement *first* ran in the sampled
+  call; say so when a loop matters. For another saved capture or adapter,
+  describe its actual sampling policy and timing instead. Do not imply
+  coverage of calls that were never sampled.
 - **One run is one path.** Branches this run didn't take are pink
   ("never ran"), not proof the branch is dead or unreachable.
 - **Bundled back-edges understate the arriving edge count** until a circle is

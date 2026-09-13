@@ -17,14 +17,14 @@
   "includes_baseline": true,
   "pages": [
     {
-      "id": "pusht_vq_v8",
+      "id": "pusht_vq_v11",
       "href": "projects/patch_policy/index.html",
       "title": "Patch Policy \u00b7 PushT VQ-BeT baseline",
       "kind": "training",
       "publication_id": "index",
-      "outcome": "SUCCESS \u00b7 exit 0 \u00b7 136.7s \u00b7 2 observed updates \u00b7 302 parent simulator steps \u00b7 reward 0 \u00b7 final coverage mean 0",
+      "outcome": "SUCCESS \u00b7 exit 0 \u00b7 132.7s \u00b7 2 observed updates \u00b7 302 parent simulator steps \u00b7 reward 0 \u00b7 final coverage mean 0",
       "stages": 32,
-      "command": "python docs/code_mapping/suite/bounded_train.py --max-batches 2 -- --config-name train_pusht_1gpu env_vars.dataset_root=/mnt/sata1/datasets/patch_policy hydra.run.dir=/mnt/sata1/code/robo/patch_policy/outputs/code_mapping/suite/pusht_vq_v8 +dataset.subset_fraction=0.01 train_fraction=0.5 epochs=1 batch_size=8 num_envs=1 num_env_evals=1 num_final_evals=1 eval_on_env_freq=999 model.vqvae_fit_steps=1 model.vqvae_iters=1",
+      "command": "python docs/code_mapping/suite/bounded_train.py --max-batches 2 -- --config-name train_pusht_1gpu env_vars.dataset_root=/mnt/sata1/datasets/patch_policy hydra.run.dir=/mnt/sata1/code/robo/patch_policy/outputs/code_mapping/suite/pusht_vq_v11 +dataset.subset_fraction=0.01 train_fraction=0.5 epochs=1 batch_size=8 num_envs=1 num_env_evals=1 num_final_evals=1 eval_on_env_freq=999 model.vqvae_fit_steps=1 model.vqvae_iters=1",
       "scope": "Two complete official PushT demonstrations; at most two training and two validation batches; one complete final simulator episode; unchanged architecture. This fresh baseline is intentionally bounded to two optimizer updates, versus 21 updates in the historical baseline. Eval, resources and VQ resume use only this fresh run\u2019s artifacts.",
       "totals": {
         "functions": 1893,
@@ -43,14 +43,14 @@
       }
     },
     {
-      "id": "pusht_diffusion_v3",
+      "id": "pusht_diffusion_v6",
       "href": "projects/patch_policy/pusht_diffusion.html",
       "title": "Patch Policy \u00b7 PushT Diffusion",
       "kind": "training",
       "publication_id": "pusht_diffusion",
-      "outcome": "SUCCESS \u00b7 exit 0 \u00b7 445.2s \u00b7 2 observed updates \u00b7 302 parent simulator steps \u00b7 reward 0 \u00b7 final coverage mean 0",
+      "outcome": "SUCCESS \u00b7 exit 0 \u00b7 348.3s \u00b7 2 observed updates \u00b7 302 parent simulator steps \u00b7 reward 0 \u00b7 final coverage mean 0",
       "stages": 31,
-      "command": "python docs/code_mapping/suite/bounded_train.py --max-batches 2 -- --config-name train_pusht_diffusion_1gpu env_vars.dataset_root=/mnt/sata1/datasets/patch_policy hydra.run.dir=/mnt/sata1/code/robo/patch_policy/outputs/code_mapping/suite/pusht_diffusion_v3 +dataset.subset_fraction=0.01 train_fraction=0.5 epochs=1 batch_size=8 num_envs=1 num_env_evals=1 num_final_evals=1 eval_on_env_freq=999",
+      "command": "python docs/code_mapping/suite/bounded_train.py --max-batches 2 -- --config-name train_pusht_diffusion_1gpu env_vars.dataset_root=/mnt/sata1/datasets/patch_policy hydra.run.dir=/mnt/sata1/code/robo/patch_policy/outputs/code_mapping/suite/pusht_diffusion_v6 +dataset.subset_fraction=0.01 train_fraction=0.5 epochs=1 batch_size=8 num_envs=1 num_env_evals=1 num_final_evals=1 eval_on_env_freq=999",
       "scope": "Two real official PushT demonstrations; at most two training and two validation batches; one complete final simulator episode; unchanged 100 diffusion steps and eight-layer model.",
       "totals": {
         "functions": 1185,
@@ -62,7 +62,7 @@
         "columns": 11,
         "dropped": 0,
         "important": 49,
-        "sampled": 1146,
+        "sampled": 1184,
         "boundaries": 1021,
         "distinct_functions": 303,
         "distinct_important": 31

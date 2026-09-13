@@ -155,6 +155,18 @@ for distinct symbols. Report distinct-function counts separately when available.
 Run these checks on localhost before the push, then on the public site after
 deployment. Use a browser or browser automation against the actual served URLs.
 
+The executable form of checks 3–5 is `code-mapping/codetrace/check_values.py`:
+it opens the served page in headless Chrome, finds a card, prints the shape
+hints of its lines and the popup rows of right-clicked lines (a real context-menu
+gesture), and fails on a mismatch with its expectation file or any JavaScript
+error. Keep the expectation file with the mapping (for example
+`docs/code_mapping/checks.json`) and run it on both URLs:
+
+```bash
+python code-mapping/codetrace/check_values.py http://localhost:8766/projects/<slug>/index.html --expect docs/code_mapping/checks.json
+python code-mapping/codetrace/check_values.py https://<deployed>/projects/<slug>/index.html --expect docs/code_mapping/checks.json
+```
+
 1. Open the menu; for a repository group, verify its summary expands and
    collapses with both a click and the keyboard, then expand it and click the
    session's card. Check the resulting URL, page

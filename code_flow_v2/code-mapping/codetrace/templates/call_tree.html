@@ -2189,9 +2189,10 @@
                ("=!<>:".indexOf(text[i - 1]) < 0 || /(<<|>>)$/.test(text.slice(0, i)))) eqs.push(i);
       code += c; i++;
     }
-    return { depth: depth, tq: tq, code: code, eqs: eqs };
+    return { depth: depth, tq: tq, bs: /\\\s*$/.test(code), code: code, eqs: eqs };
   }
-  function contState(st) { return !!(st && (st.depth > 0 || st.tq)); }   // the line continues an earlier one
+  // the line continues an earlier one (open brackets, a triple-quoted string, a trailing backslash)
+  function contState(st) { return !!(st && (st.depth > 0 || st.tq || st.bs)); }
   // First depth-0 `:` (a compound header's end), or -1. Expects code with strings blanked.
   function headerColon(text) {
     var depth = 0;
@@ -2291,7 +2292,7 @@
   // `.append()`, `out=x`), loop spans, and the lines of nested defs and classes.
   function cardInfo(n) {
     if (n._ci) return n._ci;
-    var ci = { state: [], code: [], writes: {}, mutates: {}, loops: [], nested: {} }, st = null, loops = [], defs = [];
+    var ci = { state: [], code: [], writes: {}, mutates: {}, calls: {}, subs: {}, loops: [], nested: {} }, st = null, loops = [], defs = [];
     var add = function (map, key, ln) { var a = map[key] = map[key] || []; if (a[a.length - 1] !== ln) a.push(ln); };
     var inplace = /([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\.\s*(?:append|extend|insert|update|setdefault|pop|popitem|clear|remove|discard|add|sort|reverse|[a-z]\w*_)\s*\(|\bout\s*=\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)/g;
     n._lines.forEach(function (raw, k) {
@@ -2317,10 +2318,20 @@
           if (parts.length > 1) add(ci.mutates, parts[0] + "." + parts[1], ln);
           if (parts.length === 1 || (parts[0] !== "self" && parts[0] !== "cls")) add(ci.mutates, parts[0], ln);
         }
+        // any method call on a name (`cfg.update(…)`, `c.bump()`): it may change the object
+        var callre = /(^|[^\w.])([A-Za-z_]\w*)\s*\.\s*[A-Za-z_]\w*\s*\(/g;
+        while ((m = callre.exec(sc.code))) add(ci.calls, m[2], ln);
+        // an item or attribute target (`d[k] = …`, `batch["obs"]["img"] = …`, `self.x = …`) changes the object in place
+        if (!contState(st) && sc.eqs.length) {
+          var lhs = sc.code.slice(0, sc.eqs[0]), sub = /(^|[^\w.])([A-Za-z_]\w*)\s*[\[.]/g;
+          while ((m = sub.exec(lhs))) add(ci.subs, m[2], ln);
+        }
       }
       st = sc;
     });
     loops.forEach(function (lp) { ci.loops.push(lp); });
+    ci.stmt = [];                                    // index of the first line of k's statement
+    for (var j = 0, open = 0; j < n._lines.length; j++) { if (!contState(ci.state[j])) open = j; ci.stmt[j] = open; }
     ci.next = [];                                    // line of the next statement after index k
     for (var k = n._lines.length - 1, nxt = n.end + 1; k >= 0; k--) {
       ci.next[k] = nxt;
@@ -2329,6 +2340,75 @@
     return (n._ci = ci);
   }
   function nextStatement(n, k) { return cardInfo(n).next[k]; }
+  // ---- values per statement (codetrace round 4) ----------------------------
+  // steps[i] = {line, after, vars}: the locals that changed, taken as statement
+  // `line` started, right after statement `after` ran (`coalesced`: after skipped
+  // loop passes). stmt_first[s] / stmt_left[s]: how many steps were recorded when
+  // statement s was first entered / first left. A name's value as s first started
+  // is its last point below stmt_first[s]; right after s, below stmt_left[s] (the
+  // exit locals when s ended the call). Exact at those two points.
+  function stepMode(sample) { return !!(sample && sample.stmt_first); }
+  function stepPoint(st) {
+    return st.coalesced ? { at: "line", line: st.line } : { at: "after", line: st.after };   // line null: the call's exit
+  }
+  function stmtPoints(sample, base) {
+    var pts = [];
+    if (sample.args && sample.args[base] !== undefined) pts.push({ idx: -1, at: "entry", line: null, v: sample.args[base] });
+    (sample.steps || []).forEach(function (st, i) {
+      if (st.vars && st.vars[base] !== undefined) {
+        var p = stepPoint(st);
+        pts.push({ idx: i, at: p.at, line: p.line, v: st.vars[base] });
+      }
+    });
+    if (sample.locals && sample.locals[base] !== undefined) pts.push({ idx: Infinity, at: "exit", line: sample.exit_after, v: sample.locals[base] });
+    return pts;
+  }
+  // {pts, at}: the point holding `base` as statement s first started (after = false)
+  // or right after it first ran (after = true); null when not recorded.
+  function valueAt(sample, base, s, after) {
+    var key = String(s), idx = after ? sample.stmt_left[key] : sample.stmt_first[key];
+    // a resumed generator finished this statement first: its leave is resumed_left
+    if (idx == null && after && sample.resumed === s && sample.resumed_left != null && sample.stmt_first[key] == null) idx = sample.resumed_left;
+    if (idx == null) {
+      if (!after || sample.stmt_first[key] == null) return null;
+      idx = Infinity;                                  // never left (captures without a final step): the exit locals
+    }
+    if (idx !== Infinity && sample.steps_truncated != null && idx > sample.steps_truncated) return null;
+    var pts = stmtPoints(sample, base), best = -1;
+    pts.forEach(function (p, i) { if (p.idx < idx || (idx === Infinity && p.idx === Infinity)) best = i; });
+    return best < 0 ? null : { pts: pts, at: best };
+  }
+  // The recorded statement for line index k: the scanner's statement start, or
+  // (when the tracer split lines differently) the nearest recorded start above it.
+  function stepRecorded(sample, s) {                  // entered in this call, or resumed in it (a generator)
+    return sample.stmt_first[String(s)] != null || sample.resumed === s;
+  }
+  function stepStmt(n, sample, k) {
+    var ci = cardInfo(n), s = n.start + ci.stmt[k], best = null;
+    if (stepRecorded(sample, s)) return s;
+    if (!ranIn(sample.executed_lines, s, nextStatement(n, ci.stmt[k]) - 1)) return null;
+    Object.keys(sample.stmt_first).concat(sample.resumed != null ? [String(sample.resumed)] : []).forEach(function (key) {
+      var v = +key;
+      if (v <= n.start + k && v > n.def && (best == null || v > best)) best = v;
+    });
+    return best;
+  }
+  function stmtCode(n, k) {                            // the statement's code (strings blanked, comments cut) on one line
+    var ci = cardInfo(n), a = ci.stmt[k];
+    return ci.code.slice(a, Math.max(a + 1, nextStatement(n, a) - n.start)).join(" ");
+  }
+  function stepHint(n, sample, k) {
+    var ci = cardInfo(n), ln = n.start + k;
+    if (ci.stmt[k] !== k || sample.stmt_first[String(ln)] == null) return "";
+    var bits = [], runs = (sample.stmt_hits && sample.stmt_hits[String(ln)]) || 1;
+    idsOnLine(splitAssign(stmtCode(n, k), null).writes).forEach(function (w) {
+      if (w.path.length || bits.length >= 3) return;
+      var r = valueAt(sample, w.base, ln, true), v = r && r.pts[r.at].v;
+      if (v && v.shape) bits.push(esc(w.base) + " " + esc(fmtShape(v.shape)));
+    });
+    return bits.length ? '<span class="shint" title="shape right after this line' + (runs > 1 ? ", its first of " + runs + " runs" : "") +
+      ', in the first sampled call">' + bits.join("   ") + "</span>" : "";
+  }
   function ranIn(lines, lo, hi) {
     return (lines || []).some(function (l) { return l >= lo && l <= hi; });
   }
@@ -2363,6 +2443,7 @@
     if (!sample || n.boundary || ln <= n.def) return "";
     var ci = cardInfo(n), st = ci.state[k];
     if (contState(st) || ci.nested[ln] || !ci.code[k].trim()) return "";
+    if (stepMode(sample)) return (cache[k] = stepHint(n, sample, k));
     if (ci.loops.some(function (lp) { return lp.start <= ln && ln <= lp.end; })) return "";
     var next = nextStatement(n, k);
     if (sample.executed_lines && sample.executed_lines.length && !ranIn(sample.executed_lines, ln, next - 1)) return "";
@@ -2432,7 +2513,10 @@
     var tl = [];
     if (sample.args && sample.args[base] !== undefined) tl.push({ at: "entry", line: null, v: sample.args[base] });
     (sample.steps || []).forEach(function (st) {
-      if (st.vars && st.vars[base] !== undefined) tl.push({ at: "line", line: st.line, v: st.vars[base] });
+      if (st.vars && st.vars[base] !== undefined) {
+        var p = st.after !== undefined ? stepPoint(st) : { at: "line", line: st.line };
+        tl.push({ at: p.at, line: p.line, v: st.vars[base] });
+      }
     });
     if (sample.locals && sample.locals[base] !== undefined) {
       var last = tl.length ? tl[tl.length - 1].v : null;
@@ -2465,7 +2549,7 @@
     var bits = ['<span class="tlk">' + esc(label) + "</span>"];
     tl.forEach(function (pt, i) {
       if (i) bits.push('<span class="tla">→</span>');
-      var tag = pt.at === "entry" ? "entry" : pt.at === "exit" ? "exit" : "L" + pt.line;
+      var tag = pt.at === "entry" ? "entry" : pt.at === "exit" || pt.line == null ? "exit" : pt.at === "after" ? "after L" + pt.line : "L" + pt.line;
       bits.push('<span class="tlp' + (i === cur ? " cur" : "") + '" title="' + esc(tag) + '">' +
         '<span class="ln">' + esc(tag) + "</span><b>" + esc(compactVal(pt.v)) + "</b></span>");
     });
@@ -2501,115 +2585,257 @@
       var text = line ? (n._lines[line - n.start] || "") : "";
       var isRet = /^\s*return\b/.test(text), isDef = line && line <= n.def;
       if (line && !all && !isDef) {
-        // #output: what this line assigns (or returns), valued after it runs.
-        // #input: what it reads, valued as it starts. Every row opens on click.
-        var ci = cardInfo(n), k0 = line - n.start, st0 = ci.state[k0] || null;
-        var parts = splitAssign(text, st0), outs = [], ins = [], seenOut = {}, seenIn = {};
-        // A snapshot taken on the other side of a line that assigns or changes the
-        // name is not this line's value, so such a row says when it was taken.
-        var keyIn = function (map, base, path, lo, hi) {   // the name itself, or the attribute shown
-          return hitIn(n, sample, map[base], lo, hi) || (path.length > 0 && hitIn(n, sample, map[base + "." + path[0]], lo, hi));
-        };
-        var changedIn = function (base, path, lo, hi) {    // changed in place: exactly the value shown
-          if (!path.length && (base === "self" || base === "cls")) return false;
-          return hitIn(n, sample, ci.mutates[base + (path.length ? "." + path[0] : "")], lo, hi);
-        };
-        var loop = null;                                   // outermost loop around this line: its body may run again
-        ci.loops.forEach(function (lp) { if (lp.start <= line && line <= lp.end && (!loop || lp.start < loop.start)) loop = lp; });
-        var nextStmt = nextStatement(n, k0);
-        var when = function (pt) {
-          return pt.at === "entry" ? "at call entry" : pt.at === "exit" ? "at function exit" : "during line " + pt.line;
-        };
-        var pointNote = function (pt) {
-          return vrow(1, "sampled", ': <span class="vd">' + (pt.at === "entry" ? "argument at call entry" :
-            pt.at === "exit" ? "at function exit" + (snapshotsOnly ? " (values between lines were not captured)" : "") :
-            "during line " + pt.line + " (at a call it made)") + "</span>");
-        };
-        var strip = function (label, pts, at, out) {   // change strip, marking the point shown; none if nothing changed
-          var kept = [], cur = -1;
-          pts.forEach(function (pt, i) { if (pt.v) { if (i === at) cur = kept.length; kept.push(pt); } });
-          var first = kept.length ? JSON.stringify(kept[0].v) : "";
-          if (kept.some(function (pt) { return JSON.stringify(pt.v) !== first; })) renderTimeline(label, kept, cur, out);
-        };
-        var mutable = function (v) {
-          return !!v && typeof v === "object" && !v.module && v.t !== "str" && !!(v.shape || v.items || v.head || v.attrs || v.fields);
-        };
-        var addId = function (id, write, rows, seen) {
-          var tl = nameTimeline(n, sample, id.base, line);
-          if (!tl.length) return;
-          var before = -1, after = -1;
-          tl.forEach(function (pt, i) { if (pt.at === "entry" || (pt.at === "line" && pt.line <= line)) before = i; });
-          for (var i = before + 1; i < tl.length; i++) {
-            // a write is valued after its whole statement, not at a call on its own continuation lines
-            if (tl[i].at === "exit" || tl[i].line >= (write ? nextStmt : line + 1)) { after = i; break; }
+        if (stepMode(sample)) {
+          // Values per statement: each name as this statement first ran in this call,
+          // #input as it started and #output right after it, read at recorded positions.
+          var ci = cardInfo(n), k0 = line - n.start, sk = stepStmt(n, sample, k0), outs = [], ins = [], seenOut = {}, seenIn = {};
+          var code0 = stmtCode(n, k0), parts = splitAssign(code0, null);
+          var exceptAs = /^\s*except\b.*\bas\s+([A-Za-z_]\w*)\s*:/.exec(code0);   // `except E as err:` binds err
+          if (exceptAs) {
+            parts.writes = (parts.writes ? parts.writes + ", " : "") + exceptAs[1];
+            parts.reads = parts.reads.replace(new RegExp("\\bas\\s+" + exceptAs[1] + "\\b"), " ");
           }
-          var pick = write ? after : before;
-          // the part of `x.attr.method` that is a value (`t.sum()` reads t), as the rows below resolve it
-          var bp = pick >= 0 ? id.path.slice(0, digPrefix(tl[pick].v, id.path).depth) : id.path;
-          // a step taken during an earlier line that assigns or changes the name holds its value from before that
-          if (!write && pick >= 0 && tl[pick].at === "line" && tl[pick].line < line &&
-              (keyIn(ci.writes, id.base, bp, tl[pick].line, line - 1) || changedIn(id.base, bp, tl[pick].line, line - 1))) pick = after;
-          // an argument changed by an earlier line (`t.add_(1)`): the next snapshot in this loop pass is
-          // this line's value when nothing from this line up to that snapshot assigns or changes it
-          if (!write && pick >= 0 && tl[pick].at === "entry" && after >= 0 && tl[after].at === "line" &&
-              (!loop || tl[after].line <= loop.end) &&
-              (keyIn(ci.writes, id.base, bp, n.def + 1, line - 1) || changedIn(id.base, bp, n.def + 1, line - 1)) &&
-              !keyIn(ci.writes, id.base, bp, line, tl[after].line - 1) && !changedIn(id.base, bp, line, tl[after].line - 1)) pick = after;
-          if (pick < 0) {
-            if (write || tl[0].at !== "exit") return;   // never show a later value as this line's input
-            pick = 0;
+          var runs = sk != null && sample.stmt_hits ? sample.stmt_hits[String(sk)] || 1 : 1;
+          var strip = function (label, pts, at, out) {     // change strip, marking the point shown; none if nothing changed
+            var kept = [], cur = -1;
+            pts.forEach(function (pt, i) { if (pt.v) { if (i === at) cur = kept.length; kept.push(pt); } });
+            var first = kept.length ? JSON.stringify(kept[0].v) : "";
+            if (kept.some(function (pt) { return JSON.stringify(pt.v) !== first; })) renderTimeline(label, kept, cur, out);
+          };
+          var note = function (pt, stale) {
+            var where = pt.at === "entry" ? "argument at call entry" : pt.at === "exit" ? "at function exit" :
+              pt.at === "after" ? "right after line " + pt.line + " ran" :
+              pt.line == null ? "at function exit" : "as line " + pt.line + " started (after repeated loop passes)";
+            return vrow(1, "sampled", ': <span class="vd">' + where + (stale ? "; the attribute may be assigned or changed in place between that point and this line" : "") +
+              (runs > 1 ? " · first of " + runs + " runs of this line in this call" : "") + "</span>");
+          };
+          var inLoop = ci.loops.some(function (lp) { return lp.start <= sk && sk <= lp.end; });
+          var truncHit = false;
+          // a compound header with its body on the same line (`if x: y = 5`): the body is its own recorded statement
+          var bodySk = null;
+          for (var bl = (sk || 0) + 1; sk != null && bl <= e0; bl++) if (stepRecorded(sample, bl)) { bodySk = bl; break; }
+          var objLike = function (v) { return !!v && !!(v.attrs || v.fields || v.params || v.module); };
+          // lines that ran in (lo, hi] and may have changed `base` without the tracer seeing it: an item or
+          // attribute target, an in-place call, an attribute of it assigned, or (for an object) any method call
+          var undetected = function (base, v, lo, hi) {
+            var lines = (ci.subs[base] || []).concat(ci.mutates[base] || []);
+            if (objLike(v) && base !== "self" && base !== "cls") {   // a method's own calls are its submodules and helpers
+              lines = lines.concat(ci.calls[base] || []);
+              Object.keys(ci.writes).forEach(function (key) { if (key.indexOf(base + ".") === 0) lines = lines.concat(ci.writes[key]); });
+              Object.keys(ci.mutates).forEach(function (key) { if (key.indexOf(base + ".") === 0) lines = lines.concat(ci.mutates[key]); });
+            }
+            return hitIn(n, sample, lines, lo + 1, hi);
+          };
+          var pointLine = function (pt) {              // the last line whose changes the point includes
+            return pt.at === "entry" ? n.def : pt.at === "exit" ? n.end : pt.at === "after" ? pt.line : (pt.line == null ? n.end : pt.line - 1);
+          };
+          // lines other than this statement that assign `key` or change it in place (`key.append(…)`) and ran;
+          // for a read, only those that can run before it (earlier lines, or anywhere in a loop around it)
+          var otherChanges = function (key, read) {
+            var lines = (ci.writes[key] || []).concat(ci.mutates[key] || []).filter(function (l) {
+              if (l === sk) return false;
+              if (!read || l < sk) return true;
+              return ci.loops.some(function (lp) { return lp.start <= sk && sk <= lp.end && lp.start <= l && l <= lp.end; });
+            });
+            return hitIn(n, sample, lines, n.def + 1, n.end);
+          };
+          var addExact = function (id, write, rows, seen) {
+            var r, stale = false, wk = write && bodySk ? bodySk : sk;   // writes of a same-line body come from the body's statement
+            var recordedAt = write ? sample.stmt_left[String(wk)] : sample.stmt_first[String(sk)];
+            var exitPoint = function () {
+              var ex = stmtPoints(sample, id.base), last = ex.length - 1;
+              return last >= 0 && ex[last].at === "exit" ? { pts: ex, at: last } : null;
+            };
+            if (write && id.path.length) {
+              // an attribute or item target keeps its object's identity, so no step records it: show the object
+              // as the call ended, labelled unless nothing else could have changed that attribute since
+              r = exitPoint();
+              if (!r) return;
+              // …or the object is rebound or called after this statement
+              stale = runs > 1 || inLoop || otherChanges(id.base + "." + id.path[0], false) ||
+                      hitIn(n, sample, (ci.writes[id.base] || []).concat(ci.calls[id.base] || []).filter(function (l) { return l > sk; }), n.def + 1, n.end);
+            } else {
+              r = valueAt(sample, id.base, wk, write);
+              if (!r) {
+                if (recordedAt != null && sample.steps_truncated != null && recordedAt > sample.steps_truncated) truncHit = true;
+                return;
+              }
+              var pv = r.pts[r.at].v;
+              if (id.path.length && otherChanges(id.base + "." + id.path[0], true)) {
+                // an attribute read comes from the object's last snapshot; an earlier assignment or in-place
+                // call on that attribute may postdate it: label it, or take the exit snapshot if only that has it
+                stale = true;
+                if (!digPrefix(pv, id.path).depth) r = exitPoint() || r;
+              } else if (write) {
+                // the snapshot predates this statement, which writes into the object (`d[k] = v`): the tracer did not see it
+                if (r.pts[r.at].idx < (sample.stmt_first[String(wk)] == null ? Infinity : sample.stmt_first[String(wk)]) &&
+                    (ci.subs[id.base] || []).indexOf(wk) >= 0) stale = true;
+              } else if (!id.path.length && undetected(id.base, pv, pointLine(r.pts[r.at]), sk - 1)) {
+                stale = true;                            // changed in place, or an object changed through its attributes, since the snapshot
+              }
+            }
+            var point = r.pts[r.at], usePath = id.path.slice(0, digPrefix(point.v, id.path).depth);
+            var attrKey = usePath.length ? id.base + "." + usePath[0] : null;   // resolved on the value shown (`x.add_` is a method)
+            var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
+            if (seen[label]) return;                        // `x.foo` and `x.bar()` both -> `x`
+            seen[label] = 1;
+            var pts = r.pts.map(function (p) { return { at: p.at, line: p.line, v: usePath.length ? dig(p.v, usePath) : p.v }; });
+            if (!pts[r.at].v) return;
+            var extra = [note(point, stale)];
+            var lastPt = pts.length - 1;
+            if (stale && !write && lastPt !== r.at && pts[lastPt].at === "exit" && pts[lastPt].v &&
+                JSON.stringify(pts[lastPt].v) !== JSON.stringify(pts[r.at].v)) valRow("at function exit", pts[lastPt].v, 1, extra);
+            strip(label, pts, r.at, extra);
+            valRow(label + (stale ? " (" + (point.at === "entry" ? "at call entry" : point.at === "exit" ? "at function exit" :
+                   point.at === "after" ? "after line " + point.line : "as line " + point.line + " started") + ")" : ""),
+                   pts[r.at].v, 0, rows, extra);
+            shown++;
+            if (!write && !attrKey && !seenOut[label]) {    // changed in place by this statement: x.add_(), grow(items)
+              var a = valueAt(sample, id.base, wk, true), av = a && pts[a.at].v;
+              if (a && a.at > r.at && a.pts[a.at].at !== "exit" && av && JSON.stringify(av) !== JSON.stringify(pts[r.at].v)) {
+                var ex2 = [note(a.pts[a.at], false)];
+                strip(label, pts, a.at, ex2);
+                valRow(label + " (after)", av, 0, outs, ex2);
+                seenOut[label] = 1;
+              }
+            }
+          };
+          var others = (n.samples || []).filter(function (o) { return o !== sample && o.executed_lines && o.executed_lines.length; });
+          var s0 = n.start + ci.stmt[k0], e0 = nextStatement(n, ci.stmt[k0]) - 1, c0 = ci.code[ci.stmt[k0]] || "";
+          if (sk == null) {
+            // say "did not run" only for a statement that runs code, when coverage or another sample shows it can run
+            var elsewhere = others.some(function (o) { return ranIn(o.executed_lines, s0, e0); });
+            var codeLine = c0.trim() && !ci.nested[s0] && !/^\s*(?:else|try|finally)\s*:\s*$/.test(c0) &&
+                           !/^\s*(?:pass|global|nonlocal|\.\.\.)\b/.test(c0) && s0 > n.def;
+            if (codeLine && (elsewhere || (n.mi && n.mi.indexOf(s0) >= 0))) {
+              out.push('<div class="empty">Line ' + line + " did not run in this sampled call" + (elsewhere ? "; it ran in another. Use ‹ › to switch samples, or <b>show all</b>." :
+                ".") + "</div>");
+              shown++;
+            }
+          } else {
+            if (runs > 1) out.push('<div class="vr ctx"><span class="vd">values from the first of ' + runs + " runs of this line in this call</span></div>");
+            // the returned value belongs to the statement that ended the call
+            if (parts.ret && sample.ret && (sample.exit_after == null || sample.exit_after === sk)) { valRow("→ returned", sample.ret, 0, outs); shown++; }
+            idsOnLine(parts.writes).forEach(function (id) { addExact(id, true, outs, seenOut); });
+            // keyword-argument names (`f(cond=obs_cond)`) are not values read here
+            idsOnLine(parts.reads.replace(/([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1")).forEach(function (id) { addExact(id, false, ins, seenIn); });
+            if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
+            if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
+            if (truncHit)
+              out.push('<div class="empty">Some values for this line were not recorded: this call changed values in more statements than the capture keeps (' +
+                sample.steps_truncated + " steps).</div>");
           }
-          var point = tl[pick];
-          // resolve `self.x` on the point actually shown, so writes keep their attribute
-          var usePath = id.path.slice(0, digPrefix(point.v, id.path).depth);
-          // the lines that may run between this line and the snapshot shown
-          var lo, hi, later = point.at === "exit" || (point.at === "line" && point.line > line);
-          if (point.at === "entry") { lo = n.def + 1; hi = line - 1; }
-          else if (later) { lo = write ? line + 1 : line; hi = point.at === "exit" ? n.end : point.line - 1; }
-          else { lo = point.line; hi = line - 1; }
-          // a snapshot outside the loop (entry, exit, after it) spans further iterations of its whole body
-          if (loop && (point.at !== "line" || point.line < loop.start || point.line > loop.end)) {
-            lo = Math.min(lo, loop.start); hi = Math.max(hi, loop.end);
-          }
-          var stale = keyIn(ci.writes, id.base, usePath, lo, hi) ||
-                      (mutable(point.v) && changedIn(id.base, usePath, write ? Math.max(lo, line + 1) : lo, hi));
-          var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
-          if (seen[label]) return;                      // `x.foo` and `x.bar()` both -> `x`
-          seen[label] = 1;
-          var pts = tl.map(function (pt) { return { at: pt.at, line: pt.line, v: usePath.length ? dig(pt.v, usePath) : pt.v }; });
-          if (!pts[pick].v) return;
-          var extra = [pointNote(point)];
-          var changed = !write && after >= 0 && pick !== after && pts[after].v && !seenOut[label] &&
-                        JSON.stringify(pts[after].v) !== JSON.stringify(pts[pick].v);
-          if (changed && tl[after].at === "exit") valRow("at function exit", pts[after].v, 1, extra);
-          strip(label, pts, pick, extra);
-          valRow(label + (stale ? " (" + when(point) + ")" : ""), pts[pick].v, 0, rows, extra);
-          shown++;
-          // changed in place by this very line (`grow(items)`): recorded at a call of the
-          // next statement, which does not mention the name itself
-          var mentions = new RegExp("(^|[^\\w.])" + id.base + "\\b"), nk = tl[after] && tl[after].line - n.start;
-          if (changed && !stale && tl[after].at === "line" && tl[after].line === nextStmt && !mentions.test(ci.code[nk] || "") &&
-              !keyIn(ci.writes, id.base, usePath, line + 1, tl[after].line - 1)) {
-            var ex2 = [pointNote(tl[after])];
-            strip(label, pts, after, ex2);
-            valRow(label + " (after)", pts[after].v, 0, outs, ex2);
-          }
-        };
-        // a statement that ran in other sampled calls of this card but not in this one
-        var others = (n.samples || []).filter(function (o) { return o !== sample && o.executed_lines && o.executed_lines.length; });
-        if (!contState(st0) && !ci.nested[line] && ci.code[k0].trim() && sample.executed_lines && sample.executed_lines.length &&
-            !ranIn(sample.executed_lines, line, nextStmt - 1) &&
-            others.some(function (o) { return ranIn(o.executed_lines, line, nextStmt - 1); })) {
-          out.push('<div class="empty">Line ' + line + " did not run in this sampled call; it ran in another. Use ‹ › to switch samples, or <b>show all</b>.</div>");
-          shown++;
         } else {
-          if (parts.ret && sample.ret) { valRow("→ returned", sample.ret, 0, outs); shown++; }
-          idsOnLine(parts.writes).forEach(function (id) { addId(id, true, outs, seenOut); });
-          // keyword-argument names (`f(cond=obs_cond)`, or `cond=obs_cond,` on a continuation line) are not values read here
-          idsOnLine(parts.reads.replace(parts.cont ? /(^\s*|[(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g : /([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1"))
-            .forEach(function (id) { addId(id, false, ins, seenIn); });
-          if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
-          if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
+          // #output: what this line assigns (or returns), valued after it runs.
+          // #input: what it reads, valued as it starts. Every row opens on click.
+          var ci = cardInfo(n), k0 = line - n.start, st0 = ci.state[k0] || null;
+          var parts = splitAssign(text, st0), outs = [], ins = [], seenOut = {}, seenIn = {};
+          // A snapshot taken on the other side of a line that assigns or changes the
+          // name is not this line's value, so such a row says when it was taken.
+          var keyIn = function (map, base, path, lo, hi) {   // the name itself, or the attribute shown
+            return hitIn(n, sample, map[base], lo, hi) || (path.length > 0 && hitIn(n, sample, map[base + "." + path[0]], lo, hi));
+          };
+          var changedIn = function (base, path, lo, hi) {    // changed in place: exactly the value shown
+            if (!path.length && (base === "self" || base === "cls")) return false;
+            return hitIn(n, sample, ci.mutates[base + (path.length ? "." + path[0] : "")], lo, hi);
+          };
+          var loop = null;                                   // outermost loop around this line: its body may run again
+          ci.loops.forEach(function (lp) { if (lp.start <= line && line <= lp.end && (!loop || lp.start < loop.start)) loop = lp; });
+          var nextStmt = nextStatement(n, k0);
+          var when = function (pt) {
+            return pt.at === "entry" ? "at call entry" : pt.at === "exit" ? "at function exit" : "during line " + pt.line;
+          };
+          var pointNote = function (pt) {
+            return vrow(1, "sampled", ': <span class="vd">' + (pt.at === "entry" ? "argument at call entry" :
+              pt.at === "exit" ? "at function exit" + (snapshotsOnly ? " (values between lines were not captured)" : "") :
+              "during line " + pt.line + " (at a call it made)") + "</span>");
+          };
+          var strip = function (label, pts, at, out) {   // change strip, marking the point shown; none if nothing changed
+            var kept = [], cur = -1;
+            pts.forEach(function (pt, i) { if (pt.v) { if (i === at) cur = kept.length; kept.push(pt); } });
+            var first = kept.length ? JSON.stringify(kept[0].v) : "";
+            if (kept.some(function (pt) { return JSON.stringify(pt.v) !== first; })) renderTimeline(label, kept, cur, out);
+          };
+          var mutable = function (v) {
+            return !!v && typeof v === "object" && !v.module && v.t !== "str" && !!(v.shape || v.items || v.head || v.attrs || v.fields);
+          };
+          var addId = function (id, write, rows, seen) {
+            var tl = nameTimeline(n, sample, id.base, line);
+            if (!tl.length) return;
+            var before = -1, after = -1;
+            tl.forEach(function (pt, i) { if (pt.at === "entry" || (pt.at === "line" && pt.line <= line)) before = i; });
+            for (var i = before + 1; i < tl.length; i++) {
+              // a write is valued after its whole statement, not at a call on its own continuation lines
+              if (tl[i].at === "exit" || tl[i].line >= (write ? nextStmt : line + 1)) { after = i; break; }
+            }
+            var pick = write ? after : before;
+            // the part of `x.attr.method` that is a value (`t.sum()` reads t), as the rows below resolve it
+            var bp = pick >= 0 ? id.path.slice(0, digPrefix(tl[pick].v, id.path).depth) : id.path;
+            // a step taken during an earlier line that assigns or changes the name holds its value from before that
+            if (!write && pick >= 0 && tl[pick].at === "line" && tl[pick].line < line &&
+                (keyIn(ci.writes, id.base, bp, tl[pick].line, line - 1) || changedIn(id.base, bp, tl[pick].line, line - 1))) pick = after;
+            // an argument changed by an earlier line (`t.add_(1)`): the next snapshot in this loop pass is
+            // this line's value when nothing from this line up to that snapshot assigns or changes it
+            if (!write && pick >= 0 && tl[pick].at === "entry" && after >= 0 && tl[after].at === "line" &&
+                (!loop || tl[after].line <= loop.end) &&
+                (keyIn(ci.writes, id.base, bp, n.def + 1, line - 1) || changedIn(id.base, bp, n.def + 1, line - 1)) &&
+                !keyIn(ci.writes, id.base, bp, line, tl[after].line - 1) && !changedIn(id.base, bp, line, tl[after].line - 1)) pick = after;
+            if (pick < 0) {
+              if (write || tl[0].at !== "exit") return;   // never show a later value as this line's input
+              pick = 0;
+            }
+            var point = tl[pick];
+            // resolve `self.x` on the point actually shown, so writes keep their attribute
+            var usePath = id.path.slice(0, digPrefix(point.v, id.path).depth);
+            // the lines that may run between this line and the snapshot shown
+            var lo, hi, later = point.at === "exit" || (point.at === "line" && point.line > line);
+            if (point.at === "entry") { lo = n.def + 1; hi = line - 1; }
+            else if (later) { lo = write ? line + 1 : line; hi = point.at === "exit" ? n.end : point.line - 1; }
+            else { lo = point.line; hi = line - 1; }
+            // a snapshot outside the loop (entry, exit, after it) spans further iterations of its whole body
+            if (loop && (point.at !== "line" || point.line < loop.start || point.line > loop.end)) {
+              lo = Math.min(lo, loop.start); hi = Math.max(hi, loop.end);
+            }
+            var stale = keyIn(ci.writes, id.base, usePath, lo, hi) ||
+                        (mutable(point.v) && changedIn(id.base, usePath, write ? Math.max(lo, line + 1) : lo, hi));
+            var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
+            if (seen[label]) return;                      // `x.foo` and `x.bar()` both -> `x`
+            seen[label] = 1;
+            var pts = tl.map(function (pt) { return { at: pt.at, line: pt.line, v: usePath.length ? dig(pt.v, usePath) : pt.v }; });
+            if (!pts[pick].v) return;
+            var extra = [pointNote(point)];
+            var changed = !write && after >= 0 && pick !== after && pts[after].v && !seenOut[label] &&
+                          JSON.stringify(pts[after].v) !== JSON.stringify(pts[pick].v);
+            if (changed && tl[after].at === "exit") valRow("at function exit", pts[after].v, 1, extra);
+            strip(label, pts, pick, extra);
+            valRow(label + (stale ? " (" + when(point) + ")" : ""), pts[pick].v, 0, rows, extra);
+            shown++;
+            // changed in place by this very line (`grow(items)`): recorded at a call of the
+            // next statement, which does not mention the name itself
+            var mentions = new RegExp("(^|[^\\w.])" + id.base + "\\b"), nk = tl[after] && tl[after].line - n.start;
+            if (changed && !stale && tl[after].at === "line" && tl[after].line === nextStmt && !mentions.test(ci.code[nk] || "") &&
+                !keyIn(ci.writes, id.base, usePath, line + 1, tl[after].line - 1)) {
+              var ex2 = [pointNote(tl[after])];
+              strip(label, pts, after, ex2);
+              valRow(label + " (after)", pts[after].v, 0, outs, ex2);
+            }
+          };
+          // a statement that ran in other sampled calls of this card but not in this one
+          var others = (n.samples || []).filter(function (o) { return o !== sample && o.executed_lines && o.executed_lines.length; });
+          if (!contState(st0) && !ci.nested[line] && ci.code[k0].trim() && sample.executed_lines && sample.executed_lines.length &&
+              !ranIn(sample.executed_lines, line, nextStmt - 1) &&
+              others.some(function (o) { return ranIn(o.executed_lines, line, nextStmt - 1); })) {
+            out.push('<div class="empty">Line ' + line + " did not run in this sampled call; it ran in another. Use ‹ › to switch samples, or <b>show all</b>.</div>");
+            shown++;
+          } else {
+            if (parts.ret && sample.ret) { valRow("→ returned", sample.ret, 0, outs); shown++; }
+            idsOnLine(parts.writes).forEach(function (id) { addId(id, true, outs, seenOut); });
+            // keyword-argument names (`f(cond=obs_cond)`, or `cond=obs_cond,` on a continuation line) are not values read here
+            idsOnLine(parts.reads.replace(parts.cont ? /(^\s*|[(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g : /([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1"))
+              .forEach(function (id) { addId(id, false, ins, seenIn); });
+            if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
+            if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
+          }
         }
       }
       if (!shown || all || isDef) {
@@ -2653,6 +2879,7 @@
       }
       html.push('<div class="foot">One line per value; click a row for its statistics, fields, where it was sampled and any recorded changes. ' +
         (snapshotsOnly ? 'Only entry/exit snapshots were captured; values between lines are unknown. ' :
+         stepMode(sample) ? 'Each row is the value as this statement first ran in this call; an <b>entry → after L… → exit</b> strip shows its recorded changes. ' :
          'An <b>entry → L… → exit</b> strip shows recorded value changes. ') +
         (D.capture && D.capture.context_samples ?
          'The first two calls per captured training/evaluation and precompute/rollout context are retained for selected forward functions. Other functions retain their first calls. ' :
