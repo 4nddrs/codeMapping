@@ -155,7 +155,9 @@ class ContextLineTests(unittest.TestCase):
         self.assertIn(self.line("return 22"), no["executed_lines"])
         self.assertNotIn(self.line("return 11"), no["executed_lines"])
         samples = next(row["samples"] for row in graph["calls"] if row["name"] == "choose")
-        self.assertEqual(len(samples), 2)
+        # values are kept per call-site card: each of choose's call sites (a-d and the
+        # worker thread) keeps its own first call, in call order
+        self.assertEqual(len(samples), len(rows))
         self.assertEqual(samples[0]["executed_lines"], yes["executed_lines"])
         self.assertEqual(samples[1]["executed_lines"], no["executed_lines"])
         failure = next(row["samples"][0] for row in graph["calls"] if row["name"] == "fails")
