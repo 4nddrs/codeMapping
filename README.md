@@ -118,3 +118,18 @@ working-pack path and the local, pushed, and deployed checks.
 | Cube Plan Oracle Collection | utility | SUCCESS · exit 0 · 37.2s | [Flow](projects/patch_policy/cube_generate_play.html) |
 | Cube Markov Oracle Collection | utility | SUCCESS · exit 0 · 40.2s | [Flow](projects/patch_policy/cube_generate_noisy.html) |
 <!-- PATCH_POLICY_RUNS_END -->
+
+<!-- DREAMZERO_RUNS_BEGIN -->
+## DreamZero execution paths
+
+[Open the grouped flows](https://roaring-kringle-be46b2.netlify.app/#dreamzero). Bounded real executions of the dreamzero0/dreamzero repository at `ab790c1` on 2 x RTX A6000; deviations and blocked commands are documented in each flow's mapping.
+
+| Flow | Scope | Recorded outcome | Navigator |
+| --- | --- | --- | --- |
+| Wan2.2-5B policy server session | drivers/serve_wan22_session.py · serve_dreamzero_wan22 main + WebsocketClientPolicy, one process | exit 0 · 454.8s · 8 infers + 1 reset · 2 mp4 | [Flow](projects/dreamzero/s1_serve_wan22.html) |
+| Wan2.2-5B LoRA training | scripts/train/droid_training_wan22.sh · 2 steps, 1 GPU, DROID episodes 0-9 | exit 0 · 677.0s · traced · loss 1.0248 then 2.0593 · 614-tensor 89.9 MB save | [Flow](projects/dreamzero/t1_wan22_lora.html) |
+| Initial actions extraction | get_initial_actions.py · 10 DROID episodes | exit 0 · 32.7s · 10 trajectories · 1 npz (5608 B) | [Flow](projects/dreamzero/u5_initial_actions.html) |
+| LeRobot v2 to GEAR metadata (xArm6) | convert_lerobot_to_gear.py · meta/ generation, 101 episodes | exit 0 · 25.9s · 6 meta files written · 0 validation warnings | [Flow](projects/dreamzero/u1_gear_convert.html) |
+| DROID dataset download (subset) | scripts/data/download_droid_hf.py · 8-file allow_patterns subset | exit 0 · 212.0s · 8 files · 1 attempt, no 429 | [Flow](projects/dreamzero/u3_download_subset.html) |
+| Websocket policy protocol smoke | drivers/protocol_smoke.py · eval_utils policy_server + policy_client, one process | exit 0 · 1.0s · 18 traced functions · action (1, 8) zeros | [Flow](projects/dreamzero/u4_protocol_smoke.html) |
+<!-- DREAMZERO_RUNS_END -->

@@ -1,0 +1,163 @@
+{
+  "repository": "dreamzero0/dreamzero",
+  "source_commit": "ab790c198fbce33503358efbbd4187ce9a89adf3",
+  "group_totals": {
+    "Sessions": 6,
+    "Functions traced": 9181,
+    "Calls recorded": 3836516,
+    "Lines executed": 11747,
+    "Lines in scope": 30254
+  },
+  "pages": [
+    {
+      "id": "s1_serve_wan22",
+      "href": "projects/dreamzero/s1_serve_wan22.html",
+      "title": "DreamZero \u00b7 Wan2.2-5B policy server session",
+      "outcome": "exit 0 \u00b7 454.8s \u00b7 8 infers + 1 reset \u00b7 2 mp4",
+      "stages": 9,
+      "important": 67,
+      "innovation": 32,
+      "command": "python docs/code_mapping/drivers/serve_wan22_session.py --model-path outputs/code_mapping/t1_wan22_lora --episode 5 --port 5611 --out outputs/code_mapping/s1_serve_wan22",
+      "exit": 0,
+      "secs": 454.79,
+      "totals": {
+        "functions": 4336,
+        "edges": 4427,
+        "calls": 1067413,
+        "lines": 13269,
+        "reference_lines": 98237,
+        "executed": 5447,
+        "columns": 19,
+        "dropped": 0,
+        "important": 67,
+        "sampled": 4120,
+        "boundaries": 3793
+      }
+    },
+    {
+      "id": "t1_wan22_lora",
+      "href": "projects/dreamzero/t1_wan22_lora.html",
+      "title": "DreamZero \u00b7 Wan2.2-5B LoRA training",
+      "outcome": "exit 0 \u00b7 677.0s \u00b7 traced \u00b7 loss 1.0248 then 2.0593 \u00b7 614-tensor 89.9 MB save",
+      "stages": 9,
+      "important": 87,
+      "innovation": 27,
+      "command": "python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/Wan2.2-TI2V-5B text_encoder_pretrained_path=checkpoints/Wan2.2-TI2V-5B/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/Wan2.1-I2V-14B-480P/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/Wan2.2-TI2V-5B/Wan2.2_VAE.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=lora training_args.deepspeed=groot/vla/configs/deepspeed/zero2.json save_steps=1000 save_strategy=no save_lora_only=true dataloader_pin_memory=false output_dir=outputs/code_mapping/t1_wan22_lora",
+      "exit": 0,
+      "secs": 677.0,
+      "totals": {
+        "functions": 4417,
+        "edges": 4494,
+        "calls": 2379575,
+        "lines": 15256,
+        "reference_lines": 101370,
+        "executed": 5785,
+        "columns": 20,
+        "dropped": 0,
+        "important": 87,
+        "sampled": 4112,
+        "boundaries": 3694
+      }
+    },
+    {
+      "id": "u5_initial_actions",
+      "href": "projects/dreamzero/u5_initial_actions.html",
+      "title": "DreamZero \u00b7 Initial actions extraction",
+      "outcome": "exit 0 \u00b7 32.7s \u00b7 10 trajectories \u00b7 1 npz (5608 B)",
+      "stages": 4,
+      "important": 5,
+      "innovation": 0,
+      "command": "python groot/vla/data/conversion/gr1/get_initial_actions.py data/droid_subset10_initact",
+      "exit": 0,
+      "secs": 32.73,
+      "totals": {
+        "functions": 50,
+        "edges": 49,
+        "calls": 114,
+        "lines": 322,
+        "reference_lines": 1005,
+        "executed": 74,
+        "columns": 3,
+        "dropped": 0,
+        "important": 5,
+        "sampled": 48,
+        "boundaries": 45
+      }
+    },
+    {
+      "id": "u1_gear_convert",
+      "href": "projects/dreamzero/u1_gear_convert.html",
+      "title": "DreamZero \u00b7 LeRobot v2 to GEAR metadata (xArm6)",
+      "outcome": "exit 0 \u00b7 25.9s \u00b7 6 meta files written \u00b7 0 validation warnings",
+      "stages": 6,
+      "important": 12,
+      "innovation": 0,
+      "command": "python scripts/data/convert_lerobot_to_gear.py --dataset-path data/xarm6_gear --embodiment-tag xdof --state-keys {\"joint_pos\": [0, 6], \"gripper_pos\": [6, 7]} --action-keys {\"joint_pos\": [0, 6], \"gripper_pos\": [6, 7]} --relative-action-keys joint_pos gripper_pos --task-key annotation.task --action-horizon 24 --force",
+      "exit": 0,
+      "secs": 25.89,
+      "totals": {
+        "functions": 283,
+        "edges": 282,
+        "calls": 389284,
+        "lines": 1165,
+        "reference_lines": 7070,
+        "executed": 313,
+        "columns": 4,
+        "dropped": 0,
+        "important": 12,
+        "sampled": 282,
+        "boundaries": 270
+      }
+    },
+    {
+      "id": "u3_download_subset",
+      "href": "projects/dreamzero/u3_download_subset.html",
+      "title": "DreamZero \u00b7 DROID dataset download (subset)",
+      "outcome": "exit 0 \u00b7 212.0s \u00b7 8 files \u00b7 1 attempt, no 429",
+      "stages": 2,
+      "important": 2,
+      "innovation": 0,
+      "command": "python docs/code_mapping/drivers/download_subset.py --local-dir outputs/code_mapping/u3_download_droid --max-workers 1 --retry-wait 320",
+      "exit": 0,
+      "secs": 212.0,
+      "totals": {
+        "functions": 25,
+        "edges": 24,
+        "calls": 25,
+        "lines": 79,
+        "reference_lines": 370,
+        "executed": 45,
+        "columns": 3,
+        "dropped": 0,
+        "important": 2,
+        "sampled": 24,
+        "boundaries": 23
+      }
+    },
+    {
+      "id": "u4_protocol_smoke",
+      "href": "projects/dreamzero/u4_protocol_smoke.html",
+      "title": "DreamZero \u00b7 Websocket policy protocol smoke",
+      "outcome": "exit 0 \u00b7 1.0s \u00b7 18 traced functions \u00b7 action (1, 8) zeros",
+      "stages": 5,
+      "important": 12,
+      "innovation": 0,
+      "command": "python docs/code_mapping/drivers/protocol_smoke.py",
+      "exit": 0,
+      "secs": 1.02,
+      "totals": {
+        "functions": 70,
+        "edges": 69,
+        "calls": 105,
+        "lines": 163,
+        "reference_lines": 1837,
+        "executed": 83,
+        "columns": 6,
+        "dropped": 0,
+        "important": 12,
+        "sampled": 67,
+        "boundaries": 56
+      }
+    }
+  ]
+}
