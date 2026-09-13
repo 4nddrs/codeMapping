@@ -90,7 +90,7 @@ working-pack path and the local, pushed, and deployed checks.
 
 | Path | Kind | Recorded outcome | Navigator |
 | --- | --- | --- | --- |
-| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 173.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
+| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 161.2s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
 | PushT Diffusion | training | SUCCESS · exit 0 · 445.2s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
 | Blockpush VQ-BeT | training | SUCCESS · exit 0 · 199.7s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_vq.html) |
 | Blockpush Diffusion | training | SUCCESS · exit 0 · 1597.4s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_diffusion.html) |
@@ -117,6 +117,4 @@ working-pack path and the local, pushed, and deployed checks.
 | Cube Episode Video Export | utility | SUCCESS · exit 0 · 15.5s | [Flow](projects/patch_policy/cube_video_export.html) |
 | Cube Plan Oracle Collection | utility | SUCCESS · exit 0 · 37.2s | [Flow](projects/patch_policy/cube_generate_play.html) |
 | Cube Markov Oracle Collection | utility | SUCCESS · exit 0 · 40.2s | [Flow](projects/patch_policy/cube_generate_noisy.html) |
-[Call-arrow fixes, fresh reruns and remaining limits](projects/patch_policy/CALL_CAPTURE_FIX.md).
-
 <!-- PATCH_POLICY_RUNS_END -->

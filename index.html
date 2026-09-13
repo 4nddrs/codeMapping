@@ -529,12 +529,12 @@
            href="projects/patch_policy/index.html">
           <div>
             <h3 class="title"><span class="name">PushT VQ-BeT baseline</span> <span class="slug">training</span></h3>
-            <p class="what">Rerun the original precomputed-encoder PushT VQ-BeT path with fresh call-boundary capture: dataset embeddings, codebook fit, policy optimization, checkpoints and complete simulator rollout. Two complete official PushT demonstrations; at most two training and two validation batches; one complete final simulator episode; unchanged architecture. This fresh baseline is intentionally bounded to two optimizer updates, versus 21 updates in the historical baseline. Eval, resources and VQ resume use only this fresh run’s artifacts.</p>
-            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_vq_v3 --jobs docs/code_mapping/suite/jobs_rerun.json --gpu 1</code>
-            <p class="local">projects/patch_policy/index.html<span class="sep">/</span>9.4 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
+            <p class="what">Rerun the original precomputed-encoder PushT VQ-BeT path with fresh call-boundary capture and per-call-site value sampling: dataset embeddings, codebook fit, policy optimization, checkpoints and complete simulator rollout. Two complete official PushT demonstrations; at most two training and two validation batches; one complete final simulator episode; unchanged architecture. This fresh baseline is intentionally bounded to two optimizer updates, versus 21 updates in the historical baseline. Eval, resources and VQ resume use only this fresh run’s artifacts.</p>
+            <code class="cmd">python docs/code_mapping/suite/run_job.py pusht_vq_v4 --jobs docs/code_mapping/suite/jobs_sampling.json --gpu 1</code>
+            <p class="local">projects/patch_policy/index.html<span class="sep">/</span>9.9 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/suite/bounded_train.py</p>
           </div>
           <div class="metrics">
-            <span class="verdict">SUCCESS · exit 0 · 173.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
+            <span class="verdict">SUCCESS · exit 0 · 161.2s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0</span>
             <div class="cov">
               <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.5%</b> &middot; 2,255/5,307</span></div>
               <div class="bar"><i style="width: 42.5%"></i></div>

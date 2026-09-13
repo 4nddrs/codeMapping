@@ -402,10 +402,17 @@
   .panel.innov { border-color: var(--innov); outline: 3px solid var(--innov); outline-offset: 0; }
   .panel.innov.innov-sup { outline-style: dashed; outline-offset: 2px; }
   .phdr .innovtag {
-    flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; background: var(--innov); color: var(--surface);
-    font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+    flex: 0 1 auto; min-width: 2.4em; overflow: hidden; text-overflow: ellipsis; padding: 1px 7px; border-radius: 999px;
+    background: var(--innov); color: var(--surface); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
   }
   .phdr .innovtag.sup { background: transparent; color: var(--innov); box-shadow: inset 0 0 0 1px var(--innov); }
+  /* file:line gives way first, then the tag shrinks to "◆…"; ★ and callers stay visible */
+  .panel.innov .phdr .loc { flex-shrink: 1000; }
+  .panel.innov .phdr .meta { flex-shrink: 1; }
+  /* keep the search-match and arrival cues visible outside the frame */
+  .panel.innov.match, .panel.innov.arrive { border-color: var(--accent); }
+  .panel.innov.match { box-shadow: 0 0 0 7px var(--accent-soft), var(--panel-shadow); }
+  .panel.innov.innov-sup.match { box-shadow: 0 0 0 9px var(--accent-soft), var(--panel-shadow); }
   .row.innov .num { color: var(--innov); font-weight: 700; box-shadow: inset 6px 0 0 var(--innov); }
   .row.hit.innov .num { box-shadow: inset 3px 0 0 var(--hit-bar), inset 6px 0 0 var(--innov); }
   .row.part.innov .num { box-shadow: inset 3px 0 0 var(--partial-bar), inset 6px 0 0 var(--innov); }
@@ -480,6 +487,20 @@
   .vals .sec.fn { text-transform: none; letter-spacing: 0; font-size: 19px; color: var(--ink); padding-top: 9px; }
   .vals .sec.fn .fp { color: var(--faint); font-weight: 400; }
   .vals .foot { padding: 10px 14px 12px; color: var(--faint); font-size: 14px; border-top: 1px solid var(--line); margin-top: 6px; }
+
+  /* compact value rows: one line per value; click (or Enter/Space) opens the details */
+  .vals details.vx > summary { list-style: none; cursor: pointer; }
+  .vals details.vx > summary::-webkit-details-marker { display: none; }
+  .vals details.vx > summary > .vr { display: block; }
+  .vals details.vx > summary:hover { background: var(--accent-soft); }
+  .vals details.vx > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .vals details.vx[open] > summary { background: var(--bg); }
+  .vals .mk { display: inline-block; width: 1.2em; color: var(--faint); transition: transform 0.12s ease; }
+  .vals details.vx[open] > summary .mk { transform: rotate(90deg); }
+  .vals details.vx .tl { padding-left: 42px; }
+  .vals .sec.io { text-transform: none; letter-spacing: 0; font-size: 17px; color: var(--ink); }
+  .vals .sec.io span { color: var(--faint); font-weight: 400; font-size: 14px; margin-left: 10px; }
+  .vals .vr.ctx { white-space: normal; padding-top: 8px; font-size: 16px; }
 
   .k { color: var(--kw); } .s { color: var(--str); } .c { color: var(--com); font-style: italic; } .nm { color: var(--num); } .d { color: var(--def); font-weight: 600; }
 
@@ -699,7 +720,7 @@
   $("legendelsewhere").title = hasContextCoverage ? "This line ran in another caller context. Open that card to follow its measured calls." : "An outgoing call was recorded on another card for this function, but not on this card. Full per-call line coverage was not collected.";
   // Reviewed paper-innovation ranges (payload `innovation`): green frames and green gutter marks.
   var innovMeta = D.innovation || null, innovCards = nodes.filter(function (n) { return n.innovation; });
-  if (D.important_label) $("legendimp").innerHTML = '<i class="lg-imp"></i>' + esc(D.important_label);
+  if (D.important_label || innovCards.length) $("legendimp").innerHTML = '<i class="lg-imp"></i>' + esc(D.important_label || "★ curated critical path");
   if (innovCards.length) {
     var innovSup = innovCards.some(function (n) { return n.innovation.role === "supporting"; });
     $("legendinnov").hidden = false;
@@ -1309,7 +1330,8 @@
     g.clearRect(0, 0, cv.width, cv.height);
     for (var i = 0; i < n.nlines; i++) {
       var ln = n.start + i;
-      var c = s.innov[ln] !== undefined ? innovC : s.elsewhere[ln] ? faintC : s.ex[ln] ? (s.part[ln] ? partC : hitC) : s.stmt[ln] ? missC : (noCov ? faintC : null);
+      var c = s.elsewhere[ln] ? faintC : s.ex[ln] ? (s.part[ln] ? partC : hitC) : s.stmt[ln] ? missC : (noCov ? faintC : null);
+      if (s.ex[ln] && !s.elsewhere[ln] && s.innov[ln] !== undefined) c = innovC;   // green only where the line ran on this card
       if (!c) continue;
       var L = n._lines[i] || "";
       var ind = Math.round(((L.length - L.replace(/^\s+/, "").length) / maxCh) * 60);
@@ -1876,6 +1898,7 @@
     if (e.target.tagName === "INPUT" || (resBox.contains && resBox.contains(e.target))) return;
     if (e.target.id === "stagebtn" || (e.target.closest && e.target.closest(".stagepick"))) return;
     if (e.target.closest && e.target.closest(".contextlink")) return;
+    if (e.target.closest && e.target.closest(".vals summary") && (e.key === "Enter" || e.key === " ")) return;   // Enter/Space open a value row
     if (e.target.closest && e.target.closest('.callsmore, .calleetarget')) {
       if (e.key === 'Escape') { e.preventDefault();hideVals(); }
       return; // Enter/Space activate the focused native button
@@ -2048,6 +2071,169 @@
     });
     if (v.first256 !== undefined) out.push(vrow(depth + 1, "string scope", '<span class="vd"> first 256 of ' + esc(v.n) + " characters</span>"));
   }
+  // ---- compact value rows ------------------------------------------------
+  // One line per value: shape, dtype, device and first values for arrays, the
+  // type for objects, the value itself for scalars. Statistics, fields, where
+  // the value was sampled and any change strip open on click (native <details>,
+  // so Enter and Space work as well).
+  function valSummary(v) {
+    if (!v) return '<span class="vd">?</span>';
+    if (v.shape) return '<span class="vs">(' + v.shape.join(", ") + ')</span> <span class="vt">(' + esc(v.dtype) + ')</span>' +
+      (v.kind === "param" ? ' <span class="wt">learned</span>' : v.kind === "buffer" ? ' <span class="wt buf">buffer</span>' : "") +
+      (v.grad ? ' <span class="wt g">grad</span>' : "") +
+      (v.device ? ' <span class="vd">' + esc(v.device) + "</span>" : "") + (v.head ? '  <span class="vv">' + esc(fmtHead(v.head)) + "</span>" : "");
+    if (v.items || (v.head && v.t !== "str")) return '<span class="vt">' + esc(v.t) + "[" + (v.n == null ? "?" : v.n) + "]</span>";
+    if (v.fields || v.attrs || v.params) {
+      var pn = Object.keys(v.params || {}).length;
+      return '<span class="vt">' + esc(v.t) + "</span>" + (pn ? ' <span class="wt">' + pn + " learned tensor" + (pn === 1 ? "" : "s") + "</span>" : "");
+    }
+    if (v.t === "str") return '<span class="vv">' + esc(JSON.stringify(v.r)) + "</span>";
+    if (v.r !== undefined) return '<span class="vv">' + esc(v.r) + "</span>" +
+      (v.t !== "int" && v.t !== "float" && v.t !== "bool" && v.t !== "NoneType" ? ' <span class="vt">(' + esc(v.t) + ")</span>" : "");
+    return '<span class="vt">' + esc(v.t) + "</span>" + (v.n != null ? ' <span class="vd">len ' + v.n + "</span>" : "");
+  }
+  function valDetails(v, depth, out) {
+    if (!v) return;
+    if (v.shape) {
+      if (v.stats_scope !== undefined) out.push(vrow(depth, "statistics scope", ': <span class="vv">' + esc(v.stats_scope) +
+        " · " + esc(v.stats_elements) + " / " + esc(v.size) + " elements</span>"));
+      ["min", "max", "mean", "finite_count", "nan_count", "positive_inf_count",
+       "negative_inf_count", "nonzero_count", "nonzero_frac"].forEach(function (key) {
+        if (v[key] !== undefined) out.push(vrow(depth, key, ' = <span class="vv">' + esc(v[key]) + "</span>"));
+      });
+    } else if (v.items) {
+      Object.keys(v.items).forEach(function (k) { valRow(k, v.items[k], depth, out); });
+    } else if (v.head && v.t !== "str") {
+      v.head.forEach(function (x, i) { valRow("[" + i + "]", x, depth, out); });
+      if (v.n > v.head.length) out.push(vrow(depth, "…", ' <span class="vd">+' + (v.n - v.head.length) + " more</span>"));
+    } else if (v.fields || v.attrs || v.params) {
+      var kv = v.fields || v.attrs || {}, kk = Object.keys(kv), pk = Object.keys(v.params || {});
+      // A module's own parameters and buffers first: they are inputs to the
+      // computation just as much as the arguments are.
+      pk.forEach(function (k) { valRow(k, v.params[k], depth, out); });
+      kk.forEach(function (k) { valRow(k, kv[k], depth, out); });
+      if (!kk.length && !pk.length) out.push(vrow(depth, "", '<span class="vd">(no public attributes)</span>'));
+    } else if (v.t === "str" && v.n != null) {
+      out.push(vrow(depth, "length", ' = <span class="vv">' + esc(v.n) + "</span>"));
+    }
+    ["training", "name", "note", "omitted", "omitted_keys", "redacted", "summary_error", "empty"].forEach(function (key) {
+      if (v[key] !== undefined) out.push(vrow(depth, key, ': <span class="vd">' + esc(v[key]) + "</span>"));
+    });
+    if (v.first256 !== undefined) out.push(vrow(depth, "string scope", '<span class="vd"> first 256 of ' + esc(v.n) + " characters</span>"));
+  }
+  // `extra`: rows shown only once the value is opened (sampling point, change strip).
+  function valRow(name, v, depth, out, extra) {
+    var inner = [];
+    valDetails(v, depth + 1, inner);
+    if (extra) inner = inner.concat(extra);
+    var tag = inner.length ? "span" : "div";
+    var line = "<" + tag + ' class="vr">' + "  ".repeat(depth) + '<span class="mk">' + (inner.length ? "▸" : "") + "</span>" +
+      '<span class="vk">' + esc(name) + "</span> = " + valSummary(v) + "</" + tag + ">";
+    out.push(inner.length ? '<details class="vx"><summary>' + line + "</summary>" + inner.join("") + "</details>" : line);
+  }
+  // Scan one line outside strings and comments. Returns the bracket depth after
+  // it, the text before any comment, and the depth-0 positions of `=` that assign
+  // (not `==`, `!=`, `<=`, `>=`, `:=`; `<<=` and `>>=` do assign).
+  function scanLine(text, depth0) {
+    var depth = depth0 || 0, q = null, eqs = [], cut = text.length;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") q = c;
+      else if (c === "#") { cut = i; break; }
+      else if (c === "(" || c === "[" || c === "{") depth++;
+      else if (c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
+      else if (c === "=" && depth === 0 && text[i + 1] !== "=" &&
+               ("=!<>:".indexOf(text[i - 1]) < 0 || /(<<|>>)$/.test(text.slice(0, i)))) eqs.push(i);
+    }
+    return { depth: depth, code: text.slice(0, cut), eqs: eqs };
+  }
+  // First depth-0 `:` outside strings (a compound header's end), or -1.
+  function headerColon(text) {
+    var depth = 0, q = null;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") q = c;
+      else if (c === "(" || c === "[" || c === "{") depth++;
+      else if (c === ")" || c === "]" || c === "}") depth--;
+      else if (c === ":" && depth === 0 && text[i + 1] !== "=") return i;
+    }
+    return -1;
+  }
+  // Split an assignment target into the names it binds and the subscripts it reads
+  // (`d[k]` binds d, reads k; `x: T` binds x).
+  function splitTarget(lhs) {
+    var bare = "", subs = "", stack = [];
+    for (var j = 0; j < lhs.length; j++) {
+      var ch = lhs[j], inSub = stack.indexOf("sub") >= 0;
+      if (ch === "[" || ch === "(" || ch === "{") {
+        stack.push(ch === "[" && /[\w\])]\s*$/.test(lhs.slice(0, j)) ? "sub" : "grp");
+        if (inSub || stack[stack.length - 1] === "sub") { subs += " "; continue; }
+      } else if (ch === "]" || ch === ")" || ch === "}") {
+        var kind = stack.pop();
+        if (kind === "sub" || stack.indexOf("sub") >= 0) { subs += " "; continue; }
+      } else if (inSub) { subs += ch; continue; }
+      bare += ch;
+    }
+    return { bare: bare.replace(/^(\s*[A-Za-z_][\w.]*)\s*:.*$/, "$1"), subs: subs };
+  }
+  // Split one source line into the text it assigns and the text it reads, for the
+  // #output / #input groups. `depth0` is the bracket depth carried in from earlier
+  // lines: a continuation line (`name=value,` inside a call) only reads. Handles
+  // `a = b = …`, `a, b = …`, `x += …`, `x: T = …`, `d[k] = …`, walrus, `for … in …:`,
+  // `with … as a, … as b:`, `return …`, and a compound header with a body on the
+  // same line (`if x: y = f(x)`).
+  function splitAssign(text, depth0) {
+    var sc = scanLine(text, depth0), m;
+    if (depth0 > 0) return { writes: "", reads: sc.code, cont: true };
+    var walrus = [], wre = /([A-Za-z_]\w*)\s*:=/g, wm;
+    while ((wm = wre.exec(sc.code))) walrus.push(wm[1]);
+    var s = sc.code.replace(/([A-Za-z_]\w*)\s*:=/g, " ");
+    var join = function (writes, reads, extra) {
+      var r = { writes: [writes].concat(walrus).filter(function (x) { return x && x.trim(); }).join(", "), reads: reads };
+      for (var k in extra || {}) r[k] = extra[k];
+      return r;
+    };
+    var body = function (header, rest) {        // header reads + whatever the same-line body does
+      var inner = rest.trim() ? splitAssign(rest, 0) : { writes: "", reads: "" };
+      return join(inner.writes, header + " " + inner.reads, inner.ret ? { ret: true } : null);
+    };
+    if ((m = /^\s*(?:async\s+)?for\s+(.+?)\s+in\s+(.+)$/.exec(s))) {
+      var fc = headerColon(m[2]), iter = fc >= 0 ? m[2].slice(0, fc) : m[2];
+      var inner = fc >= 0 && m[2].slice(fc + 1).trim() ? splitAssign(m[2].slice(fc + 1), 0) : { writes: "", reads: "" };
+      return join(m[1] + (inner.writes ? ", " + inner.writes : ""), iter + " " + inner.reads);
+    }
+    if ((m = /^\s*(?:async\s+)?with\s+(.+)$/.exec(s))) {
+      var wc = headerColon(m[1]), items = wc >= 0 ? m[1].slice(0, wc) : m[1], writes = [], reads = [];
+      items.split(/,(?![^()\[\]{}]*[)\]}])/).forEach(function (item) {
+        var am = /^(.*)\s+as\s+(.+)$/.exec(item);
+        if (am) { writes.push(am[2]); reads.push(am[1]); } else reads.push(item);
+      });
+      var wb = wc >= 0 && m[1].slice(wc + 1).trim() ? splitAssign(m[1].slice(wc + 1), 0) : { writes: "", reads: "" };
+      return join(writes.concat(wb.writes ? [wb.writes] : []).join(", "), reads.join(" ") + " " + wb.reads);
+    }
+    if ((m = /^\s*(?:(?:el)?if|while|except)\b(.*)$/.exec(s)) || (m = /^\s*(?:else|try|finally)\s*(:.*)$/.exec(s))) {
+      var hc = headerColon(m[1]);
+      return hc >= 0 ? body(m[1].slice(0, hc), m[1].slice(hc + 1)) : join("", m[1]);
+    }
+    if ((m = /^\s*return\b(.*)$/.exec(s))) return join("", m[1], { ret: true });
+    var eqs = scanLine(s, 0).eqs;
+    if (!eqs.length) return join("", s);
+    var rhs = s.slice(eqs[eqs.length - 1] + 1), bares = [], subs = "", aug = false;
+    eqs.forEach(function (pos, i) {
+      var seg = s.slice(i ? eqs[i - 1] + 1 : 0, pos);
+      if (i === eqs.length - 1) {
+        var op = /(\*\*|\/\/|>>|<<|[-+*\/%&|^@])\s*$/;
+        aug = op.test(seg);
+        if (aug) seg = seg.replace(op, "");
+      }
+      var t = splitTarget(seg);
+      bares.push(t.bare);
+      subs += " " + t.subs;
+    });
+    return join(bares.join(", "), rhs + " " + subs + (aug ? " " + bares[bares.length - 1] : ""));
+  }
   // Resolve the LONGEST prefix of `path` that actually exists on `v`.
   // A source line like `self.cog_emb.to(x).unsqueeze(0)` yields the path
   // ["cog_emb","to"] — the trailing method is not an attribute, so a strict dig
@@ -2142,97 +2328,147 @@
     var html = [], sample = n.samples[n._si || 0], N = n.samples.length;
     var sn = shortName(n);
     html.push('<div class="vh"><b>' + esc(sn.leaf) + "()</b>" +
-      (N ? '<span>call #' + sample.n + " · sample " + ((n._si || 0) + 1) + "/" + N + "</span>" +
+      (N ? '<span>call #' + sample.n + " · sample " + ((n._si || 0) + 1) + "/" + N + (line && !all ? " · line " + line : "") + "</span>" +
            (N > 1 ? '<button data-v="prev">‹</button><button data-v="next">›</button>' : "") : "") +
       (line && !all ? '<button data-v="all">show all</button>' : "") +
       '<button class="x" data-v="close">×</button></div>');
     if (!N) {
-      html.push('<div class="empty">No values recorded for this function.<br>Values are sampled on its first ' +
-        "calls; re-run without <b>--no-values</b> if you passed it.</div>");
+      // Values are kept per call-site card, for its first calls; point to the cards that have them.
+      var sibs = nodes.filter(function (o) { return o !== n && o.file === n.file && o.name === n.name && o.samples && o.samples.length; });
+      html.push('<div class="empty">No values were recorded on this card.' + (sibs.length ?
+        " This function has values at " + sibs.length + " other call site" + (sibs.length === 1 ? "" : "s") + ":" :
+        "<br>Values are sampled on the first calls at each call site; re-run without <b>--no-values</b> if you passed it.") + "</div>");
+      sibs.forEach(function (o) {
+        html.push('<button type="button" class="clrow sibvals" data-id="' + o.id + '"><span class="cll">→ ' + esc(contextLabel(o)) +
+          '</span><span class="clc">' + o.samples.length + " sampled call" + (o.samples.length === 1 ? "" : "s") + "</span></button>");
+      });
     } else {
-      if (sample.context) {
-        html.push('<div class="sec">recorded call context</div>');
-        Object.keys(sample.context).forEach(function (key) {
-          html.push(vrow(0, key, ' = <span class="vv">' + esc(sample.context[key]) + "</span>"));
-        });
+      if (sample.context) {                    // one line: which call this sample is
+        html.push('<div class="vr ctx"><span class="vd">context</span>  ' + Object.keys(sample.context).map(function (key) {
+          return '<span class="vk">' + esc(key) + '</span> = <span class="vv">' + esc(sample.context[key]) + "</span>";
+        }).join(' <span class="vd">·</span> ') + "</div>");
       }
       var out = [], shown = 0;
       var snapshotsOnly = D.capture && D.capture.timeline_snapshots === 0;
       var text = line ? (n._lines[line - n.start] || "") : "";
       var isRet = /^\s*return\b/.test(text), isDef = line && line <= n.def;
       if (line && !all && !isDef) {
-        var rows = [];
-        var anyBA = false, seenLabel = {};
-        idsOnLine(text).forEach(function (id) {
-          var tl = valTimeline(sample, id.base);
-          if (!tl.length) return;
-          // depth resolved on the point we are actually showing; apply the same
-          // depth to every point so the timeline follows one attribute, not a
-          // mixture of the attribute and its owner.
-          var probe = digPrefix(tl[tlIndexFor(tl, line)].v, id.path);
-          var usePath = id.path.slice(0, probe.depth);
-          var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
-          if (seenLabel[label]) return;          // `x.foo` and `x.bar()` both -> `x`
-          seenLabel[label] = 1;
-          var pts = tl.map(function (pt) {
-            var d = usePath.length ? dig(pt.v, usePath) : pt.v;
-            return { at: pt.at, line: pt.line, v: d };
-          }).filter(function (pt) { return pt.v; });
-          if (!pts.length) return;
-          var cur = Math.min(tlIndexFor(tl, line), pts.length - 1);
-          var before = pts[cur];
-          // `after` = the next recorded point. A step logged at line L holds the
-          // state ENTERING L, so the first point past this line is what this
-          // line produced — which is the half of `x = f(x)` you cannot otherwise
-          // see, because the exit snapshot only ever shows the final value.
-          var nxt = -1;
-          for (var i = cur + 1; i < pts.length; i++) {
-            if (pts[i].at === "exit" || pts[i].line > line) { nxt = i; break; }
-          }
-          var changed = nxt >= 0 && compactVal(before.v) !== compactVal(pts[nxt].v);
-          if (!before.v) return;
-          if (changed) {
-            anyBA = true;
-            renderVal(label + (snapshotsOnly ? "  entry snapshot" : "  ↓ before"), before.v, 0, rows);
-            renderVal(label + (snapshotsOnly ? "  exit snapshot" : "  ↑ after"), pts[nxt].v, 0, rows);
-          } else {
-            renderVal(label, before.v, 0, rows);
-          }
-          renderTimeline(label, pts, cur, rows);
-          shown++;
+        // #output: what this line assigns (or returns), valued after it runs.
+        // #input: what it reads, valued as it starts. Every row opens on click.
+        var depth0 = 0;
+        for (var li = 0; li < line - n.start; li++) depth0 = scanLine(n._lines[li] || "", depth0).depth;
+        var parts = splitAssign(text, depth0), outs = [], ins = [], seenOut = {}, seenIn = {};
+        // Lines of this card that assign each name. A snapshot taken on the other side of
+        // one of them is not this line's value, so such a row says when it was taken.
+        var writesAt = {}, scanDepth = 0;
+        n._lines.forEach(function (txt, k) {
+          if (n.start + k > n.def) idsOnLine(splitAssign(txt || "", scanDepth).writes).forEach(function (w) {
+            var key = w.base + (w.path.length ? "." + w.path[0] : "");   // `self.x = …` changes self.x, not every read of self
+            (writesAt[key] = writesAt[key] || []).push(n.start + k);
+          });
+          scanDepth = scanLine(txt || "", scanDepth).depth;
         });
-        if (rows.length) {
-          var anyTl = idsOnLine(text).some(function (id) { return valTimeline(sample, id.base).length > 1; });
-          out.push('<div class="sec">on line ' + line +
-            (snapshotsOnly ? " · sampled entry/exit values; line timeline not captured" :
-             anyBA ? " · value before and after this line" :
-             anyTl ? " · value as this line runs, and how it changed" : " · value at exit") + "</div>");
-          out = out.concat(rows);
+        var writtenIn = function (base, lo, hi) {        // assigned on a line in [lo, hi]
+          return (writesAt[base] || []).some(function (l) { return l >= lo && l <= hi; });
+        };
+        var keyIn = function (base, path, lo, hi) {         // the name itself, or the attribute shown, assigned in [lo, hi]
+          return writtenIn(base, lo, hi) || (path.length > 0 && writtenIn(base + "." + path[0], lo, hi));
+        };
+        var nextStmt = n.end + 1, sd = scanLine(text, depth0).depth;
+        for (var ni = line + 1 - n.start; ni < n._lines.length; ni++) {
+          var nt = n._lines[ni] || "";
+          if (sd === 0 && nt.trim() && !/^\s*#/.test(nt)) { nextStmt = n.start + ni; break; }
+          sd = scanLine(nt, sd).depth;
         }
-        if (isRet && sample.ret) { out.push('<div class="sec">returned</div>'); var r2 = []; renderVal("→", sample.ret, 0, r2); out = out.concat(r2); shown++; }
+        var when = function (pt) {
+          return pt.at === "entry" ? "at call entry" : pt.at === "exit" ? "at function exit" : "during line " + pt.line;
+        };
+        var pointNote = function (pt) {
+          return vrow(1, "sampled", ': <span class="vd">' + (pt.at === "entry" ? "argument at call entry" :
+            pt.at === "exit" ? "at function exit" + (snapshotsOnly ? " (values between lines were not captured)" : "") :
+            "during line " + pt.line + " (at a call it made)") + "</span>");
+        };
+        var strip = function (label, pts, at, out) {   // change strip, marking the point shown
+          var kept = [], cur = -1;
+          pts.forEach(function (pt, i) { if (pt.v) { if (i === at) cur = kept.length; kept.push(pt); } });
+          renderTimeline(label, kept, cur, out);
+        };
+        var addId = function (id, write, rows, seen) {
+          var tl = valTimeline(sample, id.base);
+          // valTimeline drops an exit snapshot that looks like the last step (same
+          // type/shape); keep it here, it is the only value after the last step.
+          if (sample.locals && sample.locals[id.base] !== undefined && (!tl.length || tl[tl.length - 1].at !== "exit"))
+            tl = tl.concat([{ at: "exit", line: null, v: sample.locals[id.base] }]);
+          if (!tl.length) return;
+          var before = -1, after = -1;
+          tl.forEach(function (pt, i) { if (pt.at === "entry" || (pt.at === "line" && pt.line <= line)) before = i; });
+          for (var i = before + 1; i < tl.length; i++) {
+            if (tl[i].at === "exit" || tl[i].line > line) { after = i; break; }
+          }
+          var pick = write ? after : before;
+          // a step taken during an earlier line that assigns the name holds its value from before that assignment
+          if (!write && pick >= 0 && tl[pick].at === "line" && tl[pick].line < line && keyIn(id.base, id.path, tl[pick].line, line - 1)) pick = after;
+          if (pick < 0) {
+            if (write || tl[0].at !== "exit") return;   // never show a later value as this line's input
+            pick = 0;
+          }
+          var point = tl[pick];
+          // resolve `self.x` on the point actually shown, so writes keep their attribute
+          var usePath = id.path.slice(0, digPrefix(point.v, id.path).depth);
+          var upto = point.at === "exit" ? n.end : point.at === "entry" ? n.def : point.line - 1;
+          var stale = write ? keyIn(id.base, usePath, line + 1, upto)
+                            : point.at === "entry" ? keyIn(id.base, usePath, n.def + 1, line - 1)
+                            : upto >= line ? keyIn(id.base, usePath, line, upto) : false;
+          var label = id.base + (usePath.length ? "." + usePath.join(".") : "");
+          if (seen[label]) return;                      // `x.foo` and `x.bar()` both -> `x`
+          seen[label] = 1;
+          var pts = tl.map(function (pt) { return { at: pt.at, line: pt.line, v: usePath.length ? dig(pt.v, usePath) : pt.v }; });
+          if (!pts[pick].v) return;
+          var extra = [pointNote(point)];
+          var changed = !write && after >= 0 && pick !== after && pts[after].v && !seenOut[label] &&
+                        JSON.stringify(pts[after].v) !== JSON.stringify(pts[pick].v);
+          if (changed && tl[after].at === "exit") valRow("at function exit", pts[after].v, 1, extra);
+          strip(label, pts, pick, extra);
+          valRow(label + (stale ? " (" + when(point) + ")" : ""), pts[pick].v, 0, rows, extra);
+          shown++;
+          // changed in place by this very line (`grow(items)`): the change is recorded at the next statement
+          if (changed && tl[after].at === "line" && tl[after].line <= nextStmt && !keyIn(id.base, usePath, line + 1, tl[after].line - 1)) {
+            var ex2 = [pointNote(tl[after])];
+            strip(label, pts, after, ex2);
+            valRow(label + " (after)", pts[after].v, 0, outs, ex2);
+          }
+        };
+        if (parts.ret && sample.ret) { valRow("→ returned", sample.ret, 0, outs); shown++; }
+        idsOnLine(parts.writes).forEach(function (id) { addId(id, true, outs, seenOut); });
+        // keyword-argument names (`f(cond=obs_cond)`, or `cond=obs_cond,` on a continuation line) are not values read here
+        idsOnLine(parts.reads.replace(parts.cont ? /(^\s*|[(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g : /([(,]\s*)[A-Za-z_]\w*\s*=(?!=)/g, "$1"))
+          .forEach(function (id) { addId(id, false, ins, seenIn); });
+        if (outs.length) out = out.concat('<div class="sec io">#output</div>', outs);
+        if (ins.length) out = out.concat('<div class="sec io">#input</div>', ins);
       }
       if (!shown || all || isDef) {
         var a = [], l = [], r = [];
-        if (n.boundary && sample.receiver) renderVal("receiver", sample.receiver, 0, a);
+        if (n.boundary && sample.receiver) valRow("receiver", sample.receiver, 0, a);
         Object.keys(sample.args || {}).forEach(function (k) {
-          renderVal(k, sample.args[k], 0, a);
-          renderTimeline(k, valTimeline(sample, k), 0, a);
+          var ex = [];
+          renderTimeline(k, valTimeline(sample, k), 0, ex);
+          valRow(k, sample.args[k], 0, a, ex);
         });
         Object.keys(sample.locals || {}).forEach(function (k) {
           if (sample.args && k in sample.args) return;
-          renderVal(k, sample.locals[k], 0, l);
-          var tl = valTimeline(sample, k);
-          renderTimeline(k, tl, tl.length - 1, l);
+          var tl = valTimeline(sample, k), ex = [];
+          renderTimeline(k, tl, tl.length - 1, ex);
+          valRow(k, sample.locals[k], 0, l, ex);
         });
-        if (sample.ret) renderVal("→", sample.ret, 0, r);
-        if (a.length) out = out.concat('<div class="sec">arguments at entry</div>', a);
-        if (l.length) out = out.concat('<div class="sec">locals at exit</div>', l);
-        if (r.length) out = out.concat('<div class="sec">returned</div>', r);
+        if (sample.ret) valRow("→", sample.ret, 0, r);
+        if (r.length) out = out.concat('<div class="sec io">#output<span>returned</span></div>', r);
+        if (a.length) out = out.concat('<div class="sec io">#input<span>arguments at call entry</span></div>', a);
+        if (l.length) out = out.concat('<div class="sec io">#locals<span>at function exit</span></div>', l);
         if (!a.length && !l.length && !r.length) out.push('<div class="empty">Nothing bound in this call.</div>');
       }
       html = html.concat(out);
       if (sample.yielded) {
-        var yielded = [];renderVal("→",sample.yielded,0,yielded);
+        var yielded = [];valRow("→",sample.yielded,0,yielded);
         html = html.concat('<div class="sec">yielded at suspension</div>',yielded);
       }
       if (n.boundary) {
@@ -2249,7 +2485,7 @@
           (sample.ret_unavailable ? '<br>Return: ' + esc(sample.ret_unavailable) : '') +
           (sample.exception_unavailable ? '<br>Exception: ' + esc(sample.exception_unavailable) : '') + '</div>');
       }
-      html.push('<div class="foot">Arrays show shape, dtype, first values and any recorded statistics with their scope. ' +
+      html.push('<div class="foot">One line per value; click a row for its statistics, fields, where it was sampled and any recorded changes. ' +
         (snapshotsOnly ? 'Only entry/exit snapshots were captured; values between lines are unknown. ' :
          'An <b>entry → L… → exit</b> strip shows recorded value changes. ') +
         (D.capture && D.capture.context_samples ?
@@ -2264,6 +2500,8 @@
     vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
     vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
     vals.onclick = function (ev) {
+      var sib = ev.target.closest(".sibvals");
+      if (sib) { var to = byId[+sib.dataset.id]; hideVals(); pushHist(n, line || n.def); flyTo(to, Math.max(z, 0.8)); return; }
       var b = ev.target.closest("button"); if (!b) return;
       var op = b.dataset.v;
       if (op === "close") hideVals();

@@ -85,8 +85,10 @@ files above + AST-extracted source). One object:
 | `geom` | `{LH, HDR, world_w, world_h, ncols}` — layout constants + the canvas's total extent |
 | `totals` | `{functions, edges, calls, lines, executed, columns, important}` |
 | `main` | node id of the entry point (column 0) |
-| `nodes[]` | one per function reached from the entry: `{id, file, name, start, def, end, src, nlines, ex[], mi[], partial[], calls, seq, w, h, x, y, col, important, via}` — `ex`/`mi`/`partial` are line numbers (coverage overlay clipped to this function's range); `x`/`y`/`col` are the laid-out canvas position |
+| `nodes[]` | one per function reached from the entry: `{id, file, name, start, def, end, src, nlines, ex[], mi[], partial[], calls, seq, w, h, x, y, col, important, via, innovation}` — `ex`/`mi`/`partial` are line numbers (coverage overlay clipped to this function's range); `x`/`y`/`col` are the laid-out canvas position |
 | `workflow[]` | optional jump list for the header Stage picker. Built from `# ---` headings in `important.txt`: `{label, name}` per section, pointing at the earliest card that matches a pattern in that section. Empty / omitted hides the picker. A published page may also hand-author this as `[label, name]` pairs. |
+| `innovation` | optional; present when an innovation file was applied (`--innovation-file FILE`, or `codetrace_innovation.json` in `--root`): `{label, definition, review, functions, cards, unmatched[]}`. Each marked node carries `innovation: {role, summary, provenance, ranges[{start, end, what, text}]}`; see [innovation.schema.md](innovation.schema.md) |
+| `important_label` | optional legend text for the ★ marks, copied from `important_label` in the applied innovation file (e.g. "★ curated stage (not innovation)"); pages with frames otherwise label ★ "★ curated critical path" |
 | `edges[]` | `{from, line, to, n, seq, via, synthetic}` — `from`/`to` are node ids; `synthetic` marks a fallback edge added so every reached node has *some* path back to the entry |
 
 Back/sideways edges (`to.col <= from.col`) are **grouped by target at render

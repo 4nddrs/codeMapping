@@ -119,6 +119,10 @@ phases 2–6 with that run before delivering.
      don't maintain two lists.
    - During a phase-2 capture, omit `--important-file` if phase 3 is not done
      yet; add it with `--rebuild` (step 6) before the final phase-7 delivery.
+   - `--innovation-file docs/code_mapping/innovation.json` is opt-in. Add it to this
+     command or to the step-6 rebuild only when phase 3 wrote that file
+     ([schema](../schemas/innovation.schema.md)); those cards get a green frame.
+     During a phase-2 capture, leave it out along with `--important-file`.
 
 5. **Check the outcome** against the brief's SUCCESS criteria (exit code,
    printed metric, etc. — codetrace prints `exit <code>` and draws the

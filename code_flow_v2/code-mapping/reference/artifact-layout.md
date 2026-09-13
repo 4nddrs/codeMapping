@@ -7,6 +7,7 @@ docs/code_mapping/
   BRIEF.md
   GAPS.md
   important.txt
+  innovation.json             # optional: reviewed lines implementing the studied contribution (green frames)
   recorded_live.json
   recorded_values.json          # optional
   function_catalog.md           # or fold into MAPPING.md

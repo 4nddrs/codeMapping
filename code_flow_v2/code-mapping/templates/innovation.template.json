@@ -1,0 +1,24 @@
+{
+  "label": "<Project> innovation",
+  "definition": "Green frame = code that implements <the contribution, in one sentence>. Solid frame: core lines; dashed frame: supporting lines. Green line numbers mark the reviewed ranges.",
+  "important_label": "★ curated stage (not innovation)",
+  "review": {
+    "date": "YYYY-MM-DD",
+    "method": "<independent readers, upstream diffs, refutation pass>",
+    "excluded": [
+      "<file.py:Class.method>: <why it is generic or inherited>"
+    ]
+  },
+  "functions": [
+    {
+      "file": "<path/relative/to/root.py>",
+      "function": "<Class.method>",
+      "role": "core",
+      "summary": "<what this function contributes>",
+      "provenance": "<upstream code it differs from, and how>",
+      "ranges": [
+        {"start": 1, "end": 1, "what": "<what these lines do>", "text": "<stripped source of line start>"}
+      ]
+    }
+  ]
+}

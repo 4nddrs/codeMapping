@@ -110,6 +110,7 @@ python codetrace/codetrace.py -- yourcmd ...
 | `--keep-imports` | keep functions that only ran while importing modules (default: drop them) |
 | `--max-gap PX` | how far a callee may drop to sit level with its call site (default 300; raise for straighter arrows and a taller canvas) |
 | `--important PATTERN` / `--important-file FILE` | mark core-contribution functions (see below) |
+| `--innovation-file FILE` | frame the reviewed lines that implement the studied contribution in green (see below) |
 | `--no-values` | don't capture argument/local/return values (smaller page, faster) |
 | `--rebuild` | redraw from the trace already in `--out` instead of running the command |
 | `--no-mosaic` | skip the second page |
@@ -176,12 +177,18 @@ own scroll so it can never push past the canvas on a short window.
 
 ## Values: right-click a line
 
-Right-click any line to see what the variables on it held — shape and dtype for arrays and
-tensors, nested keys for dicts, fields for objects, the first values, and the return value on
-`return` lines. Right-click the header for everything the function saw: arguments at entry,
-locals at exit, what it returned. Use ‹ › to step through the sampled calls.
+Right-click any line to see what the variables on it held, one line per value:
+`name = (shape) (dtype) device [first values…]` for arrays and tensors, the type for objects
+and dicts, the value itself for scalars. The rows are grouped as **#output**, what the line
+assigns or returns, valued after it runs, and **#input**, what it reads, valued as the line
+starts (keyword-argument names are not listed). Click a row, or press Enter or Space on it,
+to open its statistics, dict keys or object fields, where it was sampled, and any recorded
+change strip. Right-click the header (or press **show all**) for everything the function saw:
+**#output** (returned), **#input** (arguments at call entry) and **#locals** (at function
+exit). Use ‹ › to step through the sampled calls. A card with no values links to the call
+sites of the same function that have them.
 
-These are real values from **the run you traced** (the first two calls of each function), not
+These are real values from **the run you traced** (the first two calls at each call site, since each call site has its own card), not
 re-executed — and captured at function *exit*, so a variable shows its final value. Pass
 `--no-values` to skip this and get a much smaller page.
 
@@ -221,6 +228,59 @@ your browser. After editing the file, `--rebuild` redraws without re-running the
 ```bash
 python codetrace/codetrace.py --rebuild --out codetrace_out --important-file mine.txt
 ```
+
+## Paper-innovation frames (green)
+
+When the brief studies a specific contribution, such as a paper's method or a new
+mechanism, list the exact lines that implement it in an innovation file. Pass it
+with `--innovation-file` (relative paths resolve from the current directory), or
+save it as `codetrace_innovation.json` in `--root`:
+
+```json
+{
+  "label": "Policy innovation",
+  "functions": [
+    {"file": "src/policy.py", "function": "Policy.denoise", "role": "core",
+     "summary": "the new denoising step",
+     "ranges": [{"start": 120, "end": 124, "what": "applies the new noise schedule",
+                 "text": "noise = sched(t)"}]}
+  ]
+}
+```
+
+- `role` is `core` (solid frame) or `supporting` (dashed frame).
+- `start` and `end` are 1-based source lines inside that function.
+- `text` is optional; if given, it must equal the stripped source of line `start`.
+
+The full format is in the pack at `code-mapping/schemas/innovation.schema.md`.
+
+On the page:
+
+- Those cards keep their normal background and coverage colours and get a thick
+  **green frame**, plus a **◆ innovation** tag in the header; hover the tag for
+  the summary.
+- Each reviewed range gets a green gutter bar and green line numbers; hover a
+  line for what it does.
+- Zoomed out, lines in those ranges that ran on that card are drawn green, so the
+  framed cards stand out.
+- **◆ N** in the header (or <kbd>g</kbd>) dims the other cards; arrows are not
+  dimmed.
+- The ★ legend reads "★ curated critical path", or the file's `important_label`.
+  ★ still marks the curated reading path; green marks what is new.
+
+The file is checked before the traced command runs. The build stops with a
+one-line error for:
+
+- a missing file or bad JSON
+- a missing or unknown `role`
+- an empty `ranges` list
+- a range without `what`, or with `start` after `end`
+- a function listed twice
+
+After the run, a range outside its function or a `text` that no longer matches
+the source stops the page build with exit code 2. Fix the file and run again
+with `--rebuild`, since the trace is saved. A listed function that this run never
+reached is printed and recorded in `payload.innovation.unmatched`.
 
 ## Reading the call tree
 

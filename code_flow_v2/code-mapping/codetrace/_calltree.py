@@ -145,6 +145,86 @@ def _workflow_from_important(patterns, nodes):
     return stages
 
 
+def validate_innovation(spec):
+    """Check an innovation.json spec on its own, before any card exists.
+
+    Raises ValueError naming the entry: the spec is not an object with a
+    `functions` list, an entry lacks file/function, a function is listed twice,
+    `role` is not core/supporting, `ranges` is empty, or a range lacks integer
+    1-based start <= end or a `what`. Returns the spec unchanged.
+    """
+    if not isinstance(spec, dict) or not isinstance(spec.get("functions"), list):
+        raise ValueError("innovation spec must be a JSON object with a 'functions' list")
+    seen = set()
+    for i, entry in enumerate(spec["functions"]):
+        if not isinstance(entry, dict) or not all(isinstance(entry.get(k), str) and entry[k] for k in ("file", "function")):
+            raise ValueError(f"innovation functions[{i}]: needs 'file' and 'function' as non-empty strings")
+        key = (entry["file"], entry["function"])
+        where = f"innovation {key[0]}:{key[1]}"
+        if key in seen:
+            raise ValueError(f"{where}: listed more than once; put all its ranges in one entry")
+        seen.add(key)
+        if entry.get("role") not in ("core", "supporting"):
+            raise ValueError(f"{where}: role must be 'core' or 'supporting', not {entry.get('role')!r}")
+        if not isinstance(entry.get("ranges"), list) or not entry["ranges"]:
+            raise ValueError(f"{where}: ranges must list at least one {{start, end, what}}")
+        for span in entry["ranges"]:
+            ints = isinstance(span, dict) and all(
+                isinstance(span.get(k), int) and not isinstance(span.get(k), bool) for k in ("start", "end"))
+            if not ints or not 1 <= span["start"] <= span["end"]:
+                raise ValueError(f"{where}: each range needs integer 1-based start <= end, got {span!r}")
+            if not isinstance(span.get("what"), str) or not span["what"].strip():
+                raise ValueError(f"{where}: lines {span['start']}-{span['end']} need a 'what'")
+    return spec
+
+
+def apply_innovation(payload, spec):
+    """Frame the cards that implement the studied contribution (innovation.json).
+
+    See schemas/innovation.schema.md. After validate_innovation(), each card of a
+    listed function gets `innovation` with the ranges that lie inside it,
+    which the viewer draws as a green frame (dashed for role "supporting") with
+    green gutter marks on the ranges. A listed function with no card is reported
+    in payload["innovation"]["unmatched"]. Ranges that fit none of the function's
+    cards, or a `text` that no longer matches the source, raise ValueError,
+    because stale line numbers would mark the wrong code. Runs after build(), so
+    layout, coverage and edges are untouched.
+    """
+    validate_innovation(spec)
+    nodes, marked, unmatched = payload["nodes"], set(), []
+    for entry in spec["functions"]:
+        key = (entry["file"], entry["function"])
+        where = f"innovation {key[0]}:{key[1]}"
+        cards = [n for n in nodes if (n["file"], n["name"]) == key and not n.get("boundary")]
+        if not cards:
+            unmatched.append(f"{key[0]}:{key[1]}")
+            continue
+        # Same-named cards can show different source (a property getter and its
+        # setter): fit each range on its own and frame each card with the ranges
+        # that fall inside it.
+        framed = {}
+        for span in entry["ranges"]:
+            fit = [n for n in cards if n["start"] <= span["start"] and span["end"] <= n["end"]]
+            if not fit:
+                raise ValueError(f"{where}: lines {span['start']}-{span['end']} are outside "
+                                 f"{sorted({(n['start'], n['end']) for n in cards})} (stale line numbers?)")
+            actual = fit[0]["src"].split("\n")[span["start"] - fit[0]["start"]].strip()
+            if "text" in span and actual != str(span["text"]).strip():
+                raise ValueError(f"{where}: line {span['start']} is {actual!r}, expected {span['text']!r}")
+            for n in fit:
+                framed.setdefault(id(n), (n, []))[1].append(span)
+        for n, spans in framed.values():
+            n["innovation"] = {"role": entry["role"], "ranges": spans,
+                               **{k: entry[k] for k in ("summary", "provenance") if k in entry}}
+        marked.add(key)
+    payload["innovation"] = {k: spec[k] for k in ("label", "definition", "review") if k in spec}
+    payload["innovation"].update(functions=len(marked), unmatched=unmatched,
+                                 cards=sum(1 for n in nodes if n.get("innovation")))
+    if spec.get("important_label"):
+        payload["important_label"] = spec["important_label"]
+    return payload
+
+
 def build(*, root: Path, cg, cov, command, outcome, title, brand,
           entry=None, drop_imports=True, max_gap=300, important=()):
     main_file = cg.get("main_file") or ""   # the script/module run as __main__

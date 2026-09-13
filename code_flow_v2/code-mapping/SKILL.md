@@ -43,7 +43,7 @@ Follow [OBJECTIVE.md](../OBJECTIVE.md). Deliver **data + documentation + a viewa
 |---|---|---|---|
 | 1 | Scope | [phases/01-scope.md](phases/01-scope.md) | `BRIEF.md` |
 | 2 | Capture | [phases/02-capture.md](phases/02-capture.md) | run pointer, coverage/call-tree, raw traces |
-| 3 | Critical path | [phases/03-critical-path.md](phases/03-critical-path.md) | `important.txt` (or equivalent) |
+| 3 | Critical path | [phases/03-critical-path.md](phases/03-critical-path.md) | `important.txt` (or equivalent); optional `innovation.json` |
 | 4 | Live I/O | [phases/04-live-io.md](phases/04-live-io.md) | `recorded_live.json`, optional `recorded_values.json` |
 | 5 | Honest gaps | [phases/05-honest-gaps.md](phases/05-honest-gaps.md) | `GAPS.md` |
 | 6 | Documentation | [phases/06-documentation.md](phases/06-documentation.md) | mapping Markdown/PDF + figures |
@@ -60,6 +60,7 @@ docs/code_mapping/
   BRIEF.md
   GAPS.md
   important.txt
+  innovation.json           # optional: reviewed lines implementing the studied contribution
   recorded_live.json
   recorded_values.json      # optional supplemental capture
   function_catalog.md       # or per-section cards
@@ -73,6 +74,7 @@ docs/code_mapping/
 
 - Brief: [schemas/brief.schema.md](schemas/brief.schema.md) · [templates/brief.template.md](templates/brief.template.md)
 - Important list: [schemas/important.schema.md](schemas/important.schema.md) · [templates/important.template.txt](templates/important.template.txt)
+- Innovation lines (optional): [schemas/innovation.schema.md](schemas/innovation.schema.md) · [templates/innovation.template.json](templates/innovation.template.json)
 - Recorded live: [schemas/recorded-live.schema.md](schemas/recorded-live.schema.md) · [templates/recorded-live.template.json](templates/recorded-live.template.json)
 - Recorded values: [schemas/recorded-values.schema.md](schemas/recorded-values.schema.md) · [templates/recorded-values.template.json](templates/recorded-values.template.json)
 - Function cards: [schemas/function-catalog.schema.md](schemas/function-catalog.schema.md) · [templates/function-card.template.md](templates/function-card.template.md)

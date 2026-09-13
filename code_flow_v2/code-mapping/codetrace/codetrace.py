@@ -73,7 +73,7 @@ def autodetect_roots(root: Path) -> list[str]:
 # --------------------------------------------------------------------------
 import dataclasses
 
-MAX_SAMPLES = 2        # calls of each function whose values we keep (first N)
+MAX_SAMPLES = 2        # calls whose values we keep for each call-site card (first N)
 NODE_BUDGET = 900      # summary nodes per sample, so a giant dict can't blow up the page
 MAX_STEPS = 40         # in-function snapshots per sample (see CallTracer._profile)
 MAX_INSTANCES = 8      # separate cards per function, one per distinct call site.
@@ -304,6 +304,7 @@ class CallTracer:
         self.inst_meta: list = []              # inst id -> record
         self.frame_inst: dict[int, int] = {}   # live frame id -> inst id
         self.tkey_insts: dict[tuple, int] = {} # tkey -> instances created so far
+        self.inst_samples: dict[int, int] = {}  # inst id -> sampled calls kept for that card
         self.seq = count()
         self._orig_thread_start = None
         self._normalized_files = {}
@@ -508,12 +509,28 @@ class CallTracer:
         self.frame_inst[id(frame)] = inst
         if id(frame) in self.pending:
             self.pending[id(frame)]["inst"] = inst
+            # Values are kept per call-site card: each card keeps its own first
+            # MAX_SAMPLES calls, so a later call site (training after validation,
+            # a rollout loop) is not left without values.
+            if self._keep_instance_sample(tkey, inst, frame):
+                self.inst_samples[inst] = self.inst_samples.get(inst, 0) + 1
+            else:
+                del self.pending[id(frame)]
 
     def _want_sample(self, tkey, frame):
-        """Extension point for bounded context-aware adapters."""
+        """Extension point for bounded context-aware adapters.
+
+        Runs before the call site is known, so it only bounds the whole function
+        (MAX_SAMPLES for each card it can have); _keep_instance_sample then keeps
+        the first MAX_SAMPLES calls of each call-site card.
+        """
         return len(self.samples.get(tkey, ())) + sum(
             1 for q in self.pending.values() if q.get("tkey") == tkey
-        ) < MAX_SAMPLES
+        ) < MAX_SAMPLES * (MAX_INSTANCES + 1)
+
+    def _keep_instance_sample(self, tkey, inst, frame):
+        """Keep a sampled call while its call-site card has fewer than MAX_SAMPLES."""
+        return self.inst_samples.get(inst, 0) < MAX_SAMPLES
 
     def _line_trace(self, frame, event, arg):
         """Compose line evidence with the existing coverage tracer.
@@ -766,6 +783,10 @@ def main() -> int:
     ap.add_argument("--important-file", default=None, metavar="FILE",
                     help="file with one --important pattern per line (# comments ok). "
                          "Default: codetrace_important.txt in --root if it exists")
+    ap.add_argument("--innovation-file", default=None, metavar="FILE",
+                    help="innovation.json with reviewed line ranges that implement the studied "
+                         "contribution; their cards get a green frame (relative paths resolve from "
+                         "the current directory). Default: codetrace_innovation.json in --root if it exists")
     ap.add_argument("--no-values", action="store_true",
                     help="do not record argument/local/return values (smaller page, less overhead)")
     ap.add_argument("--no-mosaic", action="store_true", help="skip the file mosaic page")
@@ -784,6 +805,21 @@ def main() -> int:
     root = Path(args.root).resolve()
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    # Load and check the innovation file before anything runs, so a typo or bad
+    # JSON fails in seconds instead of after the traced command has finished.
+    args.innovation_path = Path(args.innovation_file).resolve() if args.innovation_file else root / "codetrace_innovation.json"
+    args.innovation_spec = None
+    if args.innovation_file and not args.innovation_path.exists():
+        print(f"codetrace: --innovation-file {args.innovation_path} not found", file=sys.stderr)
+        return 2
+    if args.innovation_path.exists():
+        sys.path.insert(0, str(HERE))
+        import _calltree
+        try:
+            args.innovation_spec = _calltree.validate_innovation(json.loads(args.innovation_path.read_text()))
+        except (ValueError, OSError) as exc:  # bad JSON is a ValueError; a directory is an OSError
+            print(f"codetrace: invalid {args.innovation_path}: {exc}", file=sys.stderr)
+            return 2
     roots = args.include or autodetect_roots(root)
     if not roots:
         ap.error(f"no Python found under {root}; pass --include")
@@ -884,6 +920,17 @@ def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs) 
     )
     if patterns:
         print(f"codetrace: {payload['totals']['important']} functions marked important")
+    if getattr(args, "innovation_spec", None) is not None:
+        try:
+            _calltree.apply_innovation(payload, args.innovation_spec)
+        except ValueError as exc:
+            print(f"codetrace: invalid {args.innovation_path}: {exc}\n"
+                  "codetrace: fix the file and run again with --rebuild (the trace is saved)", file=sys.stderr)
+            return 2
+        inn = payload["innovation"]
+        print(f"codetrace: {inn['cards']} cards ({inn['functions']} functions) framed as innovation from {args.innovation_path}")
+        if inn["unmatched"]:
+            print(f"codetrace: innovation functions with no card in this run: {', '.join(inn['unmatched'])}")
     (out / "payload_call_tree.json").write_text(json.dumps(payload, separators=(",", ":")))
     _render.render(HERE / "templates" / "call_tree.html", payload, out / "call-tree.html")
 
