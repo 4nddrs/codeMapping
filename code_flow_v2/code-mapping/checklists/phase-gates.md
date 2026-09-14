@@ -57,9 +57,9 @@ skipping delivery. Capture-time checks below apply to the saved run too.
       and shape hints on a card with reassigned names, module rows on a
       submodule call, no JavaScript errors
 - [ ] Page has a real project title
-- [ ] `call-tree.html` copied to `menuCodeMapping/projects/<slug>/`; card and
-      README row added or updated; shelf count and totals updated
-      (`codetrace/menu_card.py` derives values — see `PUBLISHING.md`)
+- [ ] `call-tree.html` copied to `menuCodeMapping/projects/<slug>/`; card pasted
+      into that project's shelf; README row, shelf count, `.preview` kinds,
+      jump-nav count, and totals updated (`codetrace/menu_card.py` — see `PUBLISHING.md`)
 - [ ] Menu on localhost:8766 opened and new card clicked successfully
 - [ ] Authorized menu changes committed and pushed to configured `origin/main`
       after local verification, or precise local-only/blocker status recorded

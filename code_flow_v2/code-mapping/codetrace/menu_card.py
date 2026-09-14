@@ -98,7 +98,7 @@ def main() -> int:
         tag_l = a.tag.lower().strip()
         kind = next((k for k in KINDS if tag_l == k or tag_l.startswith(k + " ") or tag_l.startswith(k + " ·") or tag_l.startswith(k + "·")), "training")
     stem = Path(a.page).stem
-    rid = (a.slug if stem == "index" else stem).replace("_", "-")
+    rid = f"{a.slug}-{stem}".replace("_", "-")
     status_m = re.search(r"exit\s+\d+", outcome)
     status = status_m.group(0) if status_m else (outcome.split("·")[0].strip() if outcome else "exit 0")
     failed = "exit 1" in status or outcome.upper().startswith("FAILED")
@@ -159,7 +159,7 @@ def main() -> int:
         for label in TOTALS:
             if label in cur:
                 print(f'      <div class="tot"><b>{fmt(cur[label] + add[label])}</b><span>{label}</span></div>')
-        print("\n(and add 1 to the shelf's <span class=\"n\">…</span> count)")
+        print("\n(then add 1 to the shelf <span class=\"n\">, recount its .preview kinds, and the jump-nav count)")
 
     if a.copy:
         dst = Path(a.menu) / "projects" / a.slug / a.page

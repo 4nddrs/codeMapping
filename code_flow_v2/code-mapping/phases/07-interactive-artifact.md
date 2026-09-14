@@ -181,8 +181,10 @@ phases 2–6 with that run before delivering.
    through `--title`; keep its project slug and file path stable on updates.
    `mosaic.html` is published only if the user requests the coverage view.
 
-   Add or update the card in `menuCodeMapping/index.html`, its README row,
-   shelf count, and totals. Reuse the server on **localhost:8766** if it serves
+   Add or update the card in `menuCodeMapping/index.html` per
+   [`PUBLISHING.md`](../../PUBLISHING.md) (project shelf, `--kind`, jump nav —
+   not a flat session list), plus its README row, shelf count, preview, and
+   totals. Reuse the server on **localhost:8766** if it serves
    the correct checkout; otherwise start the documented local server. Open
    the menu in a browser, click the new card, and confirm the expected call
    tree loads and its controls work. A running server without this entry is

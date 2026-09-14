@@ -97,7 +97,7 @@ docs/code_mapping/
 the navigator: a zoomable call tree with an arrow from every call site, line
 coverage on every card, ★ marks from `important.txt`, bundled back-edges behind
 a numbered circle (hover to fan out, click to pin, right-click for the call-site
-list), and a collapsible shortcut panel. It also renders a line-coverage mosaic,
+list), and a shortcut panel that starts collapsed. It also renders a line-coverage mosaic,
 which is published only if asked. Copy the folder into a target repo and run it
 per [phases/07-interactive-artifact.md](phases/07-interactive-artifact.md); read
 [`codetrace/README.md`](codetrace/README.md) for the full CLI and how the page

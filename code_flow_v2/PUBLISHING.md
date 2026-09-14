@@ -85,13 +85,14 @@ python code_flow_v2/code-mapping/codetrace/codetrace.py --rebuild \
 # 2. let the helper fill the card from the trace's own numbers and copy the page:
 python code_flow_v2/code-mapping/codetrace/menu_card.py \
     --out docs/code_mapping/line_coverage/out \
-    --slug perturb_flow --name "perturb_flow" --tag "training · libero_spatial" \
+    --slug perturb_flow --page train.html --kind training \
+    --name "Training" --title "perturb_flow · Training" --tag "libero_spatial" \
     --what "Two optimizer steps of the joint action+future-image flow policy, from dataset load to checkpoint." \
-    --fam gap --copy
-# 3. paste the printed <a class="run"> block into index.html (inside the
-#    repository group, or "Execution call trees" for an ungrouped session),
-#    replace the totals strip with the printed
-#    numbers, bump the shelf's <span class="n">, add the printed row to README.md
+    --copy
+# 3. paste the printed <article class="run"> into that project's shelf .runs
+#    (or a .pair inside it). Replace the totals strip, bump the shelf <span class="n">,
+#    recount .preview kinds, update the jump-nav count, add the README row.
+#    There is no "Execution call trees" list — see Rules below.
 # 4. open http://localhost:8766/ and click the new card; verify the page and UI
 # 5. complete the authorized origin/main commit/push, then verify deployment below
 ```
@@ -109,35 +110,39 @@ step 1 instead of a stock `--rebuild`; see
 The helper prints proposed markup; it does not edit `index.html` or `README.md`.
 Match the README's existing table columns when inserting its row.
 
-Worked example — the perturb_flow pair (two traces of one codebase, grouped in a
-`<div class="pair" style="--fam: var(--fam-cap)">` like RLDX-1):
+Worked example — the perturb_flow pair (two traces in one shelf, grouped with
+`<div class="pair">` like RLDX-1):
 
 ```bash
 python codetrace/menu_card.py --out out/train --slug perturb_flow --page train.html \
-    --name Training --title "perturb_flow · Training" --tag "train_flow.py · libero_spatial" \
-    --what "Two epochs × two optimizer steps of the joint flow policy …" --fam cap --copy
+    --kind training --name Training --title "perturb_flow · Training" --tag "libero_spatial" \
+    --what "Two epochs × two optimizer steps of the joint flow policy …" --copy
 python codetrace/menu_card.py --out out/eval --slug perturb_flow --page eval.html \
-    --name Evaluation --title "perturb_flow · Evaluation" --tag "eval_sr.py · one episode" \
-    --what "One full 220-step episode …" --result "0/1 · 4-step ckpt" --fam cap --copy
+    --kind eval --name Evaluation --title "perturb_flow · Evaluation" --tag "one episode" \
+    --what "One full 220-step episode …" --result "0/1 · 4-step ckpt" --copy
 ```
 
 ## What a card contains, and where each number comes from
 
-The card is the `<a class="run">` block (template:
+The card is the `<article class="run">` block (template:
 [`code-mapping/templates/menu-card.template.html`](code-mapping/templates/menu-card.template.html)).
 Every value is read off the trace, never typed from memory:
 
 | Card field | Source |
 |---|---|
 | `href` and the `.local` path | `projects/<slug>/<page>` — relative, never absolute |
-| name / slug tag / description | you: project name, what the run is, 1–2 sentences |
-| `.cmd` | `payload_call_tree.json` → `command` (also `run.json`) |
-| `.verdict` (e.g. `exit 0 · 51.0s`) | `payload_call_tree.json` → `outcome`; add a result if the run has one (`9/12 picked`, `reward 1.00`) |
+| `id` | `{slug}-{page stem}`; must not equal the shelf `id` |
+| `--kind` chip and stripe | `training` · `eval` · `serve` · `encoder` · `simulator` · `data` · `utility` |
+| name / `--what` | you: card title and one or two sentences (compact face + `.what-full`) |
+| `--tag` | extra search text only; not shown as a slug |
+| `.cmd` | `payload_call_tree.json` → `command` (also `run.json`); stays under Command & capture notes |
+| status pill (`exit 0`) / duration / extra `.outcome` | `payload_call_tree.json` → `outcome`; `--result` appends domain extras |
 | entry `main · file.py` | the payload node whose `id == main` |
-| file size | `stat call-tree.html` |
-| Line coverage `36.4% · 3,374/9,261` | `totals.executed` / `totals.lines` |
-| Function cards / Edges / Calls | `totals.functions`, `totals.edges`, `totals.calls`; cards can repeat a function |
-| `--fam` stripe colour | `gap` teal · `cap` violet · `rldx` amber · `data` blue (defined in `index.html` `:root`) |
+| file size | `stat call-tree.html`; the size pill is `.heavy` at 10 MB+ |
+| Line coverage bar | `totals.executed` / `totals.lines` |
+| Functions / Edges / Calls | `totals.functions`, `totals.edges`, `totals.calls`; cards can repeat a function |
+
+`--fam` is accepted but ignored; colour comes from `--kind`. If `--kind` is omitted, the helper infers it from the start of `--tag`, otherwise `training`.
 
 The totals strip at the top of the menu is the sum over all cards: sessions,
 functions traced, calls recorded, lines executed, lines in scope. The helper
@@ -167,10 +172,10 @@ python code-mapping/codetrace/check_values.py http://localhost:8766/projects/<sl
 python code-mapping/codetrace/check_values.py https://<deployed>/projects/<slug>/index.html --expect docs/code_mapping/checks.json
 ```
 
-1. Open the menu; for a repository group, verify its summary expands and
-   collapses with both a click and the keyboard, then expand it and click the
-   session's card. Check the resulting URL, page
-   title, entry point, recorded command, and outcome against the saved run.
+1. Open the menu; expand the project shelf (click and keyboard), then click the
+   session card. Check the URL, page title, entry point, recorded command, and
+   outcome against the saved run. Shortcuts must start collapsed; the page must
+   show the Menu back-link after `--copy`.
 2. Check stage navigation against the curated important list. Search for a
    representative function and navigate to its card. Repeated call sites may
    create multiple cards for one function; card counts are not symbol counts.
@@ -218,19 +223,20 @@ record that limitation rather than claiming the UI was verified.
 
 ## Rules
 
-- One card per traced command. Keep a repository's pages in one project folder.
-  Group large collections in one closed-by-default
-  `<details class="shelf repo-shelf" id="<slug>">`, with the repository title
-  and flow count in `<summary class="shelfhead repo-summary">` and its cards
-  in `.repo-content > .runs`.
-  Reuse the menu's summary styling and keep its expand/collapse control visible.
-  A two-page pair may retain `<div class="pair">` (see the RLDX-1 block).
-  Preserve existing card URLs and the repository hash anchor; verify a hash
-  link still reaches the visible repository summary. Publication scripts must
-  preserve this grouping when replacing cards, counts, or generated sections.
-- Do not edit a page after copying it, except the `<title>`. If the trace
-  presentation changes, rebuild from the saved trace and re-copy. If a new run
-  changes the evidence, re-copy its page and update the card's numbers.
+- One card per traced command. Keep a repository's pages in one project folder
+  and one closed-by-default
+  `<details class="shelf repo-shelf" id="<slug>">`. Copy an existing shelf
+  (GAP for a first session; perturb_flow / RLDX-1 for a pair). Put related
+  traces of one codebase in `<div class="pair">` with a `.pairhead`. There is
+  no flat "Execution call trees" section — do not recreate one.
+- After pasting a card: shelf `<span class="n">`, `.preview` (kind counts, e.g.
+  `2 training · 1 eval`), jump nav, totals, README. Jump **Suites** are projects
+  with 5+ sessions (pill + `.jump-n`); **Projects** are the rest (text link, no
+  count). Move the jump link if the count crosses 5. Preserve hash anchors
+  (`#<shelf-id>`, `#<card-id>`).
+- `--copy` injects the Menu back-link. Leave the Shortcuts panel collapsed in
+  the template; do not expand it. Do not edit a copied page except `<title>`.
+  If the trace presentation changes, rebuild from the saved trace and re-copy.
 - Never put an absolute path or a machine name in a card; the folder must work
   when copied elsewhere.
 - Keep the whole thing English, like the rest of the pack.

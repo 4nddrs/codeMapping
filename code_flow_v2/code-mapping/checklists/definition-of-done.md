@@ -52,7 +52,8 @@ work; do not describe an unavailable page or deployment as finished.
       reused without rerunning the target unless recapture was necessary
 - [ ] `--important-file` used the same curated `important.txt` as phase 3
 - [ ] Exactly one navigator delivered; mosaic only if requested, no second website
-- [ ] Page and card added/updated in the shared menu with accurate totals
+- [ ] Page and card added/updated in that project's menu shelf; kind chip, shelf
+      preview, jump nav, and totals match the live `index.html` layout
 - [ ] Local menu on port 8766 opened in a browser; new card opens the correct page
 - [ ] Served-page stage/search navigation and value-inspector gestures/pagination
       checked against saved samples; shapes, statistics scopes, and contexts
