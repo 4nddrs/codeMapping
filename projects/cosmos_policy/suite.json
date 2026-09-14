@@ -1,8 +1,8 @@
 {
   "totals": {
     "Sessions": 11,
-    "Functions traced": 39138,
-    "Calls recorded": 3048385,
+    "Functions traced": 9473,
+    "Calls recorded": 899621,
     "Lines executed": 50641,
     "Lines in scope": 142712
   },
@@ -18,5 +18,73 @@
     "t5_aloha.html",
     "aloha_preprocess.html",
     "verify_install.html"
-  ]
+  ],
+  "page_totals": {
+    "quickstart.html": {
+      "Functions traced": 919,
+      "Calls recorded": 15016,
+      "Lines executed": 4840,
+      "Lines in scope": 13686
+    },
+    "libero_eval.html": {
+      "Functions traced": 997,
+      "Calls recorded": 186209,
+      "Lines executed": 5278,
+      "Lines in scope": 14831
+    },
+    "robocasa_eval.html": {
+      "Functions traced": 998,
+      "Calls recorded": 215952,
+      "Lines executed": 5391,
+      "Lines in scope": 16055
+    },
+    "aloha_deploy.html": {
+      "Functions traced": 961,
+      "Calls recorded": 23301,
+      "Lines executed": 5094,
+      "Lines in scope": 14425
+    },
+    "aloha_planning.html": {
+      "Functions traced": 1618,
+      "Calls recorded": 218160,
+      "Lines executed": 9155,
+      "Lines in scope": 26734
+    },
+    "train_libero.html": {
+      "Functions traced": 1257,
+      "Calls recorded": 100423,
+      "Lines executed": 6600,
+      "Lines in scope": 17755
+    },
+    "train_aloha.html": {
+      "Functions traced": 1256,
+      "Calls recorded": 69663,
+      "Lines executed": 6716,
+      "Lines in scope": 18130
+    },
+    "train_robocasa.html": {
+      "Functions traced": 1268,
+      "Calls recorded": 56210,
+      "Lines executed": 6652,
+      "Lines in scope": 17987
+    },
+    "t5_aloha.html": {
+      "Functions traced": 68,
+      "Calls recorded": 13564,
+      "Lines executed": 425,
+      "Lines in scope": 1391
+    },
+    "aloha_preprocess.html": {
+      "Functions traced": 93,
+      "Calls recorded": 1007,
+      "Lines executed": 262,
+      "Lines in scope": 801
+    },
+    "verify_install.html": {
+      "Functions traced": 38,
+      "Calls recorded": 116,
+      "Lines executed": 228,
+      "Lines in scope": 917
+    }
+  }
 }
