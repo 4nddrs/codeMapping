@@ -1,27 +1,38 @@
-<!-- One session card for menuCodeMapping/index.html. Paste inside the
-     "Execution call trees" shelf's <div class="runs">. Every {{...}} comes from
-     the trace (see ../../PUBLISHING.md); codetrace/menu_card.py fills it for you.
-     --fam: gap | cap | rldx | data                                            -->
-        <a class="run" style="--fam: var(--fam-{{fam}})"
-           href="projects/{{slug}}/{{page}}">
-          <div>
-            <h3 class="title"><span class="name">{{name}}</span> <span class="slug">{{tag}}</span></h3>
-            <p class="what">
-              {{what — one or two sentences: what the traced run does and what is notable}}
-            </p>
-            <code class="cmd">{{command — the exact traced argv; wrap flags in <span class="flag">…</span> if you like}}</code>
-            <p class="local">projects/{{slug}}/{{page}}<span class="sep">/</span>{{size, e.g. 1.7 MB}}<span class="sep">/</span>entry <code>{{entry function}}</code> &middot; {{entry file}}</p>
-          </div>
-          <div class="metrics">
-            <span class="verdict">{{outcome, e.g. exit 0 &middot; 51.0s &middot; 9/12 picked}}</span>
-            <div class="cov">
-              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>{{pct}}%</b> &middot; {{executed}}/{{lines}}</span></div>
-              <div class="bar"><i style="width: {{pct}}%"></i></div>
+<!-- One session card for menuCodeMapping/index.html. Paste inside a project's
+     <div class="runs"> (or a .pair inside it). Every {{...}} comes from the
+     trace (see ../../PUBLISHING.md); codetrace/menu_card.py fills it for you.
+     data-kind: training | eval | serve | encoder | simulator | data | utility -->
+        <article class="run" id="{{id}}" data-kind="{{kind}}" data-search="{{search}}" style="--fam: var(--kind-{{kind}})">
+          <a class="run-link" href="projects/{{slug}}/{{page}}">
+            <div>
+              <h3 class="title"><span class="name">{{name}}</span> <span class="chip kind">{{kind}}</span></h3>
+              <p class="what">{{what — one or two sentences}}</p>
             </div>
+            <div class="metrics">
+              <div class="pills">
+                <span class="verdict">{{status, e.g. exit 0}}</span>
+                <span class="pill">{{duration}}</span>
+                <span class="pill size">{{size, e.g. 1.7 MB}}</span>
+              </div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>{{pct}}%</b></span></div>
+                <div class="bar"><i style="width: {{pct}}%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">{{what}}</p>
+            <div class="cmd-row">
+              <code class="cmd">{{command}}</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/{{slug}}/{{page}}<span class="sep">/</span>{{size}}<span class="sep">/</span>entry <code>{{entry function}}</code> &middot; {{entry file}}</p>
+            <p class="outcome">{{extra outcome}}</p>
             <dl class="counts">
               <div><dt>Functions</dt><dd>{{functions}}</dd></div>
               <div><dt>Edges</dt><dd>{{edges}}</dd></div>
               <div><dt>Calls</dt><dd>{{calls}}</dd></div>
             </dl>
-          </div>
-        </a>
+          </details>
+        </article>

@@ -2,10 +2,10 @@
 """Hand a finished call-tree.html to the Code Mapping Sessions menu.
 
     python menu_card.py --out <codetrace out dir> --slug perturb_flow --name perturb_flow \
-        --tag "training · libero_spatial" --what "What the traced run does." --fam gap [--copy]
+        --kind training --tag "libero_spatial" --what "What the traced run does." [--copy]
 
 Reads payload_call_tree.json (+ run.json) from --out and prints, filled from the
-trace's own numbers: the <a class="run"> card for index.html, the README table
+trace's own numbers: the session card for index.html, the README table
 row, and the menu's new totals strip.  With --copy it also places the page at
 <menu>/projects/<slug>/<page> with a real <title>.  See ../../PUBLISHING.md.
 """
@@ -21,7 +21,15 @@ from pathlib import Path
 
 MENU = "/mnt/sata1/andres/menuCodeMapping"
 FAMS = ("gap", "cap", "rldx", "data")
+KINDS = ("training", "eval", "serve", "encoder", "simulator", "data", "utility")
 TOTALS = ("Sessions", "Functions traced", "Calls recorded", "Lines executed", "Lines in scope")
+BACK_LINK = (
+    '<a id="menu-back" href="../../index.html"'
+    ' style="position:fixed;z-index:9999;right:16px;bottom:16px;padding:7px 12px;'
+    'border-radius:999px;background:rgba(14,33,52,.88);color:#fff;'
+    'font:600 12px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;'
+    'text-decoration:none;letter-spacing:.04em;box-shadow:0 4px 14px rgba(0,0,0,.25);">Menu</a>\n'
+)
 
 
 def fmt(n: int) -> str:
@@ -49,9 +57,11 @@ def main() -> int:
     ap.add_argument("--name", required=True, help="card title")
     ap.add_argument("--title", default=None,
                     help="the page's <title> (browser tab); default '<name>'. For a pair use e.g. 'perturb_flow · Training'")
-    ap.add_argument("--tag", default="", help="grey text after the name, e.g. 'training · libero_spatial'")
+    ap.add_argument("--tag", default="", help="optional extra search text, e.g. 'libero_spatial'")
     ap.add_argument("--what", required=True, help="one or two sentences: what the traced run does")
-    ap.add_argument("--fam", choices=FAMS, default="gap", help="stripe colour family")
+    ap.add_argument("--kind", choices=KINDS, default=None,
+                    help="run type chip and stripe (default: inferred from --tag, else training)")
+    ap.add_argument("--fam", choices=FAMS, default="gap", help="ignored; kept so existing commands still parse")
     ap.add_argument("--result", default="", help="appended to the verdict, e.g. '9/12 picked'")
     ap.add_argument("--page", default="index.html", help="file name under projects/<slug>/")
     ap.add_argument("--menu", default=default_menu(),
@@ -79,36 +89,63 @@ def main() -> int:
         outcome += " · " + a.result
     size = src.stat().st_size
     size_s = f"{size / 1e6:.1f} MB" if size >= 1e6 else f"{size / 1e3:.0f} KB"
+    heavy = " heavy" if size >= 10e6 else ""
     pct = 100.0 * t["executed"] / max(t["lines"], 1)
     rel = f"projects/{a.slug}/{a.page}"
     E = html.escape
+    kind = a.kind
+    if not kind:
+        tag_l = a.tag.lower().strip()
+        kind = next((k for k in KINDS if tag_l == k or tag_l.startswith(k + " ") or tag_l.startswith(k + " ·") or tag_l.startswith(k + "·")), "training")
+    stem = Path(a.page).stem
+    rid = (a.slug if stem == "index" else stem).replace("_", "-")
+    status_m = re.search(r"exit\s+\d+", outcome)
+    status = status_m.group(0) if status_m else (outcome.split("·")[0].strip() if outcome else "exit 0")
+    failed = "exit 1" in status or outcome.upper().startswith("FAILED")
+    verdict_cls = "verdict bad" if failed else "verdict"
+    dur_m = re.search(r"(\d[\d,]*\.\d+s|\d+s)", outcome)
+    duration = dur_m.group(1) if dur_m else ""
+    extra_parts = [p.strip() for p in re.split(r"\s*[·•]\s*", outcome) if p.strip()]
+    extra = " · ".join(p for p in extra_parts if p not in {status, duration, "SUCCESS", "FAILED"})
+    dur_pill = f'<span class="pill">{E(duration)}</span>' if duration else ""
+    extra_p = f'<p class="outcome">{E(extra)}</p>' if extra else ""
+    search = E(" ".join(filter(None, [a.name, kind, rid, rel, a.what, command, a.tag, outcome])).lower(), quote=True)
 
-    card = f"""        <a class="run" style="--fam: var(--fam-{a.fam})"
-           href="{rel}">
-          <div>
-            <h3 class="title"><span class="name">{E(a.name)}</span> <span class="slug">{E(a.tag)}</span></h3>
-            <p class="what">{E(a.what)}</p>
-            <code class="cmd">{E(command)}</code>
-            <p class="local">{rel}<span class="sep">/</span>{size_s}<span class="sep">/</span>entry <code>{E(entry["name"])}</code> &middot; {E(entry["file"])}</p>
-          </div>
-          <div class="metrics">
-            <span class="verdict">{E(outcome)}</span>
-            <div class="cov">
-              <div class="covtop"><span class="covlabel">Line coverage</span><span><b>{pct:.1f}%</b> &middot; {fmt(t["executed"])}/{fmt(t["lines"])}</span></div>
-              <div class="bar"><i style="width: {pct:.1f}%"></i></div>
+    card = f"""        <article class="run" id="{E(rid)}" data-kind="{kind}" data-search="{search}" style="--fam: var(--kind-{kind})">
+          <a class="run-link" href="{rel}">
+            <div>
+              <h3 class="title"><span class="name">{E(a.name)}</span> <span class="chip kind">{kind}</span></h3>
+              <p class="what">{E(a.what)}</p>
             </div>
+            <div class="metrics">
+              <div class="pills"><span class="{verdict_cls}">{E(status)}</span>{dur_pill}<span class="pill size{heavy}">{size_s}</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>{pct:.1f}%</b></span></div>
+                <div class="bar"><i style="width: {pct:.1f}%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">{E(a.what)}</p>
+            <div class="cmd-row">
+              <code class="cmd">{E(command)}</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">{rel}<span class="sep">/</span>{size_s}<span class="sep">/</span>entry <code>{E(entry["name"])}</code> &middot; {E(entry["file"])}</p>
+            {extra_p}
             <dl class="counts">
               <div><dt>Functions</dt><dd>{fmt(t["functions"])}</dd></div>
               <div><dt>Edges</dt><dd>{fmt(t["edges"])}</dd></div>
               <div><dt>Calls</dt><dd>{fmt(t["calls"])}</dd></div>
             </dl>
-          </div>
-        </a>"""
+          </details>
+        </article>"""
 
     row = (f"| {a.name}{(' · ' + a.tag) if a.tag else ''} | `{command}` | {outcome} | "
            f"{fmt(t['executed'])} / {fmt(t['lines'])} lines | [local]({rel}) |")
 
-    print("=== card — paste into index.html, inside the shelf's <div class=\"runs\">\n")
+    print("=== card — paste into index.html, inside the project's <div class=\"runs\">\n")
     print(card)
     print("\n=== row — append to README.md's Sessions table\n")
     print(row)
@@ -137,6 +174,8 @@ def main() -> int:
         # static <title>; rename it in the payload too (its "title" is the first key)
         page = re.sub(r'(<script id="payload" type="application/json">\{"title":)"(?:[^"\\]|\\.)*"',
                       lambda m: m.group(1) + json.dumps(title), page, count=1)
+        if 'id="menu-back"' not in page:
+            page = re.sub(r"(<body[^>]*>)", r"\1\n" + BACK_LINK, page, count=1, flags=re.I)
         dst.write_text(page, encoding="utf-8")
         shutil.copymode(src, dst)
         print(f"\ncopied → {dst}  ({size_s})")

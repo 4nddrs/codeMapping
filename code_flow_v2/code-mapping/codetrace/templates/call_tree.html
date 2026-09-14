@@ -608,8 +608,8 @@
   <div class="stage" id="stage">
     <svg class="wires" id="wires"></svg>
   </div>
-  <div class="hint" id="hint">
-    <button class="hh" id="hinttoggle" aria-expanded="true" aria-controls="hintbody"
+  <div class="hint closed" id="hint">
+    <button class="hh" id="hinttoggle" aria-expanded="false" aria-controls="hintbody"
             title="show / hide the shortcut list  (?)">
       <span class="hc">▾</span><span class="ht">Shortcuts</span><span class="hn">?</span>
     </button>
@@ -1546,7 +1546,7 @@
     }
     var stored = null;
     try { stored = localStorage.getItem(KEY); } catch (e) {}
-    setOpen(stored !== "1", false);
+    setOpen(stored === "0", false);
     tog.addEventListener("click", function () {
       setOpen(hint.classList.contains("closed"), true);
     });
