@@ -1,10 +1,10 @@
 {
   "totals": {
     "Sessions": 11,
-    "Functions traced": 39139,
-    "Calls recorded": 3048386,
+    "Functions traced": 39138,
+    "Calls recorded": 3048385,
     "Lines executed": 50641,
-    "Lines in scope": 904507
+    "Lines in scope": 142712
   },
   "pages": [
     "quickstart.html",

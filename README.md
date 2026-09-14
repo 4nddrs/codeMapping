@@ -91,8 +91,8 @@ working-pack path and the local, pushed, and deployed checks.
 
 | Path | Kind | Recorded outcome | Navigator |
 | --- | --- | --- | --- |
-| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 132.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
-| PushT Diffusion | training | SUCCESS · exit 0 · 348.3s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
+| PushT VQ-BeT baseline | training | SUCCESS · exit 0 · 136.7s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/index.html) |
+| PushT Diffusion | training | SUCCESS · exit 0 · 445.2s · 2 observed updates · 302 parent simulator steps · reward 0 · final coverage mean 0 | [Flow](projects/patch_policy/pusht_diffusion.html) |
 | Blockpush VQ-BeT | training | SUCCESS · exit 0 · 199.7s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_vq.html) |
 | Blockpush Diffusion | training | SUCCESS · exit 0 · 1597.4s · 2 observed updates · 300 parent simulator steps · reward 0 · entered mean 0 | [Flow](projects/patch_policy/blockpush_diffusion.html) |
 | Cube VQ-BeT | training | SUCCESS · exit 0 · 186.8s · 2 observed updates · 300 parent simulator steps · reward -600 · entered mean 0 | [Flow](projects/patch_policy/cube_vq.html) |
@@ -126,17 +126,17 @@ working-pack path and the local, pushed, and deployed checks.
 
 | Path | Kind | Recorded outcome | Navigator |
 | --- | --- | --- | --- |
-| Quick Start inference | inference | exit 0 · 535.2s · 16×7 actions · value 0.063 · mapping docs pending | [Flow](projects/cosmos_policy/quickstart.html) |
-| LIBERO evaluation | simulation evaluation | exit 0 · 488.9s · 1/1 success · mapping docs pending | [Flow](projects/cosmos_policy/libero_eval.html) |
-| RoboCasa evaluation | simulation evaluation | exit 0 · 476.3s · 1/1 success · 296 steps · mapping docs pending | [Flow](projects/cosmos_policy/robocasa_eval.html) |
-| ALOHA policy server | serving | exit 0 · 295.9s · 50×14 actions · value 0.054 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_deploy.html) |
-| ALOHA model-based planning | serving + planning | exit 0 · 507.1s · seed 195 selected · value 0.065 · mapping docs pending | [Flow](projects/cosmos_policy/aloha_planning.html) |
-| LIBERO training | training | exit 0 · 733.1s · losses 14.81 · 15.47 · 3.35 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_libero.html) |
-| ALOHA training | training | exit 0 · 600.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 | [Flow](projects/cosmos_policy/train_aloha.html) |
-| RoboCasa training | training | exit 0 · 829.1s · losses 2.09 · 2.07 · 15.73 · checkpoint iter 3 · mapping docs pending | [Flow](projects/cosmos_policy/train_robocasa.html) |
-| ALOHA T5 text embeddings | data preparation | exit 0 · 208.1s · 1 command · matches release · mapping docs pending | [Flow](projects/cosmos_policy/t5_aloha.html) |
-| ALOHA data preprocessing | data preparation | exit 0 · 150.8s · 1 train + 1 val episode | [Flow](projects/cosmos_policy/aloha_preprocess.html) |
-| Installation check | utility | exit 1 · 66.6s · 4 packages absent (cosmos-predict2, robocasa, fastapi, uvicorn) | [Flow](projects/cosmos_policy/verify_install.html) |
+| Quick Start inference | inference | exit 0 · 291.9s · 16×7 actions · value 0.063 | [Flow](projects/cosmos_policy/quickstart.html) |
+| LIBERO evaluation | simulation evaluation | exit 0 · 399.4s · 1/1 success | [Flow](projects/cosmos_policy/libero_eval.html) |
+| RoboCasa evaluation | simulation evaluation | exit 0 · 534.8s · 1/1 success · 296 steps | [Flow](projects/cosmos_policy/robocasa_eval.html) |
+| ALOHA policy server | serving | exit 0 · 316.6s · 50×14 actions · value 0.054 | [Flow](projects/cosmos_policy/aloha_deploy.html) |
+| ALOHA model-based planning | serving + planning | exit 0 · 527.7s · seed 195 selected · value 0.065 | [Flow](projects/cosmos_policy/aloha_planning.html) |
+| LIBERO training | training | exit 0 · 671.5s · losses 14.81 · 15.47 · 3.35 · checkpoint iter 3 | [Flow](projects/cosmos_policy/train_libero.html) |
+| ALOHA training | training | exit 0 · 533.5s · losses 16.06 · 14.85 · 15.60 · checkpoint iter 3 | [Flow](projects/cosmos_policy/train_aloha.html) |
+| RoboCasa training | training | exit 0 · 843.8s · losses 2.09 · 2.07 · 15.73 · checkpoint iter 3 | [Flow](projects/cosmos_policy/train_robocasa.html) |
+| ALOHA T5 text embeddings | data preparation | exit 0 · 258.2s · 1 of 6 prompts · cosine 0.9999975 to release | [Flow](projects/cosmos_policy/t5_aloha.html) |
+| ALOHA data preprocessing | data preparation | exit 0 · 274.6s · 1 train + 1 val episode | [Flow](projects/cosmos_policy/aloha_preprocess.html) |
+| Installation check | utility | exit 1 · 69.7s · 4 packages absent (cosmos-predict2, robocasa, fastapi, uvicorn) | [Flow](projects/cosmos_policy/verify_install.html) |
 
 Not traced on this machine:
 
