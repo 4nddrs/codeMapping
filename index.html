@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>66</b><span>Sessions</span></div>
-      <div class="tot"><b>50,396</b><span>Functions traced</span></div>
-      <div class="tot"><b>10,474,882</b><span>Calls recorded</span></div>
-      <div class="tot"><b>143,821</b><span>Lines executed</span></div>
-      <div class="tot"><b>369,582</b><span>Lines in scope</span></div>
+      <div class="tot"><b>67</b><span>Sessions</span></div>
+      <div class="tot"><b>51,457</b><span>Functions traced</span></div>
+      <div class="tot"><b>10,492,944</b><span>Calls recorded</span></div>
+      <div class="tot"><b>145,300</b><span>Lines executed</span></div>
+      <div class="tot"><b>374,710</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -810,6 +810,7 @@
       <div class="jump-group projects">
         <span class="jump-label">Projects</span>
         <div class="jump-items">
+          <a href="#cambrian-s">Cambrian-S</a>
           <a href="#robo2vlm">Robo2VLM</a>
           <a href="#vlm4vla">VLM4VLA</a>
           <a href="#rldx-1">RLDX-1</a>
@@ -2022,6 +2023,45 @@
 </div>
 </details>
 <!-- DREAMZERO_SUITE_END -->
+
+<details class="shelf repo-shelf" id="cambrian-s">
+<summary class="shelfhead repo-summary"><h2>Cambrian-S</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Spatial-supersensing video MLLM: stage-1 vision–language alignment (projector only) through the official TorchXLA SPMD launcher, captured on 2 GPUs.</p>
+<div class="runs">
+        <article class="run" id="cambrian-s-s1-train" data-kind="training" data-search="s1 alignment training training cambrian-s-s1-train projects/cambrian_s/s1_train.html two optimizer steps of cambrian-s stage 1 through the official train_spmd.py on 2-gpu torch_xla spmd: jsonl fixture to tokens and pixels, qwen2.5-7b + frozen siglip2 with the trainable mlp2x_gelu projector, loss, adamw, and the mm_projector.pth export. two approved one-line repository fixes and a cuda-xla capture shim are documented in the mapping. python cambrian/train/train_spmd.py --model_name_or_path qwen/qwen2.5-7b-instruct --version qwen_2 --data_path ../cambrian-s_runs/fixture/s1_alignment_fixture.jsonl --image_folder ../cambrian-s_runs/fixture --vision_tower_aux_list [&quot;google/siglip2-so400m-patch14-384&quot;] --vision_tower_aux_token_len_list [729] --image_position 14 --vision_hidden_size 1152 --connector_only true --unfreeze_mm_vision_tower false --mm_projector_type mlp2x_gelu --mm_projector_lr 1e-3 --tune_mm_mlp_adapter true --mm_vision_select_layer -2 --mm_use_im_start_end false --mm_use_im_patch_token false --mm_use_im_newline_token true --image_aspect_ratio pad --bf16 false --output_dir ../cambrian-s_runs/out/s1_success_traced --num_train_epochs 1 --per_device_train_batch_size 2 --per_device_eval_batch_size 4 --gradient_accumulation_steps 1 --evaluation_strategy no --save_strategy steps --save_steps 500 --save_total_limit 1 --learning_rate 1e-3 --weight_decay 0. --warmup_ratio 0.06 --lr_scheduler_type cosine --logging_steps 1 --tf32 false --model_max_length 2048 --gradient_checkpointing true --dataloader_num_workers 0 --lazy_preprocess true --report_to none --run_name s1_success_traced --fsdp full_shard --fsdp_config fsdp_config.json --max_images_per_sample 1 --anyres_max_subimages 1 --si_token_len 729 --miv_token_len 0 --max_steps 2 cambrian-s stage-1 alignment train_spmd.py qwen2.5-7b siglip2 torch_xla spmd exit 0 · 1394.2s · 2/2 steps · logged loss 5.977 · mm_projector.pth" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/cambrian_s/s1_train.html">
+            <div>
+              <h3 class="title"><span class="name">S1 alignment training</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of Cambrian-S stage 1 through the official train_spmd.py on 2-GPU torch_xla SPMD: jsonl fixture to tokens and pixels, Qwen2.5-7B + frozen SigLIP2 with the trainable mlp2x_gelu projector, loss, AdamW, and the mm_projector.pth export. Two approved one-line repository fixes and a CUDA-XLA capture shim are documented in the mapping.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1394.2s</span><span class="pill size heavy">12.1 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>28.8%</b></span></div>
+                <div class="bar"><i style="width: 28.8%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of Cambrian-S stage 1 through the official train_spmd.py on 2-GPU torch_xla SPMD: jsonl fixture to tokens and pixels, Qwen2.5-7B + frozen SigLIP2 with the trainable mlp2x_gelu projector, loss, AdamW, and the mm_projector.pth export. Two approved one-line repository fixes and a CUDA-XLA capture shim are documented in the mapping.</p>
+            <div class="cmd-row">
+              <code class="cmd">python cambrian/train/train_spmd.py --model_name_or_path Qwen/Qwen2.5-7B-Instruct --version qwen_2 --data_path ../cambrian-s_runs/fixture/s1_alignment_fixture.jsonl --image_folder ../cambrian-s_runs/fixture --vision_tower_aux_list [&quot;google/siglip2-so400m-patch14-384&quot;] --vision_tower_aux_token_len_list [729] --image_position 14 --vision_hidden_size 1152 --connector_only True --unfreeze_mm_vision_tower False --mm_projector_type mlp2x_gelu --mm_projector_lr 1e-3 --tune_mm_mlp_adapter True --mm_vision_select_layer -2 --mm_use_im_start_end False --mm_use_im_patch_token False --mm_use_im_newline_token True --image_aspect_ratio pad --bf16 False --output_dir ../cambrian-s_runs/out/S1_success_traced --num_train_epochs 1 --per_device_train_batch_size 2 --per_device_eval_batch_size 4 --gradient_accumulation_steps 1 --evaluation_strategy no --save_strategy steps --save_steps 500 --save_total_limit 1 --learning_rate 1e-3 --weight_decay 0. --warmup_ratio 0.06 --lr_scheduler_type cosine --logging_steps 1 --tf32 False --model_max_length 2048 --gradient_checkpointing True --dataloader_num_workers 0 --lazy_preprocess True --report_to none --run_name S1_success_traced --fsdp full_shard --fsdp_config fsdp_config.json --max_images_per_sample 1 --anyres_max_subimages 1 --si_token_len 729 --miv_token_len 0 --max_steps 2</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/cambrian_s/s1_train.html<span class="sep">/</span>12.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; cambrian/train/train_spmd.py</p>
+            <p class="outcome">2/2 steps · logged loss 5.977 · mm_projector.pth</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,061</dd></div>
+              <div><dt>Edges</dt><dd>1,068</dd></div>
+              <div><dt>Calls</dt><dd>18,062</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
 
 <details class="shelf repo-shelf" id="robo2vlm">
 <summary class="shelfhead repo-summary"><h2>Robo2VLM</h2><span class="n">2</span><span class="preview">1 training · 1 data</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>

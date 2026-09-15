@@ -56,6 +56,7 @@ code_flow_v2/                   Versioned Code Mapping workflow and portable tra
 | VERA | PushT, MimicGen, DROID, and training traces | Serving and training reports | [PushT](projects/vera/pusht-serve.html), [MimicGen](projects/vera/mimicgen-serve.html), [DROID](projects/vera/droid-serve.html), [IDM](projects/vera/train-idm.html), [Planner](projects/vera/train-planner.html) |
 | VLM4VLA | Coverage and training/I/O traces | Short trial completed | [Coverage](projects/vlm4vla/index.html), [Training/I/O](projects/vlm4vla/io.html) |
 | RoboInter | Training, inference, scoring, annotation-service and dataloader traces | Five runs, all exit 0; the annotation and dataloader runs use synthesised input | [Training](projects/robointer/index.html), [Inference](projects/robointer/eval.html), [Scoring](projects/robointer/score.html), [Annotation](projects/robointer/annotate.html), [Dataloader](projects/robointer/dataloader.html) |
+| Cambrian-S | Stage-1 alignment training: `python cambrian/train/train_spmd.py` with the `cambrians_7b_s1.sh` flags, 2 optimizer steps on 2-GPU torch_xla SPMD over an 8-row fixture; 2 approved repository fixes and a CUDA-XLA capture shim | exit 0 · 2/2 steps · logged loss 5.977 · mm_projector.pth exported | [S1 training](projects/cambrian_s/s1_train.html) |
 
 The full command lines, coverage counts, timings, and outcomes are documented in the menu at [`index.html`](index.html).
 
