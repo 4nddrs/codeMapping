@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>68</b><span>Sessions</span></div>
-      <div class="tot"><b>52,659</b><span>Functions traced</span></div>
-      <div class="tot"><b>10,511,371</b><span>Calls recorded</span></div>
-      <div class="tot"><b>146,920</b><span>Lines executed</span></div>
-      <div class="tot"><b>380,071</b><span>Lines in scope</span></div>
+      <div class="tot"><b>71</b><span>Sessions</span></div>
+      <div class="tot"><b>53,508</b><span>Functions traced</span></div>
+      <div class="tot"><b>10,515,598</b><span>Calls recorded</span></div>
+      <div class="tot"><b>148,195</b><span>Lines executed</span></div>
+      <div class="tot"><b>382,627</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -819,6 +819,7 @@
           <a href="#cap">CAP</a>
           <a href="#umi">UMI</a>
           <a href="#simtoolreal">SimToolReal</a>
+          <a href="#molmoact2">MolmoAct2</a>
         </div>
       </div>
     </nav>
@@ -2774,6 +2775,105 @@
 </div>
 </div>
 </details>
+<details class="shelf repo-shelf" id="molmoact2">
+<summary class="shelfhead repo-summary"><h2>MolmoAct2</h2><span class="n">3</span><span class="preview">2 serve · 1 eval</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">3 traced command flows from allenai/molmoact2 on one shared RTX A6000 (GPU 1). Deployment-path flows only: no Franka/DROID or bimanual YAM hardware exists on this host, so the two inference-server flows use a capture-time driver sending synthetic-but-schema-correct HTTP requests, and the ManiSkill evaluation flow calls a real, separate, unmodified server process. The `experiments/` training/fine-tuning path (a separate Python environment, a large LeRobot dataset, and a possible native-checkpoint-format mismatch) was explicitly scoped out; see each flow's GAPS.md.</p>
+<div class="runs">
+          <div class="pair">
+            <p class="pairhead">Inference servers <em>The two released FastAPI checkpoints, same code shape, different embodiment schema.</em></p>
+        <article class="run" id="molmoact2-droid-server" data-kind="serve" data-search="droid server serve molmoact2-droid-server projects/molmoact2/droid_server.html one real /act request against the unmodified droid inference server: hf snapshot resolve, the two idempotent bf16 source patches, model load, warmup, and a real bfloat16 flow-matching action-chunk prediction. python docs/code_mapping/drivers/trace_droid_server.py --port 8100 --device cuda:1 --dtype bfloat16 --num-requests 2 --out docs/code_mapping/flows/droid_server/run franka_droid exit 0 · 73.8s" style="--fam: var(--kind-serve)">
+          <a class="run-link" href="projects/molmoact2/droid_server.html">
+            <div>
+              <h3 class="title"><span class="name">DROID Server</span> <span class="chip kind">serve</span></h3>
+              <p class="what">One real /act request against the unmodified DROID inference server: HF snapshot resolve, the two idempotent bf16 source patches, model load, warmup, and a real bfloat16 flow-matching action-chunk prediction.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">73.8s</span><span class="pill size">2.6 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>44.4%</b></span></div>
+                <div class="bar"><i style="width: 44.4%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">One real /act request against the unmodified DROID inference server: HF snapshot resolve, the two idempotent bf16 source patches, model load, warmup, and a real bfloat16 flow-matching action-chunk prediction.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/drivers/trace_droid_server.py --port 8100 --device cuda:1 --dtype bfloat16 --num-requests 2 --out docs/code_mapping/flows/droid_server/run</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/molmoact2/droid_server.html<span class="sep">/</span>2.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/trace_droid_server.py</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>200</dd></div>
+              <div><dt>Edges</dt><dd>199</dd></div>
+              <div><dt>Calls</dt><dd>585</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="molmoact2-yam-server" data-kind="serve" data-search="yam server serve molmoact2-yam-server projects/molmoact2/yam_server.html one real /act request against the unmodified bimanualyam inference server: same bf16-patch mechanism as the droid server, 3-camera / 14-d-state wire schema, real (30,14) action chunk. python docs/code_mapping/drivers/trace_yam_server.py --port 8202 --device cuda:1 --dtype bfloat16 --num-requests 2 --out docs/code_mapping/flows/yam_server/run yam_dual_molmoact2 exit 0 · 68.8s" style="--fam: var(--kind-serve)">
+          <a class="run-link" href="projects/molmoact2/yam_server.html">
+            <div>
+              <h3 class="title"><span class="name">YAM Server</span> <span class="chip kind">serve</span></h3>
+              <p class="what">One real /act request against the unmodified BimanualYAM inference server: same bf16-patch mechanism as the DROID server, 3-camera / 14-D-state wire schema, real (30,14) action chunk.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">68.8s</span><span class="pill size">2.6 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.8%</b></span></div>
+                <div class="bar"><i style="width: 46.8%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">One real /act request against the unmodified BimanualYAM inference server: same bf16-patch mechanism as the DROID server, 3-camera / 14-D-state wire schema, real (30,14) action chunk.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/drivers/trace_yam_server.py --port 8202 --device cuda:1 --dtype bfloat16 --num-requests 2 --out docs/code_mapping/flows/yam_server/run</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/molmoact2/yam_server.html<span class="sep">/</span>2.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/trace_yam_server.py</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>194</dd></div>
+              <div><dt>Edges</dt><dd>193</dd></div>
+              <div><dt>Calls</dt><dd>560</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+        <article class="run" id="molmoact2-sim-eval" data-kind="eval" data-search="sim_eval maniskill eval molmoact2-sim-eval projects/molmoact2/sim_eval.html one real, bounded maniskill episode driving the droid policy over real http against a separate, unmodified server: env reset, 40 real /act-backed control steps, and the task&#x27;s own success evaluation. python -m sim_eval.run_eval --policy-type remote-droid --remote-url http://127.0.0.1:8300/act -e droidputeverythinginbox-v1 -n 1 --max-episode-steps 40 --n-action-steps 4 --seed 42 --output-dir docs/code_mapping/flows/sim_eval/run/outputs droidputeverythinginbox exit 0 · 47.8s · 0/1 · 40 steps (bounded)" style="--fam: var(--kind-eval)">
+          <a class="run-link" href="projects/molmoact2/sim_eval.html">
+            <div>
+              <h3 class="title"><span class="name">sim_eval ManiSkill</span> <span class="chip kind">eval</span></h3>
+              <p class="what">One real, bounded ManiSkill episode driving the DROID policy over real HTTP against a separate, unmodified server: env reset, 40 real /act-backed control steps, and the task&#x27;s own success evaluation.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">47.8s</span><span class="pill size heavy">18.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>54.7%</b></span></div>
+                <div class="bar"><i style="width: 54.7%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">One real, bounded ManiSkill episode driving the DROID policy over real HTTP against a separate, unmodified server: env reset, 40 real /act-backed control steps, and the task&#x27;s own success evaluation.</p>
+            <div class="cmd-row">
+              <code class="cmd">python -m sim_eval.run_eval --policy-type remote-droid --remote-url http://127.0.0.1:8300/act -e DroidPutEverythingInBox-v1 -n 1 --max-episode-steps 40 --n-action-steps 4 --seed 42 --output-dir docs/code_mapping/flows/sim_eval/run/outputs</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/molmoact2/sim_eval.html<span class="sep">/</span>18.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; sim_eval/run_eval.py</p>
+            <p class="outcome">0/1 · 40 steps (bounded)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>455</dd></div>
+              <div><dt>Edges</dt><dd>454</dd></div>
+              <div><dt>Calls</dt><dd>3,082</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
   </main>
 
   <footer class="foot">
@@ -2783,7 +2883,7 @@
       on the card; they take longer to open.
     </p>
     <p>
-      Thirteen projects, sixty-six sessions, live beside this menu under <code>projects/</code>.
+      Fifteen projects, seventy-one sessions, live beside this menu under <code>projects/</code>.
       Adding a session means dropping its HTML in a folder and copying a card. Each session page
       links back here.
     </p>
