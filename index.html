@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>71</b><span>Sessions</span></div>
-      <div class="tot"><b>53,508</b><span>Functions traced</span></div>
-      <div class="tot"><b>10,515,598</b><span>Calls recorded</span></div>
-      <div class="tot"><b>148,195</b><span>Lines executed</span></div>
-      <div class="tot"><b>382,627</b><span>Lines in scope</span></div>
+      <div class="tot"><b>72</b><span>Sessions</span></div>
+      <div class="tot"><b>59,801</b><span>Functions traced</span></div>
+      <div class="tot"><b>10,959,070</b><span>Calls recorded</span></div>
+      <div class="tot"><b>158,903</b><span>Lines executed</span></div>
+      <div class="tot"><b>411,214</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -2776,10 +2776,40 @@
 </div>
 </details>
 <details class="shelf repo-shelf" id="molmoact2">
-<summary class="shelfhead repo-summary"><h2>MolmoAct2</h2><span class="n">3</span><span class="preview">2 serve · 1 eval</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<summary class="shelfhead repo-summary"><h2>MolmoAct2</h2><span class="n">4</span><span class="preview">1 training · 1 eval · 2 serve</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
-<p class="repo-note">3 traced command flows from allenai/molmoact2 on one shared RTX A6000 (GPU 1). Deployment-path flows only: no Franka/DROID or bimanual YAM hardware exists on this host, so the two inference-server flows use a capture-time driver sending synthetic-but-schema-correct HTTP requests, and the ManiSkill evaluation flow calls a real, separate, unmodified server process. The `experiments/` training/fine-tuning path (a separate Python environment, a large LeRobot dataset, and a possible native-checkpoint-format mismatch) was explicitly scoped out; see each flow's GAPS.md.</p>
+<p class="repo-note">4 traced command flows from allenai/molmoact2 on one shared RTX A6000 (GPU 1). Training: two real optimizer steps of the experiments/ smoke-test recipe (action-expert fine-tuning from allenai/MolmoAct2 on four LIBERO-Goal episodes, one process instead of torchrun). Deployment: no Franka/DROID or bimanual YAM hardware exists on this host, so the two inference-server flows use a capture-time driver sending synthetic-but-schema-correct HTTP requests, and the ManiSkill evaluation flow calls a real, separate, unmodified server process. Declared deviations and gaps live in each flow&#x27;s BRIEF.md and GAPS.md.</p>
 <div class="runs">
+        <article class="run" id="molmoact2-train-lerobot" data-kind="training" data-search="training (train_lerobot) training molmoact2-train-lerobot projects/molmoact2/train_lerobot.html two real optimizer steps of the readme smoke-test recipe: action-expert fine-tuning from allenai/molmoact2 on libero-goal frames, from hf checkpoint load through the flow-matching loss, backward and the final checkpoint save. python experiments/launch_scripts/train_lerobot.py allenai/molmoact2 libero_goal --max_duration=2 --device_batch_size=1 --global_batch_size=1 --num_workers=0 --pin_memory=false --save_folder=&lt;run dir&gt;/save --packing=false --dynamic_seq_len=true --ft_vlm=false --ft_action_expert=true --ft_embedding=none --log_interval=1 --wandb=null --data.kwargs_mixture.0.datasets.0.dataset_name=lerobot:allenai/molmoact2-libero-dataset@663-666 libero_goal action expert exit 0 · 492.0s · 2/2 steps · flow loss 0.400 → 0.534" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/molmoact2/train_lerobot.html">
+            <div>
+              <h3 class="title"><span class="name">Training (train_lerobot)</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two real optimizer steps of the README smoke-test recipe: action-expert fine-tuning from allenai/MolmoAct2 on LIBERO-Goal frames, from HF checkpoint load through the flow-matching loss, backward and the final checkpoint save.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">492.0s</span><span class="pill size heavy">45.1 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>37.5%</b></span></div>
+                <div class="bar"><i style="width: 37.5%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two real optimizer steps of the README smoke-test recipe: action-expert fine-tuning from allenai/MolmoAct2 on LIBERO-Goal frames, from HF checkpoint load through the flow-matching loss, backward and the final checkpoint save.</p>
+            <div class="cmd-row">
+              <code class="cmd">python experiments/launch_scripts/train_lerobot.py allenai/MolmoAct2 libero_goal --max_duration=2 --device_batch_size=1 --global_batch_size=1 --num_workers=0 --pin_memory=false --save_folder=&lt;run dir&gt;/save --packing=false --dynamic_seq_len=true --ft_vlm=false --ft_action_expert=true --ft_embedding=none --log_interval=1 --wandb=null --data.kwargs_mixture.0.datasets.0.dataset_name=lerobot:allenai/MolmoAct2-LIBERO-Dataset@663-666</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/molmoact2/train_lerobot.html<span class="sep">/</span>45.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; experiments/launch_scripts/train_lerobot.py</p>
+            <p class="outcome">2/2 steps · flow loss 0.400 → 0.534</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>6,293</dd></div>
+              <div><dt>Edges</dt><dd>6,677</dd></div>
+              <div><dt>Calls</dt><dd>443,472</dd></div>
+            </dl>
+          </details>
+        </article>
           <div class="pair">
             <p class="pairhead">Inference servers <em>The two released FastAPI checkpoints, same code shape, different embodiment schema.</em></p>
         <article class="run" id="molmoact2-droid-server" data-kind="serve" data-search="droid server serve molmoact2-droid-server projects/molmoact2/droid_server.html one real /act request against the unmodified droid inference server: hf snapshot resolve, the two idempotent bf16 source patches, model load, warmup, and a real bfloat16 flow-matching action-chunk prediction. python docs/code_mapping/drivers/trace_droid_server.py --port 8100 --device cuda:1 --dtype bfloat16 --num-requests 2 --out docs/code_mapping/flows/droid_server/run franka_droid exit 0 · 73.8s" style="--fam: var(--kind-serve)">
@@ -2883,7 +2913,7 @@
       on the card; they take longer to open.
     </p>
     <p>
-      Fifteen projects, seventy-one sessions, live beside this menu under <code>projects/</code>.
+      Fifteen projects, seventy-two sessions, live beside this menu under <code>projects/</code>.
       Adding a session means dropping its HTML in a folder and copying a card. Each session page
       links back here.
     </p>
