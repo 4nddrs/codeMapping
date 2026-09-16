@@ -1,0 +1,58 @@
+{
+  "repository": "cambrian-mllm/cambrian-s",
+  "source_commit": "058b1b4c96846a229d1c9bb69da6ecf5ceee4a6b",
+  "note": "Two stages of the same official launcher (train_spmd.py), captured on 2x RTX A6000 with torch_xla 2.6 SPMD on CUDA. Mapping documents live in the repository under docs/code_mapping/ (S1) and docs/code_mapping/s3_video/ (S3).",
+  "group_totals": {
+    "Sessions": 2,
+    "Functions traced": 2263,
+    "Calls recorded": 36489,
+    "Lines executed": 3099,
+    "Lines in scope": 10489
+  },
+  "pages": [
+    {
+      "id": "s1_train",
+      "href": "projects/cambrian_s/s1_train.html",
+      "title": "Cambrian-S \u00b7 S1 alignment training",
+      "outcome": "exit 0 \u00b7 1394.2s",
+      "important": 34,
+      "totals": {
+        "functions": 1061,
+        "edges": 1068,
+        "calls": 18062,
+        "lines": 5128,
+        "reference_lines": 21617,
+        "executed": 1479,
+        "columns": 15,
+        "dropped": 0,
+        "important": 34,
+        "sampled": 1060,
+        "boundaries": 932
+      },
+      "command": "python cambrian/train/train_spmd.py --model_name_or_path Qwen/Qwen2.5-7B-Instruct --version qwen_2 --data_path ../cambrian-s_runs/fixture/s1_alignment_fixture.jsonl --image_folder ../cambrian-s_runs/fixture --vision_tower_aux_list [\"google/siglip2-so400m-patch14-384\"] --vision_tower_aux_token_len_list [729] --image_position 14 --vision_hidden_size 1152 --connector_only True --unfreeze_mm_vision_to",
+      "render": "docs/code_mapping/line_coverage/S1_success_render"
+    },
+    {
+      "id": "s3_video",
+      "href": "projects/cambrian_s/s3_video.html",
+      "title": "Cambrian-S \u00b7 S3 video instruction tuning",
+      "outcome": "exit 0 \u00b7 4058.7s",
+      "important": 36,
+      "totals": {
+        "functions": 1202,
+        "edges": 1213,
+        "calls": 18427,
+        "lines": 5361,
+        "reference_lines": 23359,
+        "executed": 1620,
+        "columns": 15,
+        "dropped": 0,
+        "important": 36,
+        "sampled": 1201,
+        "boundaries": 1055
+      },
+      "command": "python cambrian/train/train_spmd.py --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct --version qwen_2 --data_path ../cambrian-s_runs/s3/fixture/s3_video_fixture.jsonl --image_folder ../cambrian-s_runs/s3/fixture --vision_tower_aux_list [\"google/siglip2-so400m-patch14-384\"] --vision_tower_aux_token_len_list [729] --image_position 14 --vision_hidden_size 1152 --connector_only True --unfreeze_mm_visio",
+      "render": "docs/code_mapping/line_coverage/S3_video_render"
+    }
+  ]
+}
