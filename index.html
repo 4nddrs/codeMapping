@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>72</b><span>Sessions</span></div>
-      <div class="tot"><b>66,014</b><span>Functions traced</span></div>
-      <div class="tot"><b>12,770,099</b><span>Calls recorded</span></div>
-      <div class="tot"><b>162,882</b><span>Lines executed</span></div>
-      <div class="tot"><b>421,337</b><span>Lines in scope</span></div>
+      <div class="tot"><b>74</b><span>Sessions</span></div>
+      <div class="tot"><b>68,253</b><span>Functions traced</span></div>
+      <div class="tot"><b>13,977,674</b><span>Calls recorded</span></div>
+      <div class="tot"><b>165,421</b><span>Lines executed</span></div>
+      <div class="tot"><b>427,499</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -802,7 +802,7 @@
         <div class="jump-items">
           <a href="#patch-policy">Patch Policy<span class="jump-n">27</span></a>
           <a href="#cosmos-policy">Cosmos Policy<span class="jump-n">11</span></a>
-          <a href="#dreamzero">DreamZero<span class="jump-n">6</span></a>
+          <a href="#dreamzero">DreamZero<span class="jump-n">8</span></a>
           <a href="#robointer">RoboInter<span class="jump-n">5</span></a>
           <a href="#vera">VERA<span class="jump-n">5</span></a>
         </div>
@@ -1857,74 +1857,150 @@
 
 <!-- DREAMZERO_SUITE_BEGIN -->
 <details class="shelf repo-shelf" id="dreamzero">
-<summary class="shelfhead repo-summary"><h2>DreamZero</h2><span class="n">6</span><span class="preview">1 training · 1 serve · 3 data · 1 utility</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<summary class="shelfhead repo-summary"><h2>DreamZero</h2><span class="n">8</span><span class="preview">2 training · 1 serve · 3 data · 2 utilities</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
-<p class="repo-note">NVIDIA GEAR DreamZero: Wan2.2-5B serving and LoRA training, plus data utilities. Bounded real executions; green frames mark reviewed paper-innovation lines.</p>
+<p class="repo-note">NVIDIA GEAR DreamZero World Action Model: Wan2.2-5B serving, LoRA and full-finetune training, and data utilities. Bounded real executions; each card states its scope, deviations and outcome. Right-click a line for the values it held in the traced run, recorded per statement; green frames mark reviewed paper-innovation lines.</p>
 <div class="runs">
           <div class="pair">
             <p class="pairhead">Serve &amp; train <em>The policy server session and the 2-step LoRA run that produced its checkpoint.</em></p>
-        <article class="run" id="dreamzero-serve-wan22" data-kind="serve" data-search="wan2.2-5b policy server session serve dreamzero-serve-wan22 projects/dreamzero/s1_serve_wan22.html serve the 2-step wan2.2-5b lora through the unmodified policy server. serves the 2-step t1 lora checkpoint (merged at load) through the unmodified serve_dreamzero_wan22.main in a daemon thread and drives it with websocketclientpolicy using droid episode 5: 8 infers over 2 sessions (1-frame and 4-frame requests, a prompt change, a kv-window rollover) and 1 reset. every infer returned a (24, 8) float32 action chunk, and 2 predicted-video mp4s (57 and 9 frames, 320x160) were written; the actions are not a trained policy&#x27;s behaviour. python docs/code_mapping/drivers/serve_wan22_session.py --model-path outputs/code_mapping/t1_wan22_lora --episode 5 --port 5611 --out outputs/code_mapping/s1_serve_wan22 projects/dreamzero/s1_serve_wan22.html / 23.7 mb / entry __main__ &amp;middot; docs/code_mapping/drivers/serve_wan22_session.py exit 0 · 454.8s · 8 infers + 1 reset · 2 mp4 drivers/serve_wan22_session.py · serve_dreamzero_wan22 main + websocketclientpolicy, one process" style="--fam: var(--kind-serve)">
+        <article class="run" id="dreamzero-serve-wan22" data-kind="serve" data-search="wan2.2-5b policy server session serve dreamzero-serve-wan22 projects/dreamzero/s1_serve_wan22.html serves the 2-step t1 lora checkpoint (merged at load) through the unmodified serve_dreamzero_wan22.main in a daemon thread and drives it with websocketclientpolicy using droid episode 5: 8 infers over 2 sessions (1-frame and 4-frame requests, a prompt change, a kv-window rollover) and 1 reset. every infer returned a (24, 8) float32 action chunk, and 2 predicted-video mp4s (57 and 9 frames, 320x160) were written; the actions are not a trained policy&#x27;s behaviour. round-5 re-capture: values per statement, including statements inside try bodies, for the first 2 calls at each call site, plus the pytorch module table; the round-4, round-3 and first captures are kept as evidence. python docs/code_mapping/drivers/serve_wan22_session.py --model-path outputs/code_mapping/t1_wan22_lora --episode 5 --port 5611 --out outputs/code_mapping/s1_serve_wan22 drivers/serve_wan22_session.py · serve_dreamzero_wan22 main + websocketclientpolicy, one process exit 0 · 446.6s · server load 346 s · 8 infers + 1 reset · 2 mp4" style="--fam: var(--kind-serve)">
           <a class="run-link" href="projects/dreamzero/s1_serve_wan22.html">
             <div>
               <h3 class="title"><span class="name">Wan2.2-5B policy server session</span> <span class="chip kind">serve</span> <span class="chip start">Start here</span></h3>
               <p class="what">Serve the 2-step Wan2.2-5B LoRA through the unmodified policy server.</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">454.8s</span><span class="pill size heavy">23.7 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>41.1%</b></span></div><div class="bar"><i style="width: 41.1%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">446.6s</span><span class="pill size heavy">26.5 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>41.1%</b></span></div>
+                <div class="bar"><i style="width: 41.1%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
             <summary>Command &amp; capture notes</summary>
-            <p class="what-full">Serves the 2-step t1 LoRA checkpoint (merged at load) through the unmodified serve_dreamzero_wan22.main in a daemon thread and drives it with WebsocketClientPolicy using DROID episode 5: 8 infers over 2 sessions (1-frame and 4-frame requests, a prompt change, a KV-window rollover) and 1 reset. Every infer returned a (24, 8) float32 action chunk, and 2 predicted-video mp4s (57 and 9 frames, 320x160) were written; the actions are not a trained policy&#x27;s behaviour.</p>
+            <p class="what-full">Serves the 2-step t1 LoRA checkpoint (merged at load) through the unmodified serve_dreamzero_wan22.main in a daemon thread and drives it with WebsocketClientPolicy using DROID episode 5: 8 infers over 2 sessions (1-frame and 4-frame requests, a prompt change, a KV-window rollover) and 1 reset. Every infer returned a (24, 8) float32 action chunk, and 2 predicted-video mp4s (57 and 9 frames, 320x160) were written; the actions are not a trained policy&#x27;s behaviour. Round-5 re-capture: values per statement, including statements inside try bodies, for the first 2 calls at each call site, plus the PyTorch module table; the round-4, round-3 and first captures are kept as evidence.</p>
             <div class="cmd-row">
               <code class="cmd">python docs/code_mapping/drivers/serve_wan22_session.py --model-path outputs/code_mapping/t1_wan22_lora --episode 5 --port 5611 --out outputs/code_mapping/s1_serve_wan22</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/s1_serve_wan22.html<span class="sep">/</span>23.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/serve_wan22_session.py</p>
-            <p class="outcome">8 infers + 1 reset · 2 mp4</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>4,336</dd></div>
+            <p class="local">projects/dreamzero/s1_serve_wan22.html<span class="sep">/</span>26.5 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/serve_wan22_session.py</p>
+            <p class="outcome">server load 346 s · 8 infers + 1 reset · 2 mp4</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>4,336</dd></div>
               <div><dt>Edges</dt><dd>4,427</dd></div>
-              <div><dt>Calls</dt><dd>1,067,413</dd></div></dl>
+              <div><dt>Calls</dt><dd>1,067,449</dd></div>
+            </dl>
           </details>
         </article>
-        <article class="run" id="dreamzero-train-lora" data-kind="training" data-search="wan2.2-5b lora training training dreamzero-train-lora projects/dreamzero/t1_wan22_lora.html trains the dreamzero wan2.2-ti2v-5b action head with rank-4 lora under deepspeed zero-2 for 2 optimizer steps on droid episodes 0-9 (2,416 steps). trains the dreamzero wan2.2-ti2v-5b action head with rank-4 lora under deepspeed zero-2 for 2 optimizer steps on droid episodes 0-9 (2,416 steps). it runs as one traced rank-0-of-1 process on one rtx a6000 instead of 8-gpu torchrun, and saves only the 614 trainable tensors. python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/wan2.2-ti2v-5b text_encoder_pretrained_path=checkpoints/wan2.2-ti2v-5b/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/wan2.1-i2v-14b-480p/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/wan2.2-ti2v-5b/wan2.2_vae.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=lora training_args.deepspeed=groot/vla/configs/deepspeed/zero2.json save_steps=1000 save_strategy=no save_lora_only=true dataloader_pin_memory=false output_dir=outputs/code_mapping/t1_wan22_lora projects/dreamzero/t1_wan22_lora.html / 26.5 mb / entry __main__ &amp;middot; docs/code_mapping/drivers/train_single_process.py exit 0 · 677.0s · traced · loss 1.0248 then 2.0593 · 614-tensor 89.9 mb save scripts/train/droid_training_wan22.sh · 2 steps, 1 gpu, droid episodes 0-9" style="--fam: var(--kind-training)">
+        <article class="run" id="dreamzero-train-lora" data-kind="training" data-search="wan2.2-5b lora training training dreamzero-train-lora projects/dreamzero/t1_wan22_lora.html trains the dreamzero wan2.2-ti2v-5b action head with rank-4 lora under deepspeed zero-2 for 2 optimizer steps on droid episodes 0-9 (2,416 steps). it runs as one traced rank-0-of-1 process on one rtx a6000 instead of 8-gpu torchrun, and saves only the 614 trainable tensors. round-5 capture: the first two calls at each call site record what every statement changed, statements inside try bodies included, so a reassigned name (videos, latents, x, x_video) shows its own shape per line; loop passes after the second are merged into one step, and the module table stops at 800 entries. python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/wan2.2-ti2v-5b text_encoder_pretrained_path=checkpoints/wan2.2-ti2v-5b/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/wan2.1-i2v-14b-480p/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/wan2.2-ti2v-5b/wan2.2_vae.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=lora training_args.deepspeed=groot/vla/configs/deepspeed/zero2.json save_steps=1000 save_strategy=no save_lora_only=true dataloader_pin_memory=false output_dir=outputs/code_mapping/t1_wan22_lora scripts/train/droid_training_wan22.sh · 2 steps, 1 gpu, droid episodes 0-9 exit 0 · 536.8s · loss 1.0248 then 2.0593 · 614-tensor 89.9 mb save" style="--fam: var(--kind-training)">
           <a class="run-link" href="projects/dreamzero/t1_wan22_lora.html">
             <div>
               <h3 class="title"><span class="name">Wan2.2-5B LoRA training</span> <span class="chip kind">training</span></h3>
               <p class="what">Trains the DreamZero Wan2.2-TI2V-5B action head with rank-4 LoRA under DeepSpeed ZeRO-2 for 2 optimizer steps on DROID episodes 0-9 (2,416 steps).</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">677.0s</span><span class="pill size heavy">26.5 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>37.9%</b></span></div><div class="bar"><i style="width: 37.9%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">536.8s</span><span class="pill size heavy">32.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>37.9%</b></span></div>
+                <div class="bar"><i style="width: 37.9%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
             <summary>Command &amp; capture notes</summary>
-            <p class="what-full">Trains the DreamZero Wan2.2-TI2V-5B action head with rank-4 LoRA under DeepSpeed ZeRO-2 for 2 optimizer steps on DROID episodes 0-9 (2,416 steps). It runs as one traced rank-0-of-1 process on one RTX A6000 instead of 8-GPU torchrun, and saves only the 614 trainable tensors.</p>
+            <p class="what-full">Trains the DreamZero Wan2.2-TI2V-5B action head with rank-4 LoRA under DeepSpeed ZeRO-2 for 2 optimizer steps on DROID episodes 0-9 (2,416 steps). It runs as one traced rank-0-of-1 process on one RTX A6000 instead of 8-GPU torchrun, and saves only the 614 trainable tensors. Round-5 capture: the first two calls at each call site record what every statement changed, statements inside try bodies included, so a reassigned name (videos, latents, x, x_video) shows its own shape per line; loop passes after the second are merged into one step, and the module table stops at 800 entries.</p>
             <div class="cmd-row">
               <code class="cmd">python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/Wan2.2-TI2V-5B text_encoder_pretrained_path=checkpoints/Wan2.2-TI2V-5B/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/Wan2.1-I2V-14B-480P/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/Wan2.2-TI2V-5B/Wan2.2_VAE.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=lora training_args.deepspeed=groot/vla/configs/deepspeed/zero2.json save_steps=1000 save_strategy=no save_lora_only=true dataloader_pin_memory=false output_dir=outputs/code_mapping/t1_wan22_lora</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/t1_wan22_lora.html<span class="sep">/</span>26.5 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/train_single_process.py</p>
-            <p class="outcome">traced · loss 1.0248 then 2.0593 · 614-tensor 89.9 MB save</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>4,417</dd></div>
+            <p class="local">projects/dreamzero/t1_wan22_lora.html<span class="sep">/</span>32.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/train_single_process.py</p>
+            <p class="outcome">loss 1.0248 then 2.0593 · 614-tensor 89.9 MB save</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>4,417</dd></div>
               <div><dt>Edges</dt><dd>4,494</dd></div>
-              <div><dt>Calls</dt><dd>2,379,575</dd></div></dl>
+              <div><dt>Calls</dt><dd>2,379,575</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+          <div class="pair">
+            <p class="pairhead">Full finetune &amp; loss comparison <em>The Wan2.2-5B full finetune that cannot finish on this host, and the LoRA-vs-full loss-log comparison.</em></p>
+        <article class="run" id="dreamzero-train-full" data-kind="training" data-search="wan2.2-5b full finetune (failed) training dreamzero-train-full projects/dreamzero/t2_wan22_full.html builds the dreamzero wan2.2-ti2v-5b action head for full finetuning (5,606,692,832 trainable parameters), the 10-episode droid dataset and the trainer, then fails in deepspeed.initialize before the first of 2 planned steps. it runs as one traced rank-0-of-1 process on a shared rtx a6000 instead of 4-gpu torchrun; the page stops at zero-2 optimizer init. not re-captured in later tracer rounds: the page is redrawn from that capture, so its value popups hold the first two calls of each function, labelled by sampling point, with no values per statement. python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/wan2.2-ti2v-5b text_encoder_pretrained_path=checkpoints/wan2.2-ti2v-5b/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/wan2.1-i2v-14b-480p/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/wan2.2-ti2v-5b/wan2.2_vae.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=full training_args.deepspeed=groot/vla/configs/deepspeed/zero2_offload.json global_batch_size=1 image_resolution_width=320 image_resolution_height=160 save_steps=2 save_strategy=steps save_lora_only=false dataloader_pin_memory=true output_dir=outputs/code_mapping/t2_wan22_full scripts/train/droid_training_full_finetune_wan22.sh · full finetune, zero-2 cpu adam, 1 gpu, droid episodes 0-9 exit 1 · 356.2s · cuda oom in deepspeed zero-2 init (10.44 gib asked, 6.75 gib free) after 356 s · 0 steps · 4 attempts" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/dreamzero/t2_wan22_full.html">
+            <div>
+              <h3 class="title"><span class="name">Wan2.2-5B full finetune (failed)</span> <span class="chip kind">training</span></h3>
+              <p class="what">Builds the DreamZero Wan2.2-TI2V-5B action head for full finetuning (5,606,692,832 trainable parameters), the 10-episode DROID dataset and the trainer, then…</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict bad">exit 1</span><span class="pill">356.2s</span><span class="pill size heavy">16.5 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>41.4%</b></span></div>
+                <div class="bar"><i style="width: 41.4%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Builds the DreamZero Wan2.2-TI2V-5B action head for full finetuning (5,606,692,832 trainable parameters), the 10-episode DROID dataset and the trainer, then fails in deepspeed.initialize before the first of 2 planned steps. It runs as one traced rank-0-of-1 process on a shared RTX A6000 instead of 4-GPU torchrun; the page stops at ZeRO-2 optimizer init. Not re-captured in later tracer rounds: the page is redrawn from that capture, so its value popups hold the first two calls of each function, labelled by sampling point, with no values per statement.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/drivers/train_single_process.py data=dreamzero/droid_relative_wan22 wandb_project=dreamzero num_frames=33 action_horizon=24 num_views=3 model=dreamzero/vla model/dreamzero/action_head=wan_flow_matching_action_tf_wan22 model/dreamzero/transform=dreamzero_cotrain num_frame_per_block=2 num_action_per_block=24 num_state_per_block=1 seed=42 training_args.learning_rate=1e-5 training_args.warmup_ratio=0.05 per_device_train_batch_size=1 weight_decay=1e-5 save_total_limit=10 upload_checkpoints=false bf16=true tf32=true eval_bf16=true max_chunk_size=4 report_to=none max_steps=2 logging_steps=1 dataloader_num_workers=0 droid_data_root=data/droid_subset10 dit_version=checkpoints/Wan2.2-TI2V-5B text_encoder_pretrained_path=checkpoints/Wan2.2-TI2V-5B/models_t5_umt5-xxl-enc-bf16.pth image_encoder_pretrained_path=checkpoints/Wan2.1-I2V-14B-480P/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth vae_pretrained_path=checkpoints/Wan2.2-TI2V-5B/Wan2.2_VAE.pth tokenizer_path=checkpoints/umt5-xxl train_architecture=full training_args.deepspeed=groot/vla/configs/deepspeed/zero2_offload.json global_batch_size=1 image_resolution_width=320 image_resolution_height=160 save_steps=2 save_strategy=steps save_lora_only=false dataloader_pin_memory=true output_dir=outputs/code_mapping/t2_wan22_full</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/dreamzero/t2_wan22_full.html<span class="sep">/</span>16.5 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/train_single_process.py</p>
+            <p class="outcome">CUDA OOM in DeepSpeed ZeRO-2 init (10.44 GiB asked, 6.75 GiB free) after 356 s · 0 steps · 4 attempts</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>2,179</dd></div>
+              <div><dt>Edges</dt><dd>2,204</dd></div>
+              <div><dt>Calls</dt><dd>1,207,416</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="dreamzero-compare-loss" data-kind="utility" data-search="lora vs full loss comparison utility dreamzero-compare-loss projects/dreamzero/u2_compare_loss.html runs scripts/compare_loss.py on the t1 wan2.2-5b lora loss_log.jsonl (4 lines: step-0 dynamics/action averages, loss 1.0248 and 2.0593 at steps 1-2) and the t2 full-finetune log (2 lines: step-0 averages only, because t2 attempt 4 was oom-killed before step 1), printing a 3-row table and saving a 3-panel png. no full-finetune loss exists to compare, and the table drops both step-0 dynamics values that the plot still shows. python scripts/compare_loss.py --lora-log outputs/code_mapping/t1_wan22_lora/loss_log.jsonl --full-log outputs/code_mapping/t2_wan22_full/loss_log.jsonl --plot outputs/code_mapping/u2_compare_loss/loss_comparison.png compare_loss.py · t1 lora log vs t2 partial full log exit 0 · 5.5s · 3 table rows · 1 png · 0 full-ft loss values" style="--fam: var(--kind-utility)">
+          <a class="run-link" href="projects/dreamzero/u2_compare_loss.html">
+            <div>
+              <h3 class="title"><span class="name">LoRA vs full loss comparison</span> <span class="chip kind">utility</span></h3>
+              <p class="what">Runs scripts/compare_loss.py on the t1 Wan2.2-5B LoRA loss_log.jsonl (4 lines: step-0 dynamics/action averages, loss 1.0248 and 2.0593 at steps 1-2) and the…</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">5.5s</span><span class="pill size">1.2 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>36.2%</b></span></div>
+                <div class="bar"><i style="width: 36.2%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Runs scripts/compare_loss.py on the t1 Wan2.2-5B LoRA loss_log.jsonl (4 lines: step-0 dynamics/action averages, loss 1.0248 and 2.0593 at steps 1-2) and the t2 full-finetune log (2 lines: step-0 averages only, because t2 attempt 4 was OOM-killed before step 1), printing a 3-row table and saving a 3-panel PNG. No full-finetune loss exists to compare, and the table drops both step-0 dynamics values that the plot still shows.</p>
+            <div class="cmd-row">
+              <code class="cmd">python scripts/compare_loss.py --lora-log outputs/code_mapping/t1_wan22_lora/loss_log.jsonl --full-log outputs/code_mapping/t2_wan22_full/loss_log.jsonl --plot outputs/code_mapping/u2_compare_loss/loss_comparison.png</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/dreamzero/u2_compare_loss.html<span class="sep">/</span>1.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/compare_loss.py</p>
+            <p class="outcome">3 table rows · 1 PNG · 0 full-FT loss values</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>60</dd></div>
+              <div><dt>Edges</dt><dd>59</dd></div>
+              <div><dt>Calls</dt><dd>123</dd></div>
+            </dl>
           </details>
         </article>
           </div>
           <div class="pair">
             <p class="pairhead">Data utilities <em>Initial actions, LeRobot→GEAR conversion, and a DROID download subset.</em></p>
-        <article class="run" id="dreamzero-initial-actions" data-kind="data" data-search="initial actions extraction data dreamzero-initial-actions projects/dreamzero/u5_initial_actions.html runs groot/vla/data/conversion/gr1/get_initial_actions.py on data/droid_subset10_initact (droid episodes 0-9, own meta copy): takes action row 0 of each of… runs groot/vla/data/conversion/gr1/get_initial_actions.py on data/droid_subset10_initact (droid episodes 0-9, own meta copy): takes action row 0 of each of the 10 episode parquet files, splits the 28-dim vector into the 6 modality.json action keys and writes meta/initial_actions.npz, then reloads it. the training-side consumers (lerobot loader, vlaexperiment dump) are documented statically, not executed. python groot/vla/data/conversion/gr1/get_initial_actions.py data/droid_subset10_initact projects/dreamzero/u5_initial_actions.html / 982 kb / entry __main__ &amp;middot; groot/vla/data/conversion/gr1/get_initial_actions.py exit 0 · 32.7s · 10 trajectories · 1 npz (5608 b) get_initial_actions.py · 10 droid episodes" style="--fam: var(--kind-data)">
+        <article class="run" id="dreamzero-initial-actions" data-kind="data" data-search="initial actions extraction data dreamzero-initial-actions projects/dreamzero/u5_initial_actions.html runs groot/vla/data/conversion/gr1/get_initial_actions.py on data/droid_subset10_initact (droid episodes 0-9, own meta copy): takes action row 0 of each of the 10 episode parquet files, splits the 28-dim vector into the 6 modality.json action keys and writes meta/initial_actions.npz, then reloads it. the training-side consumers (lerobot loader, vlaexperiment dump) are documented statically, not executed. python groot/vla/data/conversion/gr1/get_initial_actions.py data/droid_subset10_initact get_initial_actions.py · 10 droid episodes exit 0 · 37.3s · 10 trajectories · 1 npz (5608 b)" style="--fam: var(--kind-data)">
           <a class="run-link" href="projects/dreamzero/u5_initial_actions.html">
             <div>
               <h3 class="title"><span class="name">Initial actions extraction</span> <span class="chip kind">data</span></h3>
               <p class="what">Runs groot/vla/data/conversion/gr1/get_initial_actions.py on data/droid_subset10_initact (DROID episodes 0-9, own meta copy): takes action row 0 of each of…</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">32.7s</span><span class="pill size">982 KB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>23.0%</b></span></div><div class="bar"><i style="width: 23.0%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">37.3s</span><span class="pill size">1.1 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>23.0%</b></span></div>
+                <div class="bar"><i style="width: 23.0%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
@@ -1934,22 +2010,27 @@
               <code class="cmd">python groot/vla/data/conversion/gr1/get_initial_actions.py data/droid_subset10_initact</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/u5_initial_actions.html<span class="sep">/</span>982 KB<span class="sep">/</span>entry <code>__main__</code> &middot; groot/vla/data/conversion/gr1/get_initial_actions.py</p>
+            <p class="local">projects/dreamzero/u5_initial_actions.html<span class="sep">/</span>1.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; groot/vla/data/conversion/gr1/get_initial_actions.py</p>
             <p class="outcome">10 trajectories · 1 npz (5608 B)</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>50</dd></div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>50</dd></div>
               <div><dt>Edges</dt><dd>49</dd></div>
-              <div><dt>Calls</dt><dd>114</dd></div></dl>
+              <div><dt>Calls</dt><dd>114</dd></div>
+            </dl>
           </details>
         </article>
-        <article class="run" id="dreamzero-gear-convert" data-kind="data" data-search="lerobot v2 to gear metadata (xarm6) data dreamzero-gear-convert projects/dreamzero/u1_gear_convert.html converts the local xarm6 lerobot v2 export (data/xarm6_gear: 101 episodes, 97775 frames, 2 cameras) into dreamzero metadata with tag xdof, joint_pos [0,6] +… converts the local xarm6 lerobot v2 export (data/xarm6_gear: 101 episodes, 97775 frames, 2 cameras) into dreamzero metadata with tag xdof, joint_pos [0,6] + gripper_pos [6,7], relative stats for both keys at horizon 24, and --force. only meta/ is written; training configs for xarm6 are not part of this run. python scripts/data/convert_lerobot_to_gear.py --dataset-path data/xarm6_gear --embodiment-tag xdof --state-keys {&amp;quot;joint_pos&amp;quot;: [0, 6], &amp;quot;gripper_pos&amp;quot;: [6, 7]} --action-keys {&amp;quot;joint_pos&amp;quot;: [0, 6], &amp;quot;gripper_pos&amp;quot;: [6, 7]} --relative-action-keys joint_pos gripper_pos --task-key annotation.task --action-horizon 24 --force projects/dreamzero/u1_gear_convert.html / 2.2 mb / entry __main__ &amp;middot; scripts/data/convert_lerobot_to_gear.py exit 0 · 25.9s · 6 meta files written · 0 validation warnings convert_lerobot_to_gear.py · meta/ generation, 101 episodes" style="--fam: var(--kind-data)">
+        <article class="run" id="dreamzero-gear-convert" data-kind="data" data-search="lerobot v2 to gear metadata (xarm6) data dreamzero-gear-convert projects/dreamzero/u1_gear_convert.html converts the local xarm6 lerobot v2 export (data/xarm6_gear: 101 episodes, 97775 frames, 2 cameras) into dreamzero metadata with tag xdof, joint_pos [0,6] + gripper_pos [6,7], relative stats for both keys at horizon 24, and --force. only meta/ is written; training configs for xarm6 are not part of this run. python scripts/data/convert_lerobot_to_gear.py --dataset-path data/xarm6_gear --embodiment-tag xdof --state-keys {&quot;joint_pos&quot;: [0, 6], &quot;gripper_pos&quot;: [6, 7]} --action-keys {&quot;joint_pos&quot;: [0, 6], &quot;gripper_pos&quot;: [6, 7]} --relative-action-keys joint_pos gripper_pos --task-key annotation.task --action-horizon 24 --force convert_lerobot_to_gear.py · meta/ generation, 101 episodes exit 0 · 30.9s · 6 meta files written · 0 validation warnings" style="--fam: var(--kind-data)">
           <a class="run-link" href="projects/dreamzero/u1_gear_convert.html">
             <div>
               <h3 class="title"><span class="name">LeRobot v2 to GEAR metadata (xArm6)</span> <span class="chip kind">data</span></h3>
               <p class="what">Converts the local xArm6 LeRobot v2 export (data/xarm6_gear: 101 episodes, 97775 frames, 2 cameras) into DreamZero metadata with tag xdof, joint_pos [0,6] +…</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">25.9s</span><span class="pill size">2.2 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>26.9%</b></span></div><div class="bar"><i style="width: 26.9%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">30.9s</span><span class="pill size">2.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>26.9%</b></span></div>
+                <div class="bar"><i style="width: 26.9%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
@@ -1959,22 +2040,27 @@
               <code class="cmd">python scripts/data/convert_lerobot_to_gear.py --dataset-path data/xarm6_gear --embodiment-tag xdof --state-keys {&quot;joint_pos&quot;: [0, 6], &quot;gripper_pos&quot;: [6, 7]} --action-keys {&quot;joint_pos&quot;: [0, 6], &quot;gripper_pos&quot;: [6, 7]} --relative-action-keys joint_pos gripper_pos --task-key annotation.task --action-horizon 24 --force</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/u1_gear_convert.html<span class="sep">/</span>2.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/data/convert_lerobot_to_gear.py</p>
+            <p class="local">projects/dreamzero/u1_gear_convert.html<span class="sep">/</span>2.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/data/convert_lerobot_to_gear.py</p>
             <p class="outcome">6 meta files written · 0 validation warnings</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>283</dd></div>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>283</dd></div>
               <div><dt>Edges</dt><dd>282</dd></div>
-              <div><dt>Calls</dt><dd>389,284</dd></div></dl>
+              <div><dt>Calls</dt><dd>389,284</dd></div>
+            </dl>
           </details>
         </article>
-        <article class="run" id="dreamzero-download" data-kind="data" data-search="droid dataset download (subset) data dreamzero-download projects/dreamzero/u3_download_subset.html runs the upstream droid download script unmodified, with snapshot_download limited to 4 meta json files plus episode 0 (1 parquet, 3 camera mp4s) of… runs the upstream droid download script unmodified, with snapshot_download limited to 4 meta json files plus episode 0 (1 parquet, 3 camera mp4s) of gear-dreams/dreamzero-droid-data. the traced tree has 2 repo functions because the download runs inside huggingface_hub. python docs/code_mapping/drivers/download_subset.py --local-dir outputs/code_mapping/u3_download_droid --max-workers 1 --retry-wait 320 projects/dreamzero/u3_download_subset.html / 652 kb / entry __main__ &amp;middot; docs/code_mapping/drivers/download_subset.py exit 0 · 212.0s · 8 files · 1 attempt, no 429 scripts/data/download_droid_hf.py · 8-file allow_patterns subset" style="--fam: var(--kind-data)">
+        <article class="run" id="dreamzero-download" data-kind="data" data-search="droid dataset download (subset) data dreamzero-download projects/dreamzero/u3_download_subset.html runs the upstream droid download script unmodified, with snapshot_download limited to 4 meta json files plus episode 0 (1 parquet, 3 camera mp4s) of gear-dreams/dreamzero-droid-data. the traced tree has 2 repo functions because the download runs inside huggingface_hub. python docs/code_mapping/drivers/download_subset.py --local-dir outputs/code_mapping/u3_download_droid --max-workers 1 --retry-wait 320 scripts/data/download_droid_hf.py · 8-file allow_patterns subset exit 0 · 176.6s · 8 files, 8/8 hub etags match · 1 attempt, no 429" style="--fam: var(--kind-data)">
           <a class="run-link" href="projects/dreamzero/u3_download_subset.html">
             <div>
               <h3 class="title"><span class="name">DROID dataset download (subset)</span> <span class="chip kind">data</span></h3>
               <p class="what">Runs the upstream DROID download script unmodified, with snapshot_download limited to 4 meta JSON files plus episode 0 (1 parquet, 3 camera MP4s) of…</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">212.0s</span><span class="pill size">652 KB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>57.0%</b></span></div><div class="bar"><i style="width: 57.0%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">176.6s</span><span class="pill size">682 KB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>57.0%</b></span></div>
+                <div class="bar"><i style="width: 57.0%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
@@ -1984,25 +2070,30 @@
               <code class="cmd">python docs/code_mapping/drivers/download_subset.py --local-dir outputs/code_mapping/u3_download_droid --max-workers 1 --retry-wait 320</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/u3_download_subset.html<span class="sep">/</span>652 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/download_subset.py</p>
-            <p class="outcome">8 files · 1 attempt, no 429</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>25</dd></div>
+            <p class="local">projects/dreamzero/u3_download_subset.html<span class="sep">/</span>682 KB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/download_subset.py</p>
+            <p class="outcome">8 files, 8/8 Hub etags match · 1 attempt, no 429</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>25</dd></div>
               <div><dt>Edges</dt><dd>24</dd></div>
-              <div><dt>Calls</dt><dd>25</dd></div></dl>
+              <div><dt>Calls</dt><dd>25</dd></div>
+            </dl>
           </details>
         </article>
           </div>
           <div class="pair">
             <p class="pairhead">Protocol <em>Websocket policy server/client smoke test with a dummy policy.</em></p>
-        <article class="run" id="dreamzero-protocol-smoke" data-kind="utility" data-search="websocket policy protocol smoke utility dreamzero-protocol-smoke projects/dreamzero/u4_protocol_smoke.html runs the unmodified policy_server.py (dummypolicy on 0.0.0.0:8000, daemon thread) and policy_client.py __main__ blocks in one process. runs the unmodified policy_server.py (dummypolicy on 0.0.0.0:8000, daemon thread) and policy_client.py __main__ blocks in one process. covers one connection: a 130-byte metadata frame, one infer round trip (16-byte request, 76-byte (1, 8) float32 zeros reply) and one reset round trip (reply &#x27;reset successful&#x27;). no model, no failure path. python docs/code_mapping/drivers/protocol_smoke.py projects/dreamzero/u4_protocol_smoke.html / 1.0 mb / entry __main__ &amp;middot; docs/code_mapping/drivers/protocol_smoke.py exit 0 · 1.0s · 18 traced functions · action (1, 8) zeros drivers/protocol_smoke.py · eval_utils policy_server + policy_client, one process" style="--fam: var(--kind-utility)">
+        <article class="run" id="dreamzero-protocol-smoke" data-kind="utility" data-search="websocket policy protocol smoke utility dreamzero-protocol-smoke projects/dreamzero/u4_protocol_smoke.html runs the unmodified policy_server.py (dummypolicy on 0.0.0.0:8000, daemon thread) and policy_client.py __main__ blocks in one process. covers one connection: a 130-byte metadata frame, one infer round trip (16-byte request, 76-byte (1, 8) float32 zeros reply) and one reset round trip (reply &#x27;reset successful&#x27;). no model, no failure path. python docs/code_mapping/drivers/protocol_smoke.py drivers/protocol_smoke.py · eval_utils policy_server + policy_client, one process exit 0 · 1.0s · 18 traced functions · action (1, 8) zeros · values per statement, try bodies included" style="--fam: var(--kind-utility)">
           <a class="run-link" href="projects/dreamzero/u4_protocol_smoke.html">
             <div>
               <h3 class="title"><span class="name">Websocket policy protocol smoke</span> <span class="chip kind">utility</span></h3>
               <p class="what">Runs the unmodified policy_server.py (DummyPolicy on 0.0.0.0:8000, daemon thread) and policy_client.py __main__ blocks in one process.</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1.0s</span><span class="pill size">1.0 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>50.9%</b></span></div><div class="bar"><i style="width: 50.9%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1.0s</span><span class="pill size">1.1 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>50.9%</b></span></div>
+                <div class="bar"><i style="width: 50.9%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
@@ -2012,11 +2103,13 @@
               <code class="cmd">python docs/code_mapping/drivers/protocol_smoke.py</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/dreamzero/u4_protocol_smoke.html<span class="sep">/</span>1.0 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/protocol_smoke.py</p>
-            <p class="outcome">18 traced functions · action (1, 8) zeros</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>70</dd></div>
+            <p class="local">projects/dreamzero/u4_protocol_smoke.html<span class="sep">/</span>1.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/protocol_smoke.py</p>
+            <p class="outcome">18 traced functions · action (1, 8) zeros · values per statement, try bodies included</p>
+            <dl class="counts">
+              <div><dt>Function cards</dt><dd>70</dd></div>
               <div><dt>Edges</dt><dd>69</dd></div>
-              <div><dt>Calls</dt><dd>105</dd></div></dl>
+              <div><dt>Calls</dt><dd>105</dd></div>
+            </dl>
           </details>
         </article>
           </div>

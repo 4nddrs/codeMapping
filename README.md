@@ -164,10 +164,12 @@ Not traced on this machine:
 
 | Flow | Scope | Recorded outcome | Navigator |
 | --- | --- | --- | --- |
-| Wan2.2-5B policy server session | drivers/serve_wan22_session.py · serve_dreamzero_wan22 main + WebsocketClientPolicy, one process | exit 0 · 454.8s · 8 infers + 1 reset · 2 mp4 | [Flow](projects/dreamzero/s1_serve_wan22.html) |
-| Wan2.2-5B LoRA training | scripts/train/droid_training_wan22.sh · 2 steps, 1 GPU, DROID episodes 0-9 | exit 0 · 677.0s · traced · loss 1.0248 then 2.0593 · 614-tensor 89.9 MB save | [Flow](projects/dreamzero/t1_wan22_lora.html) |
-| Initial actions extraction | get_initial_actions.py · 10 DROID episodes | exit 0 · 32.7s · 10 trajectories · 1 npz (5608 B) | [Flow](projects/dreamzero/u5_initial_actions.html) |
-| LeRobot v2 to GEAR metadata (xArm6) | convert_lerobot_to_gear.py · meta/ generation, 101 episodes | exit 0 · 25.9s · 6 meta files written · 0 validation warnings | [Flow](projects/dreamzero/u1_gear_convert.html) |
-| DROID dataset download (subset) | scripts/data/download_droid_hf.py · 8-file allow_patterns subset | exit 0 · 212.0s · 8 files · 1 attempt, no 429 | [Flow](projects/dreamzero/u3_download_subset.html) |
-| Websocket policy protocol smoke | drivers/protocol_smoke.py · eval_utils policy_server + policy_client, one process | exit 0 · 1.0s · 18 traced functions · action (1, 8) zeros | [Flow](projects/dreamzero/u4_protocol_smoke.html) |
+| Wan2.2-5B policy server session | drivers/serve_wan22_session.py · serve_dreamzero_wan22 main + WebsocketClientPolicy, one process | exit 0 · 446.6s · server load 346 s · 8 infers + 1 reset · 2 mp4 | [Flow](projects/dreamzero/s1_serve_wan22.html) |
+| Wan2.2-5B LoRA training | scripts/train/droid_training_wan22.sh · 2 steps, 1 GPU, DROID episodes 0-9 | exit 0 · 536.8s · loss 1.0248 then 2.0593 · 614-tensor 89.9 MB save | [Flow](projects/dreamzero/t1_wan22_lora.html) |
+| Wan2.2-5B full finetune (failed) | scripts/train/droid_training_full_finetune_wan22.sh · full finetune, ZeRO-2 CPU Adam, 1 GPU, DROID episodes 0-9 | exit 1 · 356.2s · CUDA OOM in DeepSpeed ZeRO-2 init (10.44 GiB asked, 6.75 GiB free) after 356 s · 0 steps · 4 attempts | [Flow](projects/dreamzero/t2_wan22_full.html) |
+| LoRA vs full loss comparison | compare_loss.py · t1 LoRA log vs t2 partial full log | exit 0 · 5.5s · 3 table rows · 1 PNG · 0 full-FT loss values | [Flow](projects/dreamzero/u2_compare_loss.html) |
+| Initial actions extraction | get_initial_actions.py · 10 DROID episodes | exit 0 · 37.3s · 10 trajectories · 1 npz (5608 B) | [Flow](projects/dreamzero/u5_initial_actions.html) |
+| LeRobot v2 to GEAR metadata (xArm6) | convert_lerobot_to_gear.py · meta/ generation, 101 episodes | exit 0 · 30.9s · 6 meta files written · 0 validation warnings | [Flow](projects/dreamzero/u1_gear_convert.html) |
+| DROID dataset download (subset) | scripts/data/download_droid_hf.py · 8-file allow_patterns subset | exit 0 · 176.6s · 8 files, 8/8 Hub etags match · 1 attempt, no 429 | [Flow](projects/dreamzero/u3_download_subset.html) |
+| Websocket policy protocol smoke | drivers/protocol_smoke.py · eval_utils policy_server + policy_client, one process | exit 0 · 1.0s · 18 traced functions · action (1, 8) zeros · values per statement, try bodies included | [Flow](projects/dreamzero/u4_protocol_smoke.html) |
 <!-- DREAMZERO_RUNS_END -->
