@@ -788,10 +788,10 @@
 
     <div class="totals">
       <div class="tot"><b>72</b><span>Sessions</span></div>
-      <div class="tot"><b>59,801</b><span>Functions traced</span></div>
-      <div class="tot"><b>10,959,070</b><span>Calls recorded</span></div>
-      <div class="tot"><b>158,903</b><span>Lines executed</span></div>
-      <div class="tot"><b>411,214</b><span>Lines in scope</span></div>
+      <div class="tot"><b>66,014</b><span>Functions traced</span></div>
+      <div class="tot"><b>12,770,099</b><span>Calls recorded</span></div>
+      <div class="tot"><b>162,882</b><span>Lines executed</span></div>
+      <div class="tot"><b>421,337</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -2505,60 +2505,66 @@
 <details class="shelf repo-shelf" id="rldx-1">
 <summary class="shelfhead repo-summary"><h2>RLDX-1</h2><span class="n">2</span><span class="preview">1 training · 1 eval</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
-<p class="repo-note">Two traces of one codebase — the training path and the inference path.</p>
+<p class="repo-note">Two traces of one codebase — the training path and the inference path, re-captured 2026-09-17 with the code_flow_v2 tracer.</p>
 <div class="runs">
-        <article class="run" id="rldx1-training" data-kind="training" data-search="training training rldx1-training projects/rldx1/train.html gr-1 plate-to-bowl finetune cut to two optimizer steps across 2 gpus. a gr-1 plate-to-bowl finetune cut to two optimizer steps across 2 gpus, so the whole
-                training path — config assembly, dataset specs, collator, trainer — stays visible. python rldx/experiment/launch_train.py --dataset-path data/gr1_platetobowl_8ep --base-model-path rlwrld/rldx-1-pt --num-gpus 2 --max-steps 2 projects/rldx1/train.html / 8.3 mb / entry __main__ &amp;middot; launch_train.py exit 0 &amp;middot; 1,149.4s launch_train.py &amp;middot; rank 0" style="--fam: var(--kind-training)">
+        <article class="run" id="rldx1-training" data-kind="training" data-search="training training rldx1-training projects/rldx1/train.html gr-1 plate-to-bowl finetune cut to two optimizer steps across 2 gpus, traced on rank 0 from config assembly through the in-process data pipeline, forward loss, deepspeed zero-2 backward and optimizer step, to checkpoint-2. python rldx/experiment/launch_train.py --n-cog-tokens 64 --video-length 4 --dataset-path data/gr1_platetobowl_8ep --embodiment-tag general_embodiment --modality-config-path rldx/configs/data/gr1_config.py --base-model-path rlwrld/rldx-1-pt --output-dir ./outputs/train_map_v2_traced_w0_20260917_112140 --num-gpus 2 --dataloader-num-workers 0 --global-batch-size 2 --save-steps 2 --save-total-limit 1 --max-steps 2 gr1 plate-to-bowl deepspeed zero-2 rank 0 exit 0 &amp;middot; 1271.2s" style="--fam: var(--kind-training)">
           <a class="run-link" href="projects/rldx1/train.html">
             <div>
               <h3 class="title"><span class="name">Training</span> <span class="chip kind">training</span> <span class="chip start">Start here</span></h3>
-              <p class="what">GR-1 plate-to-bowl finetune cut to two optimizer steps across 2 GPUs.</p>
+              <p class="what">GR-1 plate-to-bowl finetune cut to two optimizer steps across 2 GPUs, traced on rank 0 from config assembly through the in-process data pipeline, forward loss, DeepSpeed ZeRO-2 backward and optimizer step, to checkpoint-2.</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1,149.4s</span><span class="pill size">8.3 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>34.8%</b></span></div><div class="bar"><i style="width: 34.8%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1271.2s</span><span class="pill size heavy">39.9 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>35.0%</b></span></div>
+                <div class="bar"><i style="width: 35.0%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
             <summary>Command &amp; capture notes</summary>
-            <p class="what-full">A GR-1 plate-to-bowl finetune cut to two optimizer steps across 2 GPUs, so the whole
-                training path &mdash; config assembly, dataset specs, collator, trainer &mdash; stays visible.</p>
+            <p class="what-full">GR-1 plate-to-bowl finetune cut to two optimizer steps across 2 GPUs, traced on rank 0 from config assembly through the in-process data pipeline, forward loss, DeepSpeed ZeRO-2 backward and optimizer step, to checkpoint-2.</p>
             <div class="cmd-row">
-              <code class="cmd">python rldx/experiment/launch_train.py <span class="flag">--dataset-path</span> data/gr1_platetobowl_8ep <span class="flag">--base-model-path</span> RLWRLD/RLDX-1-PT <span class="flag">--num-gpus</span> 2 <span class="flag">--max-steps</span> 2</code>
+              <code class="cmd">python rldx/experiment/launch_train.py --n-cog-tokens 64 --video-length 4 --dataset-path data/gr1_platetobowl_8ep --embodiment-tag GENERAL_EMBODIMENT --modality-config-path rldx/configs/data/gr1_config.py --base-model-path RLWRLD/RLDX-1-PT --output-dir ./outputs/train_map_v2_traced_w0_20260917_112140 --num-gpus 2 --dataloader-num-workers 0 --global-batch-size 2 --save-steps 2 --save-total-limit 1 --max-steps 2</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/rldx1/train.html<span class="sep">/</span>8.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; launch_train.py</p>
-            <p class="outcome">exit 0 &amp;middot; 1,149.4s</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>262</dd></div>
-                <div><dt>Edges</dt><dd>433</dd></div>
-                <div><dt>Calls</dt><dd>160,232</dd></div></dl>
+            <p class="local">projects/rldx1/train.html<span class="sep">/</span>39.9 MB<span class="sep">/</span>entry <code>__main__</code> &middot; rldx/experiment/launch_train.py</p>
+            <p class="outcome">exit 0 &middot; 1271.2s &middot; 2/2 steps &middot; train_loss 0.71875 &middot; rank 0 of 2</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>4,304</dd></div>
+              <div><dt>Edges</dt><dd>4,388</dd></div>
+              <div><dt>Calls</dt><dd>1,949,898</dd></div>
+            </dl>
           </details>
         </article>
-        <article class="run" id="rldx1-inference" data-kind="eval" data-search="inference eval rldx1-inference projects/rldx1/inference.html a single action chunk read out of the robocasa checkpoint through rldxpolicy — the notebook quickstart transcribed to a script so it has a traceable argv. a single action chunk read out of the robocasa checkpoint through rldxpolicy
-                — the notebook quickstart transcribed to a script so it has a traceable argv. python docs/code_mapping/quickstart_infer.py projects/rldx1/inference.html / 5.2 mb / entry __main__ &amp;middot; quickstart_infer.py exit 0 &amp;middot; 42.3s quickstart &amp;middot; one get_action" style="--fam: var(--kind-eval)">
+        <article class="run" id="rldx1-inference" data-kind="eval" data-search="inference eval rldx1-inference projects/rldx1/inference.html a single action chunk read out of the robocasa checkpoint through rldxpolicy — the notebook quickstart transcribed to a script so it has a traceable argv. python docs/code_mapping/quickstart_infer.py robocasa quickstart one get_action exit 0 &amp;middot; 70.1s" style="--fam: var(--kind-eval)">
           <a class="run-link" href="projects/rldx1/inference.html">
             <div>
               <h3 class="title"><span class="name">Inference</span> <span class="chip kind">eval</span></h3>
               <p class="what">A single action chunk read out of the RoboCasa checkpoint through RLDXPolicy — the notebook quickstart transcribed to a script so it has a traceable argv.</p>
             </div>
             <div class="metrics">
-              <div class="pills"><span class="verdict">exit 0</span><span class="pill">42.3s</span><span class="pill size">5.2 MB</span></div>
-              <div class="cov"><div class="covtop"><span class="covlabel">Line coverage</span><span><b>30.6%</b></span></div><div class="bar"><i style="width: 30.6%"></i></div></div>
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">70.1s</span><span class="pill size heavy">17.6 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>36.4%</b></span></div>
+                <div class="bar"><i style="width: 36.4%"></i></div>
+              </div>
             </div>
           </a>
           <details class="run-more">
             <summary>Command &amp; capture notes</summary>
-            <p class="what-full">A single action chunk read out of the RoboCasa checkpoint through <code>RLDXPolicy</code>
-                &mdash; the notebook quickstart transcribed to a script so it has a traceable argv.</p>
+            <p class="what-full">A single action chunk read out of the RoboCasa checkpoint through <code>RLDXPolicy</code> &mdash; the notebook quickstart transcribed to a script so it has a traceable argv.</p>
             <div class="cmd-row">
               <code class="cmd">python docs/code_mapping/quickstart_infer.py</code>
               <button type="button" class="copy-cmd">Copy</button>
             </div>
-            <p class="local">projects/rldx1/inference.html<span class="sep">/</span>5.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; quickstart_infer.py</p>
-            <p class="outcome">exit 0 &amp;middot; 42.3s</p>
-            <dl class="counts"><div><dt>Functions</dt><dd>199</dd></div>
-                <div><dt>Edges</dt><dd>301</dd></div>
-                <div><dt>Calls</dt><dd>2,491</dd></div></dl>
+            <p class="local">projects/rldx1/inference.html<span class="sep">/</span>17.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/quickstart_infer.py</p>
+            <p class="outcome">exit 0 &middot; 70.1s &middot; one get_action</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,370</dd></div>
+              <div><dt>Edges</dt><dd>2,385</dd></div>
+              <div><dt>Calls</dt><dd>23,854</dd></div>
+            </dl>
           </details>
         </article>
 </div>
