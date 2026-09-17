@@ -15,6 +15,8 @@
   has its own summary budget; the call's last statement gets a final step; a
   resumed generator names the statement it resumed; a one-statement `while True`
   body counts its runs; an object whose __class__ raises does not drop the sample.
+- Statements inside a `try` body, `match` cases and a backslash-continued `with`
+  header each map to the right statement.
 No coverage, data or GPU; the torch/numpy tests are skipped without them.
 """
 from __future__ import annotations
@@ -121,6 +123,23 @@ def finally_return(x):
     finally:
         x = 0
 
+def guarded(n):
+    x = [0] * (2 * n)
+    try:
+        x = x[:n]
+        x = x + [n]
+        y = len(x) + 0
+    except ValueError:
+        y = None
+    x = x[:3]
+    return y, x
+
+def continued_with(path):
+    with open(path) as a, \\
+            open(path) as b: n = 1
+    after_with = n + 1
+    return after_with
+
 def many(n):
     a = 0
     b = 1
@@ -128,6 +147,18 @@ def many(n):
     d = 3
     e = 4
     return a + b + c + d + e + n
+"""
+
+MATCH_SOURCE = """
+def dispatch(cmd, v):
+    match cmd:
+        case "a":
+            z = v
+            z = z + 1
+        case "b" if v: z = -1
+        case _:
+            z = 0
+    return z
 """
 
 TORCH_SOURCE = """
@@ -401,6 +432,38 @@ class StatementValueTests(unittest.TestCase):
         self.assertEqual(value_before(s, "a", self.line("total = a.sum()"))["head"][0], 0.0)
         self.assertIn(str(self.line("a[-1] = 7.0")), s["stmt_left"])
         self.assertTrue(any("a" in st["vars"] and st["after"] == self.line("a[-1] = 7.0") for st in s["steps"]))
+
+    def test_statements_inside_a_try_body_have_their_own_values(self):
+        graph = self.capture("try_body", SOURCE, lambda m: m.guarded(4))
+        s = self.sample(graph, "guarded")
+        first = self.line("x = x[:n]")
+        for text in ("x = x[:n]", "x = x + [n]", "y = len(x) + 0"):
+            self.assertIn(str(self.line(text)), s["stmt_first"], text)
+        self.assertEqual(value_after(s, "x", first)["n"], 4)
+        self.assertEqual(value_after(s, "x", self.line("x = x + [n]"))["n"], 5)
+        self.assertEqual(value_after(s, "x", self.line("x = x[:3]"))["n"], 3)
+        self.assertEqual(value_before(s, "x", first)["n"], 8)
+
+    def test_match_cases_are_their_own_statements(self):
+        if sys.version_info < (3, 10):
+            self.skipTest("match needs Python 3.10+")
+        graph = self.capture("match_cases", MATCH_SOURCE, lambda m: [m.dispatch("a", 1), m.dispatch("c", 0)])
+        samples = next(c for c in graph["calls"] if c["name"] == "dispatch")["samples"]
+        first = samples[0]
+        self.assertIn(str(self.line('case "a":')), first["stmt_first"])
+        self.assertEqual(value_after(first, "z", self.line("z = v"))["r"], "1")
+        self.assertEqual(value_after(first, "z", self.line("z = z + 1"))["r"], "2")
+        other = samples[1]
+        self.assertNotIn(str(self.line("z = v")), other["stmt_first"])
+        self.assertEqual(value_after(other, "z", self.line("z = 0"))["r"], "0")
+
+    def test_continued_with_header_keeps_its_same_line_body(self):
+        graph = self.capture("with_continued", SOURCE, lambda m: m.continued_with(m.__file__))
+        s = self.sample(graph, "continued_with")
+        header = self.line("with open(path) as a")
+        self.assertTrue(self.lines[header - 1].rstrip().endswith("\\"), "the fixture keeps its continuation")
+        self.assertNotIn(str(header + 1), s["stmt_first"])
+        self.assertEqual(value_before(s, "n", self.line("after_with = n + 1"))["r"], "1")
 
     def test_numpy_in_place_writes(self):
         try:

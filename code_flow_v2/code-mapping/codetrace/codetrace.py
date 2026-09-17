@@ -263,6 +263,12 @@ _TOKEN_ITEMS = 16        # container items looked at by a change token
 _DIGEST_ELEMENTS = 65536 # numpy elements digested in full; larger arrays are sampled
 
 
+_MATCH_CASE = getattr(ast, "match_case", None)
+_STMT_NODES = (ast.stmt, ast.excepthandler) + ((_MATCH_CASE,) if _MATCH_CASE else ())
+_HEADER_PARTS = (ast.expr, ast.keyword, ast.arg) + ((ast.pattern,) if hasattr(ast, "pattern") else ())
+_TRY_NODES = (ast.Try,) + ((ast.TryStar,) if hasattr(ast, "TryStar") else ())
+
+
 def _stmt_maps_for_file(filename):
     """Statement maps for every function in a file, from one parse:
     ({line: statement start}, {with header: (body start, body end)},
@@ -276,26 +282,34 @@ def _stmt_maps_for_file(filename):
             continue
         mapping, withs, extra, merged = {}, {}, {"returns": set(), "finally": []}, set()
         for node in ast.walk(fn):              # breadth first: inner statements overwrite their parents
-            if node is fn or not isinstance(node, (ast.stmt, ast.excepthandler)) or id(node) in merged:
+            if node is fn or not isinstance(node, _STMT_NODES) or id(node) in merged:
                 continue
+            start = node.pattern.lineno if _MATCH_CASE and isinstance(node, _MATCH_CASE) else node.lineno
             kids = [c.lineno for f in ("body", "orelse", "handlers", "finalbody")
                     for c in (getattr(node, f, None) or []) if hasattr(c, "lineno")]
-            end = min(kids) - 1 if kids else (getattr(node, "end_lineno", None) or node.lineno)
+            kids += [c.pattern.lineno for c in (getattr(node, "cases", None) or [])]   # a match ends before its first case
+            end = min(kids) - 1 if kids else (getattr(node, "end_lineno", None) or start)
             # a body on the last line of a multi-line header (`if (a and\n b): y = 5`) shares
-            # that line's events with the header: keep it part of the header's statement
-            header_end = max([getattr(c, "end_lineno", None) or c.lineno for c in ast.iter_child_nodes(node)
-                              if not isinstance(c, ast.stmt) and hasattr(c, "lineno")] + [node.lineno])
+            # that line's events with the header: keep it part of the header's statement. Only
+            # header parts count (not except handlers or match cases, which are statements of their own)
+            parts = []
+            for c in ast.iter_child_nodes(node):
+                if isinstance(c, _HEADER_PARTS):
+                    parts.append(c)
+                elif isinstance(c, (ast.withitem, ast.arguments)):
+                    parts.extend(ast.iter_child_nodes(c))
+            header_end = max([getattr(c, "end_lineno", None) or c.lineno for c in parts if hasattr(c, "lineno")] + [start])
             for c in (getattr(node, "body", None) or []):
                 if isinstance(c, ast.stmt) and c.lineno <= header_end:
                     merged.add(id(c))
                     end = max(end, getattr(c, "end_lineno", None) or c.lineno)
-            for line in range(node.lineno, end + 1):
-                mapping[line] = node.lineno
+            for line in range(start, max(end, header_end) + 1):
+                mapping[line] = start
             if isinstance(node, (ast.With, ast.AsyncWith)) and node.body:
                 withs[node.lineno] = (node.body[0].lineno, getattr(node, "end_lineno", None) or node.body[-1].lineno)
             if isinstance(node, ast.Return):
                 extra["returns"].add(node.lineno)
-            if isinstance(node, ast.Try) and node.finalbody:
+            if isinstance(node, _TRY_NODES) and node.finalbody:
                 extra["finally"].append((node.finalbody[0].lineno,
                                          getattr(node.finalbody[-1], "end_lineno", None) or node.finalbody[-1].lineno))
         maps.setdefault((filename, min([fn.lineno] + [d.lineno for d in fn.decorator_list])), (mapping, withs, extra))
