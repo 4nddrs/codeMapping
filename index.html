@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>87</b><span>Sessions</span></div>
-      <div class="tot"><b>109,110</b><span>Functions traced</span></div>
-      <div class="tot"><b>41,916,704</b><span>Calls recorded</span></div>
-      <div class="tot"><b>229,839</b><span>Lines executed</span></div>
-      <div class="tot"><b>635,671</b><span>Lines in scope</span></div>
+      <div class="tot"><b>88</b><span>Sessions</span></div>
+      <div class="tot"><b>113,379</b><span>Functions traced</span></div>
+      <div class="tot"><b>42,656,276</b><span>Calls recorded</span></div>
+      <div class="tot"><b>234,416</b><span>Lines executed</span></div>
+      <div class="tot"><b>646,743</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -825,6 +825,7 @@
           <a href="#wan22-ti2v-5b">Wan2.2-TI2V-5B</a>
           <a href="#rollingforcing">RollingForcing</a>
           <a href="#diffusion-forcing">Diffusion Forcing</a>
+          <a href="#self-forcing">Self Forcing</a>
         </div>
       </div>
     </nav>
@@ -3174,6 +3175,45 @@
               <div><dt>Functions</dt><dd>1,252</dd></div>
               <div><dt>Edges</dt><dd>1,251</dd></div>
               <div><dt>Calls</dt><dd>4,065</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
+
+<details class="shelf repo-shelf" id="self-forcing">
+<summary class="shelfhead repo-summary"><h2>Self Forcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Self Forcing (guandeh17/Self-Forcing) DMD distillation training mapping: a bounded two-step capture on 2 x RTX A6000, traced on rank 0 of a 2-rank torchrun job while rank 1 ran bare. The student generates 21 latent frames block by block through its own KV cache and backpropagates through exactly one denoising step per rollout; the DMD generator loss and the critic loss close the loop. Eleven capture-time deviations are declared in the repository&#x27;s docs/code_mapping, the load-bearing ones being max_iters=2 instead of the paper&#x27;s ~600 iterations on 64 GPUs, a 1.3B DMD teacher instead of the released 14B one, and three memory patches (FSDP wrap granularity, text-encoder CPU offload, KV-cache lifetime) without which no real step completes on this host.</p>
+<div class="runs">
+        <article class="run" id="self-forcing-index" data-kind="training" data-search="dmd distillation training training self-forcing-index projects/self_forcing/index.html two optimizer steps of self forcing dmd distillation on 2 gpus: the student rolls out 21 frames block by block through its own kv cache, one denoising step carries the gradient, and the dmd and critic losses close the loop. python train.py --config_path docs/code_mapping/self_forcing_train_capture.yaml --logdir logs/self_forcing_train_codemap --disable-wandb --no_save --no_visualize training self forcing dmd distillation kv cache wan 1.3b exit 0 · 723.4s · 2/2 steps · generator 0.12921 · critic 0.1582 → 0.14355 · peak 40.8 GiB" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/self_forcing/index.html">
+            <div>
+              <h3 class="title"><span class="name">DMD distillation training</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of Self Forcing DMD distillation on 2 GPUs: the student rolls out 21 frames block by block through its own KV cache, one denoising step carries the gradient, and the DMD and critic losses close the loop.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">723.4s</span><span class="pill size heavy">22.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>41.3%</b></span></div>
+                <div class="bar"><i style="width: 41.3%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of Self Forcing DMD distillation on 2 GPUs: the student rolls out 21 frames block by block through its own KV cache, one denoising step carries the gradient, and the DMD and critic losses close the loop.</p>
+            <div class="cmd-row">
+              <code class="cmd">python train.py --config_path docs/code_mapping/self_forcing_train_capture.yaml --logdir logs/self_forcing_train_codemap --disable-wandb --no_save --no_visualize</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/self_forcing/index.html<span class="sep">/</span>22.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train.py</p>
+            <p class="outcome">2/2 steps · generator 0.12921 · critic 0.1582 → 0.14355 · peak 40.8 GiB</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>4,269</dd></div>
+              <div><dt>Edges</dt><dd>4,391</dd></div>
+              <div><dt>Calls</dt><dd>739,572</dd></div>
             </dl>
           </details>
         </article>
