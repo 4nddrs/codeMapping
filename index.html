@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>78</b><span>Sessions</span></div>
-      <div class="tot"><b>79,246</b><span>Functions traced</span></div>
-      <div class="tot"><b>14,043,383</b><span>Calls recorded</span></div>
-      <div class="tot"><b>182,624</b><span>Lines executed</span></div>
-      <div class="tot"><b>479,944</b><span>Lines in scope</span></div>
+      <div class="tot"><b>79</b><span>Sessions</span></div>
+      <div class="tot"><b>80,498</b><span>Functions traced</span></div>
+      <div class="tot"><b>14,047,448</b><span>Calls recorded</span></div>
+      <div class="tot"><b>183,817</b><span>Lines executed</span></div>
+      <div class="tot"><b>482,355</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -823,6 +823,7 @@
           <a href="#cosmos-framework">cosmos-framework</a>
           <a href="#wan22-ti2v-5b">Wan2.2-TI2V-5B</a>
           <a href="#rollingforcing">RollingForcing</a>
+          <a href="#diffusion-forcing">Diffusion Forcing</a>
         </div>
       </div>
     </nav>
@@ -2877,6 +2878,45 @@
 </div>
 </div>
 </details>
+<details class="shelf repo-shelf" id="diffusion-forcing">
+<summary class="shelfhead repo-summary"><h2>Diffusion Forcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Diffusion Forcing v1.5 (buoyancy99/diffusion-forcing, main branch) Minecraft video-training mapping: a bounded two-step capture on one RTX A6000, rendered from a single traced run. Green frames mark the reviewed lines that implement the paper&#x27;s mechanism, independent per-frame noise levels and the fused-SNR loss weighting. Two capture-time deviations are declared in the repository&#x27;s docs/code_mapping: the dataloader is forced in-process so the per-sample data path is visible, and the input is a synthetic three-clip fixture instead of the multi-day TECO Minecraft download, so the loss values describe an untrained model on noise.</p>
+<div class="runs">
+        <article class="run" id="diffusion-forcing-index" data-kind="training" data-search="diffusion forcing training diffusion-forcing-index projects/diffusion_forcing/index.html two optimizer steps of minecraft video training, from mp4 decode to adamw, with the per-frame noise levels and fused-snr loss weights that define diffusion forcing framed as innovation. python docs/code_mapping/capture/train_in_process.py +name=minecraft_train_map algorithm=df_video dataset=video_minecraft experiment.tasks=[training] experiment.training.max_steps=2 experiment.training.batch_size=1 algorithm.metrics=[] wandb.entity=code-mapping wandb.mode=disabled hydra.run.dir=outputs/code_mapping_train_map_inproc training minecraft video diffusion per-frame noise exit 0 · 53.3s · 2/2 steps · loss 0.52747 → 0.49831" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/diffusion_forcing/index.html">
+            <div>
+              <h3 class="title"><span class="name">Minecraft video training</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of Minecraft video training, from mp4 decode to AdamW, with the per-frame noise levels and fused-SNR loss weights that define Diffusion Forcing framed as innovation.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">53.3s</span><span class="pill size">7.6 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>49.5%</b></span></div>
+                <div class="bar"><i style="width: 49.5%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of Minecraft video training, from mp4 decode to AdamW, with the per-frame noise levels and fused-SNR loss weights that define Diffusion Forcing framed as innovation.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/capture/train_in_process.py +name=minecraft_train_map algorithm=df_video dataset=video_minecraft experiment.tasks=[training] experiment.training.max_steps=2 experiment.training.batch_size=1 algorithm.metrics=[] wandb.entity=code-mapping wandb.mode=disabled hydra.run.dir=outputs/code_mapping_train_map_inproc</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/diffusion_forcing/index.html<span class="sep">/</span>7.6 MB<span class="sep">/</span>entry <code>run</code> &middot; main.py</p>
+            <p class="outcome">2/2 steps · loss 0.52747 → 0.49831</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,252</dd></div>
+              <div><dt>Edges</dt><dd>1,251</dd></div>
+              <div><dt>Calls</dt><dd>4,065</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
+
 <details class="shelf repo-shelf" id="rollingforcing">
 <summary class="shelfhead repo-summary"><h2>RollingForcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
