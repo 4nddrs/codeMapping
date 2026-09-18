@@ -1,0 +1,13 @@
+{
+  "source": "Describe the narrow capture. Explicitly state what was NOT run (e.g. full perception). Note any ground-truth substitutions.",
+  "scenario": "scenario-or-suite-id",
+  "tools": {
+    "example.tool_name": {
+      "inputs": {},
+      "output": {}
+    }
+  },
+  "scripts": {},
+  "world": {},
+  "notes": ""
+}

@@ -1,0 +1,456 @@
+# codetrace
+
+Run a Python command **once**, then look at what it actually did.
+
+You get two standalone HTML pages, each an infinite zoomable canvas (scroll to pan,
+⌘/Ctrl+scroll to zoom) that you can open straight from disk — no server, no build:
+
+| page | what it shows |
+|---|---|
+| **call-tree.html** | Reached project functions and observed dependency endpoints. The entry point sits on the left; calls lead to cards to the **right**. Project cards show full source and recorded context lines; dependency source is an unhighlighted reference. |
+| **mosaic.html** | Every source file, complete and untruncated, laid out as blocks. Executed lines highlighted, never-imported files collapsed into a labelled band. |
+
+Arrows and coverage both come from **one real run** — not static analysis — so what
+you see is what happened, including dynamic dispatch, decorators and callbacks.
+
+Fresh captures record line events for each calling context. Each call-site card
+groups repeated calls from one caller and line; its highlights and outgoing
+arrows describe that group. Value samples retain their own invocation's line
+events. A group can contain both returns if different invocations took different
+branches. Older captures have only whole-run line coverage and remain explicitly
+labelled as such. Other-context links navigate to the caller card where a call
+was observed. The mosaic continues to show whole-run coverage.
+
+Observed calls into dependencies also have right-arrow endpoints. For example,
+`self.input_emb(x)` resolves through the recorded PyTorch dispatch to the actual
+`Linear.forward`, with bounded real input/output samples. Its source is a
+reference: dependency internals are not recursively traced or highlighted.
+Native calls retain the observed callable and receiver, but the profiler does
+not supply their arguments or return values. Operators without profiler call
+events cannot produce observed arrows. Do not infer execution from an AST call
+expression or a covered line alone, especially for short circuits and nested
+calls. See `external_capture` in `callgraph.json` for limits and dropped events.
+
+Some explicit native calls also emit no profiler event: for example, the
+`dict`, `map`, and `functools.partial` constructors, or a native function invoked
+through a native protocol. A measured PyTorch probe produced tensors from
+`map(partial(torch.stack, dim=-1), inputs)` without any call event, while a direct
+`torch.stack(...)` emitted `c_call`/`c_return`. Such expressions cannot receive an
+observed arrow from this capture API. Their missing arrows do not prove that
+they were skipped, and static source analysis must not fabricate destinations.
+
+The profiler can report both `yield None` and generator closure at the same
+instruction with the same value. These samples are labeled `unknown`; they do
+not claim a successful return or yield. When rebuilding older captures, the
+builder conservatively relabels ambiguous saved samples and aggregate counts,
+preserves their original labels as provenance, and leaves raw files unchanged.
+Non-None yielded values, including zero, remain available in the inspector.
+
+## Install
+
+Copy the complete `codetrace/` folder into the root of your repo. Use Python 3.9
+or newer with the target project's environment. One required dependency:
+
+```bash
+pip install coverage        # or: uv pip install coverage
+```
+
+The bundled regression suite runs with that same interpreter:
+
+```bash
+python -m unittest discover -s codetrace/tests -v
+```
+
+Its PyTorch-specific test uses the project's installed PyTorch and skips when
+PyTorch is absent. The other tests cover context lines, exact caller edges,
+dependency records, exceptions, threads, and compatibility with saved traces.
+
+> If you use `uv`, install coverage **into the project environment** and run with
+> `uv run --no-sync`. Do **not** use `uv run --with coverage` — that builds an overlay
+> environment that can shadow native packages. It cost me a debugging session: it made
+> CUDA header discovery return `None` and killed the run.
+
+> **Python 3.10 and older.** `co_qualname` only exists on 3.11+, so on older
+> interpreters the tracer can record only a bare `co_name` — every method arrives
+> as `__init__` / `step` / `forward` and never matches the AST's qualified names.
+> `_calltree.py` recovers the qualified name from `(file, co_firstlineno)` when the
+> bare name does not resolve; without that fallback a 3.10 run silently loses most
+> of its methods and the auto-detected entry point lands somewhere absurd.
+
+## Use
+
+Put your command after `--`, exactly as you would type it:
+
+```bash
+python codetrace/codetrace.py -- python -m yourpkg.cli train --epochs 3
+python codetrace/codetrace.py -- ./scripts/run_thing.py --fast
+python codetrace/codetrace.py -- yourconsolescript run something
+```
+
+Then open `codetrace_out/call-tree.html`.
+
+If your command needs environment variables, source them first — codetrace runs the
+target in-process, so it inherits your shell:
+
+```bash
+set -a; source .env; set +a
+python codetrace/codetrace.py -- yourcmd ...
+```
+
+## Options
+
+| flag | meaning |
+|---|---|
+| `--root DIR` | project root (default: current directory) |
+| `--out DIR` | where to write the pages (default: `codetrace_out`) |
+| `--include PATH` | a source dir/file that is *yours*, relative to root. Repeatable. Default: auto-detected top-level packages — check the `watching …` line it prints and override if it guessed wrong. |
+| `--entry NAME` | function to treat as the root of the tree. Default: the traced function that reaches the most others, which is normally your `main`. |
+| `--title` / `--brand` | page title and the small label above the command line |
+| `--label TEXT` | text for the outcome badge (default: `exit 0 · 12.3s`) |
+| `--keep-imports` | keep functions that only ran while importing modules (default: drop them) |
+| `--max-gap PX` | how far a callee may drop to sit level with its call site (default 300; raise for straighter arrows and a taller canvas) |
+| `--important PATTERN` / `--important-file FILE` | mark core-contribution functions (see below) |
+| `--innovation-file FILE` | frame the reviewed lines that implement the studied contribution in green (see below) |
+| `--no-values` | don't capture argument/local/return values (smaller page, faster) |
+| `--rebuild` | redraw from the trace already in `--out` instead of running the command |
+| `--no-mosaic` | skip the second page |
+
+## Moving around
+
+- **Follow a call**: click a `→ name` chip, or the underlined function name in the code.
+- **Return**: press <kbd>Enter</kbd>, click the `↩ return` chip on a `return` line, or the
+  `↩ Return` strip at the foot of any card. It takes you back to the **exact line that called
+  this function** — the one you followed a chip from, or its first caller if you arrived by
+  search. It does not reset the view to the top.
+- **Undo a jump**: <kbd>Backspace</kbd> / the ← Back button retraces your steps regardless of
+  what kind of jump they were.
+
+## Bundled callers (the numbered circle)
+
+A hot helper collects back-edges from all over the codebase — a logger, a config
+`__getattr__`, a norm layer. Drawn one arrow per call site, a dozen dashed
+curves converge on one card and the page becomes unreadable exactly where the
+interesting function is.
+
+So **incoming back/sideways edges are bundled**. Any function receiving two or
+more of them gets:
+
+- **one trunk line** into its card, plus a **numbered circle** at the knot where
+  the strands converge. Collapsed, that is all you see. The number is the count
+  of bundled **call sites**.
+- **hover the circle** → the individual dotted origin strands fan out to their
+  real call sites, and the trunk dims.
+- **click the circle** → keeps them fanned out (a small light dot inside the
+  circle marks the pinned state). Click again to release.
+- **right-click the circle** → the list of those call sites, grouped by calling
+  function with its file, each row showing the line number, `×N` when that line
+  called more than once, and `via …` when the call passed through third-party
+  code. **Click a row to fly to that caller's card at that exact line**;
+  <kbd>Backspace</kbd> brings you back.
+
+Functions with a single back-edge caller are drawn as a plain dashed arrow, as
+before, and forward edges are untouched.
+
+Two rules keep the feature honest:
+
+- The right-click list is built from **the bundle's own edges**, so its count
+  always equals the number on the circle. A caller that reaches the same
+  function by an ordinary forward arrow already has its own visible arrow and is
+  deliberately not listed — including those made the list disagree with the
+  circle, which is worse than the omission.
+- Nothing is hidden from the rest of the page: every strand is in the DOM with
+  its own `data-i` / `data-f` / `data-t`, so focus highlighting, the ★-only
+  filter and the caller chips all still see them. Focusing a card fans its own
+  bundle open.
+
+Bundling is a **rendering** choice and understates the arriving edge count until
+expanded — record it in `GAPS.md` the same as any other presentation decision.
+
+## Shortcut panel
+
+Bottom-left. Click the header (or press <kbd>?</kbd>) to collapse it to a small
+pill; the choice is remembered per viewer in `localStorage`, with every access
+guarded — private windows and blocked site data make that accessor throw, not
+just return null. Expanded it is a vertical list grouped into *Moving around*,
+*Following calls*, *Bundled callers* and *Inspecting*, capped at `46vh` with its
+own scroll so it can never push past the canvas on a short window.
+
+## Values: right-click a line
+
+Right-click any line to see what the variables on it held, one line per value:
+`name = (shape) (dtype) device [first values…]` for arrays and tensors, the type for objects
+and dicts, the value itself for scalars. The rows are grouped as **#output**, what the line
+assigns or returns, valued after it runs, and **#input**, what it reads, valued as the line
+starts (keyword-argument names are not listed). Click a row, or press Enter or Space on it,
+to open its statistics, dict keys or object fields, where it was sampled, and any recorded
+change strip. Right-click the header (or press **show all**) for everything the function saw:
+**#output** (returned), **#input** (arguments at call entry) and **#locals** (at function
+exit). Use ‹ › to step through the sampled calls. A card with no values links to the call
+sites of the same function that have them.
+
+These are real values from **the run you traced**, not re-executed: the first two calls at
+each call site (each call site has its own card). A sampled call records its arguments at
+entry, **what each statement changed** as the next statement starts, and its locals at exit.
+So the popup shows every name as the clicked statement first ran in that call — **#input** as
+it started, **#output** right after it — even when the same name is reassigned line after line
+(`x = self.encoder(x)`, `x = x[:, 1:]`, `memory = x`). A multi-line call is one statement, so
+clicking any of its lines shows the whole statement. A change is detected with a cheap token
+rather than a full summary: a new object (held by weak reference, so a reused memory address
+does not hide it), a tensor's shape and in-place version, a numpy array's shape and first
+bytes, a container's length and its first 16 items. So `batch["obs"] = batch["obs"][:, :2]`,
+`x.add_(1)` and `items.append(v)` are recorded, and an in-place change gets an `(after)` row.
+A change deeper in a container, or in an object's attributes, is not detected. A statement
+inside a loop shows its first run and says how many runs there were; later passes are
+recorded in bulk, which keeps the values exact where each statement first runs. An attribute
+(`self.x = …`, `self.history`) keeps its object's identity, so its row is labelled with the
+sampling point, e.g. `(at function exit)`, whenever another line or loop run may change it in
+between. A statement that ran in another sampled call but not this one says so. Each sampled
+call keeps at most 300 steps (the popup says when a line's values fell past that). Pass
+`--no-values` to skip values and get a much smaller page.
+
+Captures made before this per-statement recording (samples without `stmt_first`) are shown as
+before: values sampled at entry, at calls and at exit, with rows labelled by sampling point.
+
+**PyTorch modules.** A module value such as `self.encoder` reads
+`Sequential 4 submodules  (8, 5, 512) → (8, 5, 128)`: its class, its `extra_repr` (or how many
+submodules it has) and its first observed input → output shapes. Opening it lists each
+submodule (openable in turn), parameter shapes, the observed calls and the parameter count.
+The structure is stored once per module in the payload's `modules` table. Shapes come from
+the `forward` call and return events the profiler already sees for modules that appeared in
+a sampled value, so nothing inside torch is traced and no torch hook is installed.
+
+**Shape hints.** Every statement that assigns a tensor gets a faint `name (shape)` after its
+call chips, from the card's first sampled call, so a reassigned name reads line by line down
+the card: `x (8, 513, 256)`, `x (8, 513, 256)`, `x (8, 6, 256)`, `x (8, 6, 2)`. Inside a loop
+the hint is the statement's first run (its tooltip gives the run count). Older captures show a
+hint only where the value is unambiguous (no loop, no later assignment before the snapshot).
+
+The popup is a pinned inspector: it closes on an outside click or <kbd>Esc</kbd>, or
+when a jump moves the view — **not** on scroll, so you can wheel through a long value
+dump without dismissing it. Right-click is also handled as a gesture rather than a
+button: macOS Ctrl+click and touch long-press raise `contextmenu` with `button === 0`,
+so the release that follows is suppressed explicitly. Without that, the pointerup ran
+the ordinary left-click chain and closed the popup the right-click had just opened.
+
+The panel is **pinned**: it stays up while you scroll and zoom, and closes on a left click
+anywhere outside it, on <kbd>Esc</kbd>, or when a navigation moves the view.
+
+> A context menu is not always a right button — macOS **Ctrl+click** and a touch
+> **long-press** both raise `contextmenu` with `button === 0`. The viewer's `pointerup`
+> handler therefore checks a flag set by the `contextmenu` handler *as well as* the button,
+> because filtering on the button alone lets those two gestures run the whole left-click
+> chain on release: following chips, toggling ★, and closing the popup that had just opened.
+
+## Checking a page
+
+`check_values.py` opens a rendered page in headless Chrome (nothing else needed),
+finds a card by a search text, prints the shape hints of its lines, right-clicks
+lines with a real context-menu gesture and prints the popup rows, and fails on
+any JavaScript error. It is the standard acceptance check for values; run it on
+the local page, then on the served one.
+
+```bash
+python codetrace/check_values.py codetrace_out/call-tree.html \
+    --card "x = self.drop(cond_embeddings + position_embeddings)" --lines 462-495 --popup 473
+python codetrace/check_values.py https://…/projects/<slug>/index.html --expect docs/code_mapping/checks.json
+```
+
+An expectation file lists what a reader must see and is kept with the mapping:
+
+```json
+[{"card": "x = self.drop(cond_embeddings + position_embeddings)",
+  "hints": {"473": "x (8, 513, 256)", "493": "x (8, 6, 2)"},
+  "popup": 473,
+  "rows": ["x = (8, 513, 256)", "cond_embeddings = (8, 513, 256)"],
+  "not_rows": ["(at function exit)"]}]
+```
+
+Cover at least one function whose names are reassigned line by line (a
+`forward` with `x = …` several times) and one line that calls a submodule.
+The exit code is 1 when a hint or row differs, a line is not visible, a card is
+not found, or the page throws.
+
+## Core-contribution functions (★)
+
+Put the functions that *are* the paper's contribution in a text file, one glob per line, and
+they're drawn in violet with a ★, with an **★ N** button in the header (or <kbd>i</kbd>) that
+dims everything else:
+
+```
+# codetrace_important.txt   (auto-read from --root; or pass --important-file)
+WorkflowExecutor.*          # every method of a class
+execute_script_node
+gap/runtime/nodes.py:*      # everything in a file
+examples/*/scripts/*:run    # file glob + name
+```
+
+You can also click the ★ on any card to mark or unmark it by hand; those choices are kept in
+your browser. After editing the file, `--rebuild` redraws without re-running the command:
+
+```bash
+python codetrace/codetrace.py --rebuild --out codetrace_out --important-file mine.txt
+```
+
+## Paper-innovation frames (green)
+
+When the brief studies a specific contribution, such as a paper's method or a new
+mechanism, list the exact lines that implement it in an innovation file. Pass it
+with `--innovation-file` (relative paths resolve from the current directory), or
+save it as `codetrace_innovation.json` in `--root`:
+
+```json
+{
+  "label": "Policy innovation",
+  "functions": [
+    {"file": "src/policy.py", "function": "Policy.denoise", "role": "core",
+     "summary": "the new denoising step",
+     "ranges": [{"start": 120, "end": 124, "what": "applies the new noise schedule",
+                 "text": "noise = sched(t)"}]}
+  ]
+}
+```
+
+- `role` is `core` (solid frame) or `supporting` (dashed frame).
+- `start` and `end` are 1-based source lines inside that function.
+- `text` is optional; if given, it must equal the stripped source of line `start`.
+
+The full format is in the pack at `code-mapping/schemas/innovation.schema.md`.
+
+On the page:
+
+- Those cards keep their normal background and coverage colours and get a thick
+  **green frame**, plus a **◆ innovation** tag in the header; hover the tag for
+  the summary.
+- Each reviewed range gets a green gutter bar and green line numbers; hover a
+  line for what it does.
+- Zoomed out, lines in those ranges that ran on that card are drawn green, so the
+  framed cards stand out.
+- **◆ N** in the header (or <kbd>g</kbd>) dims the other cards; arrows are not
+  dimmed.
+- The ★ legend reads "★ curated critical path", or the file's `important_label`.
+  ★ still marks the curated reading path; green marks what is new.
+
+The file is checked before the traced command runs. The build stops with a
+one-line error for:
+
+- a missing file or bad JSON
+- a missing or unknown `role`
+- an empty `ranges` list
+- a range without `what`, or with `start` after `end`
+- a function listed twice
+
+After the run, a range outside its function or a `text` that no longer matches
+the source stops the page build with exit code 2. Fix the file and run again
+with `--rebuild`, since the trace is saved. A listed function that this run never
+reached is printed and recorded in `payload.innovation.unmatched`.
+
+## Reading the call tree
+
+- **Teal background** = line executed. **Amber** = a branch on that line was only taken one way. **Pink gutter** = statement never ran.
+- **`→ name` chip** on a line = that line called `name`; click it to fly there. `×N` is the call count.
+- **`↩ N callers`** in a card header cycles back through the places that called it; **← Back** / Backspace retraces your steps.
+- **Amber dashed arrows** go back or sideways — a callee first reached from a shallower level.
+  Where two or more of them arrive at the same function they are **bundled** into one
+  trunk with a numbered circle — see [Bundled callers](#bundled-callers-the-numbered-circle).
+- **`via …`** on a chip means the call passed through code that isn't yours (a `with` block's `contextlib`, a dataclass-generated `__init__`, a library callback) before landing in your function. The arrow still points at the line that caused it.
+- Press `/` to find a function, `m` to return to the entry point, `0` to fit everything,
+  `?` to collapse or expand the shortcut panel.
+- **Stage** (header, next to find) jumps to a curated section of the run. The
+  list is the `# --- heading` comments in `important.txt` — same file as the ★
+  marks, first matching card per section. Hidden when that file has no headings.
+
+## One card per call site, not per function
+
+A function entered from two different places can do two different things: it takes a
+different branch, or the `self` it is bound to dispatches somewhere else entirely. So a
+card is **one call site**, not one function — the same `def` can appear several times
+across the canvas, each card showing only the calls *that* entry actually made.
+
+The clearest case in RLDX-1 is `BasePolicy.get_action`, which runs twice:
+
+```
+main:63 ──▶ BasePolicy.get_action (card A, col 2)
+              L104 ─▶ RLDXSimPolicyWrapper.check_observation
+              L105 ─▶ RLDXSimPolicyWrapper._get_action
+              L107 ─▶ RLDXSimPolicyWrapper.check_action
+                        │
+              _get_action:520 ──▶ BasePolicy.get_action (card B, col 4)
+                                    L104 ─▶ RLDXPolicy.check_observation
+                                    L105 ─▶ RLDXPolicy._get_action
+                                    L107 ─▶ RLDXPolicy.check_action
+```
+
+Same three lines, different `self`, different callees. Collapsed into a single card those
+six out-edges sit on three lines with no way to tell which belongs to which entry, and the
+second entry reads as an arrow going *back* to a card you already came from — you follow it
+and land where you started. Per-call-site cards make the chain a chain: every hop moves
+right, and each card's chips are the calls that entry really made.
+
+Instances are keyed by `(function, calling card, calling line)`. Two calls from the *same*
+line of the *same* card share one card and its `×N` count goes up — a loop body does not
+spawn a card per iteration.
+
+**The cap.** `MAX_INSTANCES = 8` in `codetrace.py` bounds cards per function. Past it,
+further call sites collapse into one **merged** card. Fresh captures retain exact
+parent-instance edges even for this card; its body combines its recorded contexts.
+Legacy captures fall back to their explicitly aggregate graph. Hot utilities are
+what hit this: a `rank_zero_print` or a config
+`__getattr__` called from thirty places gets eight cards plus a merged ninth. Raise the
+constant if you need more; the page grows roughly linearly with it.
+
+**Effect on back-edges.** Per-call-site cards *duplicate* amber back-edges rather than add
+new ones. When a shared leaf gets a card per parent, one logical edge such as
+`is_global_zero:30 → get_global_rank` is drawn once per instance pair. On the RLDX-1
+inference trace that turned 31 back-edges into 49 — all 49 are copies of just 11 logical
+edges, 9 of them the logging chain `rank_zero_print → is_global_zero → get_global_rank`.
+A rising back-edge count after this change is expected; a rising count of *distinct*
+`from → to` name pairs is not, and means a real cycle appeared.
+
+## What ends up at the far left
+
+The leftmost card is the entry point, and everything else is to the right of it.
+
+- Running a **script** (`python solver.py`) or a **package** (`python -m app`): the entry
+  card is that file's top-level code, named `__main__`. Its `if __name__ == "__main__":`
+  calls are real arrows out to the right.
+- Running a **console script** whose wrapper lives outside your repo: the entry is your
+  own first function — usually `main`.
+- Either way you can force it with `--entry`.
+
+## What is and isn't drawn
+
+- **Only your code.** Third-party and stdlib frames are walked past, never drawn.
+- **Import-time work is dropped** by default: functions that only ran because a module
+  was imported (decorators, registration hooks) are not part of what your command *did*.
+  Pass `--keep-imports` to see them.
+- **Comprehensions and lambdas** attach to the function containing them.
+- **Threads** are followed: a thread body attaches to the line that called `.start()`.
+- If the target crashes, the partial run is drawn anyway.
+
+## Cost
+
+The profiler hook adds roughly 10–15% wall time on a mixed workload; coverage adds its
+own overhead. Recording values per statement costs extra only inside the sampled calls
+(the first two at each call site): each statement of such a call compares its locals
+by cheap tokens, and summarizes only what changed. A hot pure-Python loop inside a
+sampled call is the worst case (about 1.5× the round-3 tracer on a 300k-iteration
+loop); GPU workloads barely notice. Fine for a single run of most commands; not
+something to leave on in production.
+
+## Files
+
+```
+codetrace/
+  codetrace.py    CLI, the tracer, and orchestration
+  _calltree.py    call graph + coverage -> laid-out tree
+  _boundaries.py  observed dependency call boundaries
+  _mosaic.py      coverage -> file mosaic
+  _render.py      payload + template -> standalone HTML
+  check_values.py headless-browser check of a rendered page (values, shapes, errors)
+  menu_card.py    card + README row for the shared menu
+  templates/      the two canvas viewers
+  tests/          run with `python -m unittest discover -s tests` in the project's environment
+```
+
+Output goes to `--out` (default `codetrace_out/`): the two HTML pages, plus
+`callgraph.json`, `coverage.json`, the payloads, and `run.log` if you want the raw data.

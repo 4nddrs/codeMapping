@@ -1,0 +1,31 @@
+{
+  "source": "Describe provenance: command, date, run directory, and any caveats (cache hits, truncated arrays, etc.). No secrets.",
+  "command": "exact command here",
+  "trace": "outputs/run_YYYYMMDD_HHMMSS",
+  "result": {
+    "exit": "success",
+    "success": true,
+    "reward": null,
+    "wallclock_s": null,
+    "notes": {}
+  },
+  "dag": [
+    {
+      "name": "step.or.node.name",
+      "node_type": "tool|script|subgraph|noop|other",
+      "script": null,
+      "status": "ok",
+      "duration_ms": 0,
+      "error": null
+    }
+  ],
+  "nodes": {
+    "step.or.node.name": {
+      "resolved_inputs": {},
+      "output": {},
+      "subcalls": [],
+      "assets": []
+    }
+  },
+  "gaps_refs": []
+}

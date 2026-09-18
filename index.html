@@ -822,6 +822,7 @@
           <a href="#molmoact2">MolmoAct2</a>
           <a href="#cosmos-framework">cosmos-framework</a>
           <a href="#wan22-ti2v-5b">Wan2.2-TI2V-5B</a>
+          <a href="#rollingforcing">RollingForcing</a>
         </div>
       </div>
     </nav>
@@ -2876,6 +2877,45 @@
 </div>
 </div>
 </details>
+<details class="shelf repo-shelf" id="rollingforcing">
+<summary class="shelfhead repo-summary"><h2>RollingForcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">RollingForcing DMD training mapping: 2-GPU torchrun capture that reaches backward and fails with CUDA OOM during checkpoint recompute; published as a codetrace call tree + line coverage page.</p>
+<div class="runs">
+        <article class="run" id="rollingforcing-index" data-kind="training" data-search="training training rollingforcing-index projects/rollingforcing/index.html 2-gpu dmd training run traced under torchrun; reaches generator_loss.backward() and fails with cuda oom during checkpoint recompute. torchrun --nproc_per_node=2 --rdzv_backend=c10d --rdzv_endpoint 127.0.0.1:29601 train.py -- --config_path docs/code_mapping/rolling_forcing_dmd_1gpu.yaml --logdir docs/code_mapping/runs/smoke_log --no_save --no_visualize --disable-wandb 2gpu_oom_backward exit 1 · 384.7s" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/rollingforcing/index.html">
+            <div>
+              <h3 class="title"><span class="name">Training</span> <span class="chip kind">training</span></h3>
+              <p class="what">2-GPU DMD training run traced under torchrun; reaches generator_loss.backward() and fails with CUDA OOM during checkpoint recompute.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict bad">exit 1</span><span class="pill">384.7s</span><span class="pill size heavy">32.4 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.8%</b></span></div>
+                <div class="bar"><i style="width: 42.8%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">2-GPU DMD training run traced under torchrun; reaches generator_loss.backward() and fails with CUDA OOM during checkpoint recompute.</p>
+            <div class="cmd-row">
+              <code class="cmd">torchrun --nproc_per_node=2 --rdzv_backend=c10d --rdzv_endpoint 127.0.0.1:29601 train.py -- --config_path docs/code_mapping/rolling_forcing_dmd_1gpu.yaml --logdir docs/code_mapping/runs/smoke_log --no_save --no_visualize --disable-wandb</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/rollingforcing/index.html<span class="sep">/</span>32.4 MB<span class="sep">/</span>entry <code>main</code> &middot; train.py</p>
+            
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>5,055</dd></div>
+              <div><dt>Edges</dt><dd>5,561</dd></div>
+              <div><dt>Calls</dt><dd>794,363</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
+
 <details class="shelf repo-shelf" id="molmoact2">
 <summary class="shelfhead repo-summary"><h2>MolmoAct2</h2><span class="n">4</span><span class="preview">1 training · 1 eval · 2 serve</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">

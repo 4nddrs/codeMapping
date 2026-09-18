@@ -1,0 +1,13 @@
+{
+  "enableSkillCommands": true,
+  "defaultProvider": "openai",
+  "defaultModel": "gpt-4.1",
+  "defaultThinkingLevel": "off",
+  "packages": [
+    "npm:pi-subagents",
+    {
+      "source": "npm:@coresofthq/pi-litellm-autorouter",
+      "extensions": []
+    }
+  ]
+}

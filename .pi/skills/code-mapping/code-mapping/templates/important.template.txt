@@ -1,0 +1,40 @@
+# Core-contribution / critical-path functions
+# Command: <paste brief command>
+# One pattern per line: file:qualified.name
+# Globs allowed. Every entry needs a why comment.
+
+# --- bootstrap / CLI
+
+# path/to/cli.py:main
+#     why: …
+#     layer: bootstrap
+
+# --- orchestrator / runtime
+
+# path/to/executor.py:Executor.run
+#     why: …
+#     layer: orchestrator
+
+# --- domain steps (SUCCESS order)
+
+# path/to/step_a.py:run
+#     why: …
+#     layer: domain
+
+# --- verify
+
+# path/to/checkpoint.py:validate
+#     why: …
+#     layer: verify
+
+# --- failure / abort
+
+# path/to/abort.py:run
+#     why: …
+#     layer: failure
+
+# --- teardown
+
+# path/to/connector.py:close
+#     why: …
+#     layer: teardown

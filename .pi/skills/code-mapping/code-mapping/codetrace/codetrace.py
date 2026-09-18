@@ -1,0 +1,1434 @@
+#!/usr/bin/env python3
+"""codetrace — run a Python command once, then draw what actually executed.
+
+Produces two standalone HTML pages on a zoomable canvas:
+
+  call-tree.html   every function the run reached, one column right of its
+                   caller, arrows from the calling line to the callee's card
+  mosaic.html      every source file, full text, executed lines highlighted
+
+Usage
+-----
+    python codetrace/codetrace.py -- python -m yourpkg.cli --flag value
+    python codetrace/codetrace.py -- ./scripts/train.py --fast
+    python codetrace/codetrace.py -- yourconsolescript run thing
+
+Everything after `--` is the command, exactly as you would type it.
+
+See README.md for options.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import collections
+import importlib.util
+import io
+import itertools
+import json
+import linecache
+import os
+import runpy
+import shutil
+import sys
+import threading
+import time
+import weakref
+import zlib
+from itertools import count
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+_boundary_spec = importlib.util.spec_from_file_location("_codetrace_boundaries", HERE / "_boundaries.py")
+_boundary_module = importlib.util.module_from_spec(_boundary_spec)
+_boundary_spec.loader.exec_module(_boundary_module)
+BoundaryRecorder = _boundary_module.BoundaryRecorder
+
+DENY_DIRS = {
+    ".git", ".hg", ".svn", ".venv", "venv", "env", ".env", "node_modules",
+    "third_party", "thirdparty", "vendor", "vendored", "build", "dist",
+    "__pycache__", ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+    "site-packages", "htmlcov", ".idea", ".vscode", "codetrace",
+    # common run-artifact dirs that happen to contain .py
+    "outputs", "output", "runs", "wandb", "checkpoints", "logs", "artifacts",
+}
+
+
+# --------------------------------------------------------------------------
+# source roots
+# --------------------------------------------------------------------------
+def autodetect_roots(root: Path) -> list[str]:
+    """Top-level dirs/files holding this project's own Python."""
+    out = []
+    for p in sorted(root.iterdir()):
+        if p.name.startswith(".") or p.name in DENY_DIRS:
+            continue
+        if p.is_dir():
+            try:
+                next(p.rglob("*.py"))
+            except StopIteration:
+                continue
+            out.append(p.name)
+        elif p.suffix == ".py":
+            out.append(p.name)
+    return out
+
+
+# --------------------------------------------------------------------------
+# value summaries (what a variable held, compactly)
+# --------------------------------------------------------------------------
+import dataclasses
+
+MAX_SAMPLES = 2        # calls whose values we keep for each call-site card (first N)
+NODE_BUDGET = 900      # summary nodes per sample, so a giant dict can't blow up the page
+MAX_STEPS = 300        # value steps per sampled call: what each statement changed (CallTracer._line_step)
+MAX_PASSES = 2         # runs of a statement whose changes are recorded as they happen; later loop passes are coalesced
+MAX_INSTANCES = 8      # separate cards per function, one per distinct call site.
+                       # A function entered from two places can execute different
+                       # branches and call different things (BasePolicy.get_action
+                       # runs once as the sim wrapper and once as the policy), so a
+                       # single merged card shows both invocations' out-edges at
+                       # once and its back-edge loops onto itself. Past this many
+                       # sites (hot helpers like a logger) they merge, as before.
+MAX_LOCALS = 160       # names per snapshot. Must comfortably exceed a big function's
+                       # local count: a long function assigns its most interesting
+                       # result LAST (`out = ...` right before `return out`), so a low
+                       # cap drops exactly the value a reader came to see. NODE_BUDGET
+                       # still bounds the total work per snapshot.
+
+
+def _num(x):
+    if isinstance(x, bool) or x is None:
+        return x
+    if isinstance(x, int):
+        return x
+    if isinstance(x, float):
+        return float(f"{x:.5g}")
+    try:
+        return float(f"{float(x):.5g}")
+    except Exception:
+        return str(x)[:24]
+
+
+def _head(v, n=6):
+    """First n flat values of an array-like, on CPU, as plain numbers."""
+    if hasattr(v, "detach"):
+        v = v.detach()
+    if hasattr(v, "cpu"):
+        v = v.cpu()
+    flat = v.reshape(-1) if hasattr(v, "reshape") else v
+    part = flat[:n]
+    vals = part.tolist() if hasattr(part, "tolist") else list(part)
+    return [_num(x) for x in vals]
+
+
+def _safe_repr(v, limit=100):
+    if type(v).__repr__ is object.__repr__:
+        return None
+    try:
+        r = repr(v)
+    except Exception:
+        return None
+    return r if len(r) <= limit else r[:limit] + "…"
+
+
+# ---- nn.Module structure --------------------------------------------------
+# A module value is summarized with a "module" key into MODULES, which stores
+# each module once and is written to callgraph.json as "modules": class,
+# extra_repr, own parameter/buffer shapes, parameter count, children, and the
+# first observed input -> output shapes of its forward. So `self.encoder` opens
+# into its layers in the viewer without repeating the network in every sample.
+# Shapes come from the profile hook's call/return events of `forward` frames of
+# registered modules (torch's own frames included): nothing is traced inside
+# torch and no torch hook is installed, so dispatch is unchanged.
+MAX_MODULES = 800        # registered modules per run
+MAX_MODULE_CALLS = 2     # distinct input -> output shape signatures kept per module
+MAX_CHILDREN = 32        # children listed per module
+MODULES: dict = {}       # key -> {"t", "calls", "_seen", "_scanned"}; described at dump
+_MODULE_KEYS: dict = {}  # id(module) -> key
+_MODULE_REFS: dict = {}  # key -> module, kept referenced so ids stay unique
+_MODULE_TYPES: dict = {} # type -> is an nn.Module subclass
+
+
+def _is_module(v):
+    t = type(v)
+    hit = _MODULE_TYPES.get(t)
+    if hit is None:
+        hit = _MODULE_TYPES[t] = any(c.__name__ == "Module" and c.__module__ == "torch.nn.modules.module"
+                                     for c in t.__mro__)
+    return hit
+
+
+def _shape_of(x, depth=0):
+    shape = getattr(x, "shape", None)
+    if shape is not None and getattr(x, "dtype", None) is not None and not callable(shape):
+        try:
+            return [int(s) for s in shape]
+        except Exception:
+            return str(shape)[:40]
+    if isinstance(x, (list, tuple)) and depth < 2:
+        return [_shape_of(e, depth + 1) for e in list(x)[:4]]
+    if isinstance(x, dict) and depth < 2:
+        return {str(k)[:30]: _shape_of(e, depth + 1) for k, e in list(x.items())[:4]}
+    return type(x).__name__
+
+
+def _submodules(v):
+    try:
+        kids = vars(v).get("_modules")
+    except TypeError:
+        return []
+    return list(kids.items()) if isinstance(kids, dict) else []
+
+
+def _register_module(v, seen=None):
+    """Key for a module value. Registers it and, when new or rescanned (`seen`
+    given), the submodules it has now. None once MAX_MODULES are registered."""
+    key = _MODULE_KEYS.get(id(v))
+    if key is None:
+        if len(MODULES) >= MAX_MODULES:
+            return None
+        key = "m%d" % len(MODULES)
+        _MODULE_KEYS[id(v)] = key
+        _MODULE_REFS[key] = v
+        MODULES[key] = {"t": type(v).__name__}
+    elif seen is None:
+        return key   # children are rescanned at its first forward and at dump
+    seen = set() if seen is None else seen
+    if key in seen:
+        return key
+    seen.add(key)
+    for _name, child in _submodules(v)[:MAX_CHILDREN]:
+        if child is not None:
+            _register_module(child, seen)
+    return key
+
+
+def _describe_module(v, info):
+    out = {"t": info["t"]}
+    try:
+        extra = v.extra_repr()
+        if extra:
+            out["extra"] = str(extra)[:160]
+    except Exception:
+        pass
+    shapes = {}
+    try:
+        for store in ("_parameters", "_buffers"):
+            for name, t in list((vars(v).get(store) or {}).items())[:12]:
+                if t is not None and getattr(t, "shape", None) is not None:
+                    shapes[name] = _shape_of(t)
+    except Exception:
+        pass
+    if shapes:
+        out["params"] = shapes
+    try:
+        out["n_params"] = int(sum(p.numel() for p in v.parameters()))
+    except Exception:
+        pass
+    kids, children = _submodules(v), {}
+    for name, child in kids[:MAX_CHILDREN]:
+        key = _MODULE_KEYS.get(id(child)) if child is not None else None
+        if key:
+            children[str(name)] = key
+    if children:
+        out["children"] = children
+    if len(kids) > MAX_CHILDREN:
+        out["more_children"] = len(kids) - MAX_CHILDREN
+    if info.get("calls"):
+        out["calls"] = info["calls"]
+    return out
+
+
+def describe_modules():
+    """The "modules" table: registers submodules added since, then describes each module."""
+    for key in list(_MODULE_REFS):
+        _register_module(_MODULE_REFS[key], set())
+    return {key: _describe_module(_MODULE_REFS[key], info) for key, info in list(MODULES.items())}
+
+
+# ---- statements and change tokens (per-statement value steps) --------------
+# A sampled call records, at each statement it enters, the locals the previous
+# statement changed (CallTracer._line_step). Statements come from the AST so a
+# call spanning lines is one statement; a cheap token plus a weak reference
+# decide "changed" without summarizing every local at every statement.
+_STMT_MAPS: dict = {}    # (filename, co_firstlineno) -> (statements, withs, extra), see _stmt_maps_for_file
+_STMT_FILES: set = set() # files already parsed
+_STMT_LOCK = threading.Lock()
+_TENSOR: list = []       # torch.Tensor once torch is imported
+_NDARRAY: list = []      # (numpy.ndarray, numpy.generic) once numpy is imported
+_NO_WEAKREF: set = set() # types whose instances cannot be weakly referenced
+_VALUE_TYPES = frozenset((int, float, complex, bool, type(None)))
+_TOKEN_ITEMS = 16        # container items looked at by a change token
+_DIGEST_ELEMENTS = 65536 # numpy elements digested in full; larger arrays are sampled
+
+
+_MATCH_CASE = getattr(ast, "match_case", None)
+_STMT_NODES = (ast.stmt, ast.excepthandler) + ((_MATCH_CASE,) if _MATCH_CASE else ())
+_HEADER_PARTS = (ast.expr, ast.keyword, ast.arg) + ((ast.pattern,) if hasattr(ast, "pattern") else ())
+_TRY_NODES = (ast.Try,) + ((ast.TryStar,) if hasattr(ast, "TryStar") else ())
+
+
+def _stmt_maps_for_file(filename):
+    """Statement maps for every function in a file, from one parse:
+    ({line: statement start}, {with header: (body start, body end)},
+     {"returns": {return lines}, "finally": [(start, end) of finally bodies]})."""
+    maps = {}
+    source = "".join(linecache.getlines(filename))
+    if not source:
+        return maps
+    for fn in ast.walk(ast.parse(source)):
+        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        mapping, withs, extra, merged = {}, {}, {"returns": set(), "finally": []}, set()
+        for node in ast.walk(fn):              # breadth first: inner statements overwrite their parents
+            if node is fn or not isinstance(node, _STMT_NODES) or id(node) in merged:
+                continue
+            start = node.pattern.lineno if _MATCH_CASE and isinstance(node, _MATCH_CASE) else node.lineno
+            kids = [c.lineno for f in ("body", "orelse", "handlers", "finalbody")
+                    for c in (getattr(node, f, None) or []) if hasattr(c, "lineno")]
+            kids += [c.pattern.lineno for c in (getattr(node, "cases", None) or [])]   # a match ends before its first case
+            end = min(kids) - 1 if kids else (getattr(node, "end_lineno", None) or start)
+            # a body on the last line of a multi-line header (`if (a and\n b): y = 5`) shares
+            # that line's events with the header: keep it part of the header's statement. Only
+            # header parts count (not except handlers or match cases, which are statements of their own)
+            parts = []
+            for c in ast.iter_child_nodes(node):
+                if isinstance(c, _HEADER_PARTS):
+                    parts.append(c)
+                elif isinstance(c, (ast.withitem, ast.arguments)):
+                    parts.extend(ast.iter_child_nodes(c))
+            header_end = max([getattr(c, "end_lineno", None) or c.lineno for c in parts if hasattr(c, "lineno")] + [start])
+            for c in (getattr(node, "body", None) or []):
+                if isinstance(c, ast.stmt) and c.lineno <= header_end:
+                    merged.add(id(c))
+                    end = max(end, getattr(c, "end_lineno", None) or c.lineno)
+            for line in range(start, max(end, header_end) + 1):
+                mapping[line] = start
+            if isinstance(node, (ast.With, ast.AsyncWith)) and node.body:
+                withs[node.lineno] = (node.body[0].lineno, getattr(node, "end_lineno", None) or node.body[-1].lineno)
+            if isinstance(node, ast.Return):
+                extra["returns"].add(node.lineno)
+            if isinstance(node, _TRY_NODES) and node.finalbody:
+                extra["finally"].append((node.finalbody[0].lineno,
+                                         getattr(node.finalbody[-1], "end_lineno", None) or node.finalbody[-1].lineno))
+        maps.setdefault((filename, min([fn.lineno] + [d.lineno for d in fn.decorator_list])), (mapping, withs, extra))
+    return maps
+
+
+def _stmt_map(code):
+    """The statement maps of a code object (see _stmt_maps_for_file); empty when unknown."""
+    key = (code.co_filename, code.co_firstlineno)
+    entry = _STMT_MAPS.get(key)
+    if entry is None:
+        with _STMT_LOCK:                       # built completely before any thread can see it
+            entry = _STMT_MAPS.get(key)
+            if entry is None:
+                if code.co_filename not in _STMT_FILES:
+                    _STMT_FILES.add(code.co_filename)
+                    try:
+                        _STMT_MAPS.update(_stmt_maps_for_file(code.co_filename))
+                    except Exception:
+                        pass
+                entry = _STMT_MAPS.setdefault(key, ({}, {}, {"returns": set(), "finally": []}))
+    return entry
+
+
+def _in_spans(spans, line):
+    return any(a <= line <= b for a, b in spans)
+
+
+def _array_types():
+    if not _TENSOR and "torch" in sys.modules:
+        _TENSOR.append(getattr(sys.modules["torch"], "Tensor", type(None)))
+    if not _NDARRAY and "numpy" in sys.modules:
+        np = sys.modules["numpy"]
+        _NDARRAY.append((getattr(np, "ndarray", type(None)), getattr(np, "generic", type(None))))
+
+
+def _np_digest(v):
+    """crc32 of an array's contents: all of it up to _DIGEST_ELEMENTS, else a strided sample."""
+    n = v.size
+    if not n:
+        return 0
+    if n <= _DIGEST_ELEMENTS:
+        data = v.tobytes()
+    else:
+        data = v.flat[::max(1, n // (4096 if n <= 1 << 20 else 256))].tobytes()
+    return zlib.crc32(data)
+
+
+def _token(v, depth=0):
+    """Equal tokens (plus a live reference, see _ident) mean "unchanged" for a
+    local between two compared events: scalars, strings and numpy scalars by
+    value; tensors by shape and in-place version (inference tensors, which have
+    none, by data pointer and first values); numpy arrays by shape, dtype, data
+    pointer and a content digest; containers by length and their first items."""
+    t = type(v)
+    if t in _VALUE_TYPES:
+        return (t, repr(v) if t is float else v)
+    if t is str or t is bytes:
+        return (t, len(v), v if len(v) <= 256 else hash(v))
+    _array_types()
+    try:
+        if _TENSOR and issubclass(t, _TENSOR[0]):
+            try:
+                version = v._version
+            except Exception:                  # inference tensors keep no version counter
+                version = ("inference", v.data_ptr(), tuple(v.detach().reshape(-1)[:8].tolist()))
+            return (t, tuple(v.shape), version)
+        if _NDARRAY and issubclass(t, _NDARRAY[0][0]):
+            return (t, v.shape, str(v.dtype), v.__array_interface__["data"][0], _np_digest(v))
+        if _NDARRAY and issubclass(t, _NDARRAY[0][1]):
+            return (t, v.tobytes())
+        if depth:                              # a container's item: nested containers by address and size
+            return (t, id(v), len(v)) if issubclass(t, (dict, list, tuple, set, frozenset, collections.deque)) else (t,)
+        if issubclass(t, dict):
+            return (t, len(v), tuple((k if type(k) in _VALUE_TYPES or type(k) is str else id(k), _token(x, 1))
+                                     for k, x in itertools.islice(v.items(), _TOKEN_ITEMS)))
+        if issubclass(t, (list, tuple, collections.deque)):
+            return (t, len(v), tuple(_token(x, 1) for x in itertools.islice(v, _TOKEN_ITEMS)))
+        if issubclass(t, (set, frozenset)):
+            return (t, len(v))
+    except Exception:
+        return (t, id(v))
+    return (t,)
+
+
+def _ref(v):
+    """A weak reference to the object, its id when it cannot be weakly referenced,
+    None for values compared by their token alone."""
+    t = type(v)
+    if t in _VALUE_TYPES or t is str or t is bytes:
+        return None
+    if _NDARRAY and issubclass(t, _NDARRAY[0][1]):
+        return None
+    if t not in _NO_WEAKREF:
+        try:
+            return weakref.ref(v)
+        except TypeError:
+            _NO_WEAKREF.add(t)
+    return id(v)
+
+
+def _items(v):
+    t = type(v)
+    if issubclass(t, dict):
+        return itertools.islice(v.values(), _TOKEN_ITEMS)
+    if issubclass(t, (list, tuple, collections.deque)):
+        return itertools.islice(v, _TOKEN_ITEMS)
+    return ()
+
+
+def _ident(v, token=None):
+    """(token, refs): the change token plus live references to the object and,
+    for a container, its first items, so a freed object's address reused by a
+    new one does not look unchanged."""
+    token = _token(v) if token is None else token
+    try:
+        refs = (_ref(v),) + tuple(_ref(x) for x in _items(v))
+    except Exception:
+        refs = (id(v),)
+    return (token, refs)
+
+
+def _ref_ok(r, v):
+    if r is None:
+        return True
+    if type(r) is int:
+        return r == id(v)
+    return r() is v
+
+
+def _same(old, v, token):
+    token_old, refs = old
+    if token_old != token or not _ref_ok(refs[0], v):
+        return False
+    try:
+        for r, x in zip(refs[1:], _items(v)):
+            if not _ref_ok(r, x):
+                return False
+    except Exception:
+        return False
+    return True
+
+
+def _idents(local_values):
+    out = {}
+    for k, v in local_values.items():
+        try:
+            out[k] = _ident(v)
+        except Exception:
+            pass
+    return out
+
+
+def summarize(v, depth=0, budget=None):
+    """JSON-able summary: shape/dtype for arrays, nested keys for dicts, head values."""
+    if budget is None:
+        budget = [NODE_BUDGET]
+    if budget[0] <= 0:
+        return {"t": "…"}
+    budget[0] -= 1
+    t = type(v)
+    tn = t.__name__
+    try:
+        if v is None or isinstance(v, (bool, int, float, complex)):
+            if t.__module__ == "numpy" and hasattr(v, "item"):
+                v = v.item()                  # numpy 2 repr is np.float64(10.0); show 10.0
+            return {"t": tn, "r": repr(v)[:60]}
+        if isinstance(v, str):
+            return {"t": "str", "n": len(v), "r": v[:96] + ("…" if len(v) > 96 else "")}
+        if isinstance(v, (bytes, bytearray)):
+            return {"t": tn, "n": len(v)}
+        if isinstance(v, type):
+            return {"t": "type", "r": getattr(v, "__name__", tn)}
+        mkey = _register_module(v) if _is_module(v) else None   # structure: MODULES[mkey]
+        shape = getattr(v, "shape", None)
+        dtype = getattr(v, "dtype", None)
+        if shape is not None and dtype is not None and not callable(shape):
+            try:
+                shp = [int(x) for x in shape]
+            except Exception:
+                shp = [str(shape)]
+            d = {"t": tn, "shape": shp, "dtype": str(dtype)}
+            dev = getattr(v, "device", None)
+            if dev is not None:
+                d["device"] = str(dev)
+            rg = getattr(v, "requires_grad", None)
+            if rg is not None:
+                d["grad"] = bool(rg)          # True => a learned tensor, not just data
+            try:
+                d["head"] = _head(v)
+            except Exception:
+                pass
+            return d
+        if hasattr(v, "items") and hasattr(v, "keys"):
+            items, n = {}, None
+            try:
+                n = len(v)
+            except Exception:
+                pass
+            try:
+                for i, (k, x) in enumerate(v.items()):
+                    if i >= 24:
+                        items["…"] = {"t": "…", "r": f"+{(n or 0) - 24} more keys"}
+                        break
+                    items[str(k)[:60]] = summarize(x, depth + 1, budget) if depth < 10 else {"t": type(x).__name__}
+            except Exception:
+                pass
+            return dict({"t": tn, "n": n, "items": items}, **({"module": mkey} if mkey else {}))
+        if isinstance(v, (list, tuple, set, frozenset, range)):
+            seq = list(v) if isinstance(v, (set, frozenset)) else v
+            head = []
+            for i, x in enumerate(seq):
+                if i >= 4:
+                    break
+                head.append(summarize(x, depth + 1, budget) if depth < 10 else {"t": type(x).__name__})
+            return {"t": tn, "n": len(v), "head": head}
+        if dataclasses.is_dataclass(v):
+            fields = {}
+            if depth < 7:
+                for f in dataclasses.fields(v)[:16]:
+                    fields[f.name] = summarize(getattr(v, f.name, None), depth + 1, budget)
+            return {"t": tn, "fields": fields}
+        try:
+            dv = vars(v)
+        except TypeError:
+            dv = None
+        if dv and depth < 5:
+            attrs = {}
+            for k, x in dv.items():
+                if k.startswith("_"):
+                    continue
+                if len(attrs) >= 12:
+                    attrs["…"] = {"t": "…"}
+                    break
+                attrs[k] = summarize(x, depth + 1, budget)
+            out = {"t": tn, "attrs": attrs}
+            if mkey:
+                out["module"] = mkey
+            # An nn.Module keeps its learned tensors in the underscore-prefixed
+            # `_parameters` / `_buffers` dicts, which the loop above skips — so
+            # without this a module's own weights (cognition tokens, embeddings,
+            # norm scales) are invisible even though they are inputs to the
+            # computation and shape its output. Submodules (`_modules`) are
+            # deliberately NOT walked: that would unroll the whole network.
+            if depth < 4:
+                learned = {}
+                for src, kind in ((getattr(v, "_parameters", None), "param"),
+                                  (getattr(v, "_buffers", None), "buffer")):
+                    if not isinstance(src, dict):
+                        continue
+                    for k, t in src.items():
+                        if t is None or len(learned) >= 12:
+                            continue
+                        d2 = summarize(t, depth + 1, budget)
+                        if isinstance(d2, dict):
+                            d2["kind"] = kind
+                        learned[k] = d2
+                if learned:
+                    out["params"] = learned
+            return out
+        if mkey:
+            return {"t": tn, "module": mkey}
+        r = _safe_repr(v)
+        return {"t": tn, "r": r} if r is not None else {"t": tn}
+    except Exception:
+        return {"t": tn, "err": True}
+
+
+def _fp(s):
+    """Cheap identity of a summarized value — enough to tell 'it changed'.
+
+    Compares shape/dtype for arrays and tensors (which is the thing worth
+    watching as a value flows through `x = f(x); x = g(x)`), and type/len/repr
+    for everything else. Deliberately not a deep compare: this runs inside the
+    profile hook on every call a sampled function makes.
+    """
+    if not isinstance(s, dict):
+        return repr(s)[:80]
+    if "shape" in s:
+        h = s.get("head")
+        return (s.get("t"), tuple(s.get("shape") or ()), s.get("dtype"),
+                tuple(h[:2]) if isinstance(h, list) else None)
+    return (s.get("t"), s.get("n"), (s.get("r") or "")[:80])
+
+
+def summarize_locals(f_locals):
+    """Summarize a frame's locals, and SAY SO when anything is left out.
+
+    Silent truncation is worse than none: the panel looked complete while the
+    tail of a long function's locals was simply missing.
+    """
+    out, budget = {}, [NODE_BUDGET]
+    items = [(k, v) for k, v in f_locals.items() if not k.startswith("__")]
+    kept = 0
+    for k, v in items:
+        if kept >= MAX_LOCALS:
+            out["\u2026"] = {"t": "\u2026",
+                          "r": "+%d more names not captured" % (len(items) - kept)}
+            break
+        out[k] = summarize(v, 0, budget)
+        kept += 1
+        if budget[0] <= 0:
+            out["\u2026"] = {"t": "\u2026",
+                          "r": "summary budget reached; %d names not captured"
+                               % (len(items) - kept)}
+            break
+    return out
+
+
+# --------------------------------------------------------------------------
+# call tracer
+# --------------------------------------------------------------------------
+class CallTracer:
+    """Records (caller file, caller line, callee) for every in-project call.
+
+    Frames that are not the project's own code (contextlib, dataclass-generated
+    __init__, library callbacks) and module bodies are walked past, so an edge
+    always points at the line that actually caused the call. What was skipped is
+    remembered as `via`, and import-time work is tagged so it can be dropped.
+    """
+
+    def __init__(self, root: Path, roots: list[str], self_dir: Path):
+        self.root = str(root)
+        self.prefixes = tuple(os.path.join(str(root), r) for r in roots)
+        self.self_dir = str(self_dir)
+        self.main_file = ""      # the script/module run as __main__, set by run_target
+        self.edges: dict[tuple, list] = {}
+        self.calls: dict[tuple, list] = {}
+        self.samples: dict[tuple, list] = {}   # tkey -> [{args, locals, ret, n}]
+        self.pending: dict[int, dict] = {}     # live frame id -> partial sample
+        # --- call-tree instances -------------------------------------------
+        # `calls`/`edges` above are a call GRAPH: one entry per function, callers
+        # merged. These build the call TREE alongside it: one instance per
+        # (function, parent instance, calling line), so each call site is its own
+        # card and the parent link is exact rather than reconstructed at render.
+        self.insts: dict[tuple, int] = {}      # (tkey, parent, cline) -> inst id
+        self.inst_meta: list = []              # inst id -> record
+        self.frame_inst: dict[int, int] = {}   # live frame id -> inst id
+        self.tkey_insts: dict[tuple, int] = {} # tkey -> instances created so far
+        self.inst_samples: dict[int, int] = {}  # inst id -> sampled calls kept for that card
+        self._sample_lock = threading.Lock()
+        self._module_frames: dict[int, tuple] = {}   # live forward frame id -> (module key, input shapes)
+        MODULES.clear(); _MODULE_KEYS.clear(); _MODULE_REFS.clear()   # one module table per tracer
+        self.seq = count()
+        self._orig_thread_start = None
+        self._normalized_files = {}
+        self._project_files = {}
+        self.instance_edges = {}
+        self._line_frames = {}
+        self._previous_trace = None
+        self._previous_thread_trace = None
+        self._thread_traces = threading.local()
+        self._active = False
+        self.boundaries = BoundaryRecorder(
+            root, self.frame_inst, lambda fn: self._inproj(self._norm(fn)), summarize, summarize_locals,
+            max_samples=MAX_SAMPLES, context=lambda f: self.context(f) if hasattr(self, "context") else None,
+            next_seq=self.seq.__next__,
+            exclude=lambda fn: self._norm(fn).startswith(self.self_dir + os.sep),
+        )
+
+    def _norm(self, fn: str) -> str:
+        cached = self._normalized_files.get(fn)
+        if cached is not None:
+            return cached
+        normalized = fn if os.path.isabs(fn) else os.path.join(self.root, fn)
+        if len(self._normalized_files) < 8192:
+            self._normalized_files[fn] = normalized
+        return normalized
+
+    def _inproj(self, fn: str) -> bool:
+        cached = self._project_files.get(fn)
+        if cached is not None:
+            return cached
+        matched = not fn.startswith(self.self_dir) and any(
+            fn == p or fn.startswith(p + os.sep) or fn == p + ".py"
+            for p in self.prefixes
+        )
+        if len(self._project_files) < 8192:
+            self._project_files[fn] = matched
+        return matched
+
+    def _real_frame(self, f):
+        """Nearest in-project *named* caller frame, plus what we walked past."""
+        via = None
+        while f is not None:
+            c = f.f_code
+            n = c.co_name
+            if n.startswith("<"):
+                if n == "<module>":
+                    if self._norm(c.co_filename) == self.main_file:
+                        return f, via     # your script's top level: a real caller
+                    if via is None:
+                        via = "import"
+                f = f.f_back
+                continue
+            fn = self._norm(c.co_filename)
+            if not self._inproj(fn):
+                if via is None:
+                    base = os.path.basename(fn)
+                    via = base[:-3] if base.endswith(".py") else base
+                f = f.f_back
+                continue
+            return f, via
+        return None, via
+
+    def _profile(self, frame, event, arg):
+        if not self._active:
+            return
+        self.boundaries.profile(frame, event, arg)
+        if event == "return":
+            if self._module_frames and id(frame) in self._module_frames:
+                self._module_return(frame, arg)
+            inst = self.frame_inst.pop(id(frame), None)
+            p = self.pending.pop(id(frame), None)
+            if p is not None:
+                if "_ids" in p:
+                    self._line_step(p, frame, None)   # the call's last changes, as a final step
+                    stmts, withs, extra = _stmt_map(frame.f_code)
+                    ended = stmts.get(frame.f_lineno, frame.f_lineno)
+                    # the statement that ended the call: a `return` inside `with` or try/finally
+                    # reports the header's exit or the finally body here, not the return
+                    last_return = p.get("_last_return")
+                    if last_return is not None and ended != last_return and (ended in withs or _in_spans(extra["finally"], ended)):
+                        ended = last_return
+                    p["exit_after"] = ended
+                for key in ("_fp", "_tries", "_line", "_ids", "_map", "_with", "_extra", "_prev", "_elasti",
+                            "_skipped", "_resumed", "_last_return"):
+                    p.pop(key, None)        # internal change-detection state, not payload
+                if not p.get("steps"):
+                    p.pop("steps", None)    # as before: no key when nothing was recorded
+                p["executed_lines"] = sorted(p.pop("_executed_lines", ()))
+                status = self.boundaries._return_status(frame, arg)
+                p["status"] = status
+                try:
+                    p["locals"] = summarize_locals(frame.f_locals)
+                    if status == "returned":
+                        p["ret"] = summarize(arg)
+                    elif status == "suspended":
+                        p["yielded"] = summarize(arg)
+                    elif status == "raised":
+                        p["ret_unavailable"] = "exceptional exit; this invocation did not return a value"
+                    else:
+                        p["ret_unavailable"] = "profile event could not distinguish suspension from exceptional exit"
+                except Exception:
+                    pass
+                self.samples.setdefault(p.pop("tkey"), []).append(p)
+            return
+        if event != "call":
+            return
+        if _MODULE_KEYS and frame.f_code.co_name == "forward":
+            self._module_call(frame)   # shapes of a registered module, project or torch
+        code = frame.f_code
+        tfile = self._norm(code.co_filename)
+        if not self._inproj(tfile):
+            return
+        tname = getattr(code, "co_qualname", code.co_name)
+        leaf = tname.rsplit(".", 1)[-1]
+        if leaf.startswith("<"):
+            if leaf != "<module>" or tfile != self.main_file:
+                if leaf != "<module>":
+                    # Synthetic project frames share the enclosing card, but
+                    # retain actual line events and observed calls from their body.
+                    caller = frame.f_back
+                    while caller is not None:
+                        parent = self.frame_inst.get(id(caller))
+                        if parent is not None:
+                            self.frame_inst[id(frame)] = parent
+                            break
+                        caller = caller.f_back
+                return  # comprehension / lambda / an imported module body
+        s = next(self.seq)
+        tkey = (tfile, tname, code.co_firstlineno)
+        rec = self.calls.get(tkey)
+        if rec is None:
+            self.calls[tkey] = [1, s]
+        else:
+            rec[0] += 1
+        ncall = rec[0] if rec else 1   # values are sampled below, once the call-site card is known
+        b, via = self._real_frame(frame.f_back)
+        if b is None:
+            origin = getattr(threading.current_thread(), "_ct_origin", None)
+            ekey = (origin + ("thread",) + tkey) if origin else (("", 0, "", 0, via or "") + tkey)
+        else:
+            bc = b.f_code
+            ekey = (self._norm(bc.co_filename), b.f_lineno,
+                    getattr(bc, "co_qualname", bc.co_name), bc.co_firstlineno,
+                    via or "") + tkey
+        rec = self.edges.get(ekey)
+        if rec is None:
+            self.edges[ekey] = [1, s]
+        else:
+            rec[0] += 1
+
+        # --- call-tree instance ---------------------------------------------
+        parent = self.frame_inst.get(id(b), -1) if b is not None else -1
+        cline = b.f_lineno if b is not None else 0
+        immediate = frame.f_back
+        if immediate is not None and id(immediate) in self.frame_inst:
+            parent = self.frame_inst[id(immediate)]
+            cline = immediate.f_lineno
+        ikey = (tkey, parent, cline)
+        inst = self.insts.get(ikey)
+        if inst is None:
+            n_so_far = self.tkey_insts.get(tkey, 0)
+            if n_so_far >= MAX_INSTANCES:
+                # too many call sites (a logger, a norm layer): keep one merged
+                # card for this function, exactly as the graph view did.
+                inst = self.insts.setdefault((tkey, "merged", 0), len(self.inst_meta))
+                if inst == len(self.inst_meta):
+                    self.inst_meta.append({"tkey": tkey, "parent": -2, "cline": 0,
+                                           "via": via or "", "count": 0, "seq": s,
+                                           "merged": True})
+                self.insts[ikey] = inst
+            else:
+                inst = len(self.inst_meta)
+                self.insts[ikey] = inst
+                self.tkey_insts[tkey] = n_so_far + 1
+                self.inst_meta.append({"tkey": tkey, "parent": parent, "cline": cline,
+                                       "via": via or "", "count": 0, "seq": s,
+                                       "merged": False})
+        self.inst_meta[inst]["count"] += 1
+        self.inst_meta[inst].setdefault("executed_lines", set())
+        self.inst_meta[inst].setdefault("executed_arcs", set())
+        edge_key = (parent, inst, cline, via or "")
+        edge = self.instance_edges.setdefault(edge_key, {"parent": parent, "to": inst,
+            "cline": cline, "via": via or "", "count": 0, "seq": s})
+        edge["count"] += 1
+        self.frame_inst[id(frame)] = inst
+        # Keep the values of the first MAX_SAMPLES calls of each call-site card
+        # (module bodies excluded: too big), so a later call site (training after
+        # validation, a rollout loop) is not left without values. Decided only now
+        # that the card is known, so calls that are not kept never summarize their
+        # arguments; the check-and-reserve is locked so threads cannot overfill a card.
+        if leaf != "<module>":
+            with self._sample_lock:
+                keep = self._want_sample(tkey, frame) and self._keep_instance_sample(tkey, inst, frame)
+                if keep:
+                    self.inst_samples[inst] = self.inst_samples.get(inst, 0) + 1
+            if keep:
+                try:
+                    stmts, withs, extra = _stmt_map(code)
+                    # a resumed generator/coroutine continues the statement it suspended in
+                    resumed = stmts.get(frame.f_lineno) if code.co_flags & 0x3a0 and frame.f_lasti > 0 else None
+                    self.pending[id(frame)] = {"tkey": tkey, "n": ncall, "inst": inst,
+                                               "line_scope": "frame_and_synthetic_children",
+                                               "args": summarize_locals(frame.f_locals),
+                                               "steps": [], "stmt_first": {}, "stmt_left": {}, "stmt_hits": {},
+                                               "_ids": _idents(frame.f_locals), "_map": stmts, "_with": withs, "_extra": extra,
+                                               "_prev": resumed, "_resumed": resumed, "_elasti": frame.f_lasti, "_skipped": False}
+                    if resumed is not None:
+                        self.pending[id(frame)]["resumed"] = resumed
+                except Exception:
+                    pass
+
+    def _line_step(self, q, frame, line):
+        """Values per statement: at a line event of sampled frame `q` that starts a
+        statement run (line None: the call's exit), record what changed since.
+
+        steps[i] = {line, after, vars}: `vars` holds the locals that changed since
+        the previous step, taken as statement `line` starts (None at exit); `after`
+        is the statement that just ran. stmt_first[s] / stmt_left[s] are the step
+        counts when s was first entered / first left, so a name's value before s
+        first ran is its last step below stmt_first[s], and after, its last step
+        below stmt_left[s]. A resumed generator or coroutine finishes the statement
+        it suspended in: that leave is `resumed_left`, not stmt_left, so a later
+        run of the same statement in this call keeps the pair consistent.
+        Bounded per call: locals are compared (see _token, _same) only while the
+        statement that just ran is in its first MAX_PASSES runs, when a statement
+        is first entered or left, and at exit. Changes made in skipped loop passes
+        are picked up at the next compared event, so the points above stay exact;
+        that step is marked `coalesced` because its `after` did not make all of
+        them. At most MAX_STEPS steps; then steps_truncated = the count, and
+        later stmt_first/stmt_left read count + 1.
+        """
+        prev = q["_prev"]
+        if line is None:
+            cur = None
+            if prev is None:
+                return
+        else:
+            cur = q["_map"].get(line, line)
+            lasti = frame.f_lasti
+            if cur == prev:
+                if lasti > q["_elasti"]:
+                    return                   # another line of the same statement
+                # a backward jump to the statement's start: it runs again
+            q["_elasti"] = lasti
+        q["_prev"] = cur
+        hits, first, left = q["stmt_hits"], q["stmt_first"], q["stmt_left"]
+        resumed = q["_resumed"]
+        new_first = cur is not None and cur not in first
+        resume_left = prev is not None and prev == resumed and prev not in first and "resumed_left" not in q
+        new_left = prev is not None and prev not in left and not (prev == resumed and prev not in first)
+        if cur is not None:
+            body = q["_with"].get(cur)
+            with_exit = body is not None and prev is not None and body[0] <= prev <= body[1] and not new_first
+            refire = (cur in q["_extra"]["returns"] and cur in hits and prev is not None
+                      and _in_spans(q["_extra"]["finally"], prev))   # a return finishing after its finally body
+            if not with_exit and not refire:
+                hits[cur] = hits.get(cur, 0) + 1
+                if cur in q["_extra"]["returns"]:
+                    q["_last_return"] = cur
+        if not (cur is None or new_first or new_left or resume_left or hits.get(prev, 0) <= MAX_PASSES):
+            q["_skipped"] = True             # a later loop pass: caught up at the next compared event
+            return
+        steps = q["steps"]
+        try:
+            loc, ids = frame.f_locals, q["_ids"]
+            changed = []
+            for k, v in loc.items():
+                if k.startswith("__"):
+                    continue
+                token = _token(v)
+                old = ids.get(k)
+                if old is None or not _same(old, v, token):
+                    changed.append((k, v, token))
+            for k in [k for k in ids if k not in loc]:
+                del ids[k]                       # deleted: a new binding is a change again
+            if changed:
+                if len(steps) >= MAX_STEPS:
+                    q.setdefault("steps_truncated", len(steps))
+                else:
+                    recorded = {}
+                    for k, v, token in changed:  # each name with its own summary budget
+                        try:
+                            summary = summarize_locals({k: v})
+                        except Exception:
+                            continue
+                        if k in summary:
+                            recorded[k] = summary[k]
+                            ids[k] = _ident(v, token)
+                    if recorded:
+                        step = {"line": cur, "after": prev, "vars": recorded}
+                        if q["_skipped"]:
+                            step["coalesced"] = True
+                        steps.append(step)
+            q["_skipped"] = False
+        except Exception:
+            pass
+        mark = len(steps) + (1 if "steps_truncated" in q else 0)
+        if new_first:
+            first[cur] = mark
+        if new_left:
+            left[prev] = mark
+        if resume_left:
+            q["resumed_left"] = mark
+
+    def _module_call(self, frame):
+        """At a `forward` call of a registered nn.Module, keep its argument shapes
+        until the frame returns (first MAX_MODULE_CALLS distinct signatures)."""
+        code = frame.f_code
+        if not code.co_argcount or code.co_varnames[0] != "self":
+            return
+        try:
+            loc = frame.f_locals
+            key = _MODULE_KEYS.get(id(loc.get("self")))
+            if key is None:
+                return
+            info = MODULES[key]
+            if not info.get("_scanned"):
+                info["_scanned"] = True          # submodules added after registration
+                _register_module(_MODULE_REFS[key], set())
+            if info.get("_seen", 0) >= 4 * MAX_MODULE_CALLS or len(info.get("calls", ())) >= MAX_MODULE_CALLS:
+                return
+            info["_seen"] = info.get("_seen", 0) + 1
+            names = list(code.co_varnames[1:code.co_argcount])
+            args = [loc[n] for n in names if loc.get(n) is not None]
+            if code.co_flags & 0x04:             # *args
+                args += list(loc.get(code.co_varnames[code.co_argcount + code.co_kwonlyargcount], ()))
+            self._module_frames[id(frame)] = (key, [_shape_of(a) for a in args])
+        except Exception:
+            pass
+
+    def _module_return(self, frame, arg):
+        key, ins = self._module_frames.pop(id(frame))
+        if arg is None:
+            return                               # raised (or returned nothing): no output shape
+        try:
+            sig = {"in": ins, "out": _shape_of(arg)}
+            calls = MODULES[key].setdefault("calls", [])
+            if sig not in calls and len(calls) < MAX_MODULE_CALLS:
+                calls.append(sig)
+        except Exception:
+            pass
+
+    def _want_sample(self, tkey, frame):
+        """Extension point for bounded context-aware adapters.
+
+        Runs before the call site is known, so it only bounds the whole function
+        (MAX_SAMPLES for each card it can have); _keep_instance_sample then keeps
+        the first MAX_SAMPLES calls of each call-site card.
+        """
+        return len(self.samples.get(tkey, ())) + sum(
+            1 for q in list(self.pending.values()) if q.get("tkey") == tkey
+        ) < MAX_SAMPLES * (MAX_INSTANCES + 1)
+
+    def _keep_instance_sample(self, tkey, inst, frame):
+        """Keep a sampled call while its call-site card has fewer than MAX_SAMPLES."""
+        return self.inst_samples.get(inst, 0) < MAX_SAMPLES
+
+    def _line_trace(self, frame, event, arg):
+        """Compose line evidence with the existing coverage tracer.
+
+        Only included project frames retain this local hook. Library internals
+        keep coverage's own callback and do not acquire per-line capture work.
+        """
+        fid = id(frame)
+        if not self._active:
+            previous = (self._previous_trace if threading.current_thread() is threading.main_thread()
+                        else getattr(self._thread_traces, "previous", self._previous_thread_trace))
+            sys.settrace(previous)
+            state = self._line_frames.pop(fid, None)
+            local = state[0] if state else previous
+            return local(frame, event, arg) if local else None
+        if event == "call":
+            previous = self._previous_trace
+            if threading.current_thread() is not threading.main_thread():
+                if not hasattr(self._thread_traces, "previous"):
+                    previous = self._previous_thread_trace
+                    local = previous(frame, event, arg) if previous else None
+                    installed = sys.gettrace()
+                    self._thread_traces.previous = installed if installed != self._line_trace else previous
+                    sys.settrace(self._line_trace)
+                else:
+                    previous = self._thread_traces.previous
+                    local = previous(frame, event, arg) if previous else None
+            else:
+                local = previous(frame, event, arg) if previous else None
+            if not self._inproj(self._norm(frame.f_code.co_filename)):
+                return local
+            self._line_frames[fid] = [local, None]
+            return self._line_trace
+        state = self._line_frames.get(fid)
+        if state is None:
+            return None
+        if state[0] is not None:
+            state[0] = state[0](frame, event, arg)
+        inst = self.frame_inst.get(fid)
+        if inst is not None:
+            record = self.inst_meta[inst]
+            sample = self.pending.get(fid)
+            if sample is None and frame.f_code.co_name.startswith("<"):
+                caller = frame.f_back
+                while caller is not None:
+                    if self.frame_inst.get(id(caller)) != inst:
+                        break
+                    sample = self.pending.get(id(caller))
+                    if sample is not None:
+                        break
+                    caller = caller.f_back
+            if event == "line":
+                line = frame.f_lineno
+                record["executed_lines"].add(line)
+                if state[1] is not None:
+                    record["executed_arcs"].add((state[1], line))
+                state[1] = line
+                if sample is not None:
+                    sample.setdefault("_executed_lines", set()).add(line)
+                    if fid in self.pending:
+                        self._line_step(sample, frame, line)   # values per statement
+            elif event == "exception":
+                if sample is not None:
+                    kind = arg[0].__module__ + "." + arg[0].__name__
+                    sample.setdefault("exception_types", {})[kind] = sample.get("exception_types", {}).get(kind, 0) + 1
+        if event == "return":
+            self._line_frames.pop(fid, None)
+        return self._line_trace
+
+    def start(self):
+        tracer = self
+        previous = sys.gettrace()
+        if type(previous).__module__.startswith("coverage") and type(previous).__name__ == "CTracer":
+            raise RuntimeError("CallTracer context lines require coverage.Coverage(timid=True); CTracer replaces the composed line hook")
+
+        orig = threading.Thread.start
+        self._orig_thread_start = orig
+
+        def start_with_origin(self):
+            f, _ = tracer._real_frame(sys._getframe(1))
+            if f is not None:
+                c = f.f_code
+                self._ct_origin = (tracer._norm(c.co_filename), f.f_lineno,
+                                   getattr(c, "co_qualname", c.co_name), c.co_firstlineno)
+            return orig(self)
+
+        threading.Thread.start = start_with_origin
+        self._active = True
+        self._previous_trace = sys.gettrace()
+        self._previous_thread_trace = getattr(threading, "_trace_hook", None)
+        threading.settrace(self._line_trace)
+        sys.settrace(self._line_trace)
+        threading.setprofile(self._profile)
+        sys.setprofile(self._profile)
+
+    def stop(self):
+        self._active = False
+        sys.setprofile(None)
+        threading.setprofile(None)
+        sys.settrace(self._previous_trace)
+        threading.settrace(self._previous_thread_trace)
+        if self._orig_thread_start is not None:
+            threading.Thread.start = self._orig_thread_start
+
+    def dump(self, path: Path):
+        def rel(p):
+            if not p:
+                return ""
+            try:
+                return os.path.relpath(p, self.root)
+            except ValueError:
+                return p
+
+        data = {
+            "root": self.root,
+            "main_file": rel(self.main_file),
+            "calls": [
+                {"file": rel(k[0]), "name": k[1], "first": k[2], "count": v[0], "seq": v[1],
+                 "samples": self.samples.get(k, [])}
+                for k, v in self.calls.items()
+            ],
+            "instances": [
+                {"file": rel(m["tkey"][0]), "name": m["tkey"][1], "first": m["tkey"][2],
+                 "parent": m["parent"], "cline": m["cline"], "via": m["via"],
+                 "count": m["count"], "seq": m["seq"], "merged": m["merged"]}
+                | {"executed_lines": sorted(m.get("executed_lines", ())),
+                   "executed_arcs": sorted(m.get("executed_arcs", ()))}
+                for m in self.inst_meta
+            ],
+            "edges": [
+                {"cfile": rel(k[0]), "cline": k[1], "cname": k[2], "cfirst": k[3], "via": k[4],
+                 "tfile": rel(k[5]), "tname": k[6], "tfirst": k[7], "count": v[0], "seq": v[1]}
+                for k, v in self.edges.items()
+            ],
+        }
+        data["instance_edges"] = list(self.instance_edges.values())
+        data["line_capture"] = {"schema": 1, "scope": "call_site_group",
+            "note": "Union of observed line events within each calling context; sampled invocations also retain their own line events. Merged helpers are explicitly marked."}
+        data.update(self.boundaries.dump())
+        if MODULES:
+            data["modules"] = describe_modules()
+        path.write_text(json.dumps(data))
+        return len(data["calls"]), len(data["edges"])
+
+
+# --------------------------------------------------------------------------
+# running the target
+# --------------------------------------------------------------------------
+class Tee(io.TextIOBase):
+    def __init__(self, stream, sink):
+        self.stream, self.sink = stream, sink
+
+    def write(self, s):
+        self.sink.write(s)
+        return self.stream.write(s)
+
+    def flush(self):
+        self.sink.flush()
+        self.stream.flush()
+
+    def isatty(self):
+        return getattr(self.stream, "isatty", lambda: False)()
+
+    # Targets that re-open their own stdout by descriptor -- e.g.
+    # `sys.stdout = open(sys.stdout.fileno(), mode='w', buffering=1)` -- need the
+    # underlying fd.  io.TextIOBase.fileno() raises io.UnsupportedOperation, which
+    # aborts such a target at import time before anything is traced.  Delegate
+    # instead.  Consequence: once the target rebinds sys.stdout to that fd, the Tee
+    # is out of the loop and run.log stops receiving output; capture stdout at the
+    # shell instead.
+    def fileno(self):
+        return self.stream.fileno()
+
+    def writable(self):
+        return True
+
+
+def run_target(argv: list[str], tracer=None) -> int:
+    """Run argv in-process, the way `python <argv>` would."""
+    argv = list(argv)
+    if argv and argv[0] in ("python", "python3") or (argv and Path(argv[0]).name.startswith("python")):
+        argv = argv[1:]  # `python -m pkg ...` -> `-m pkg ...`
+    if not argv:
+        raise SystemExit("codetrace: nothing to run after --")
+
+    try:
+        if argv[0] == "-m":
+            if len(argv) < 2:
+                raise SystemExit("codetrace: -m needs a module name")
+            # `python -m pkg` puts the working directory first on sys.path
+            sys.path.insert(0, os.getcwd())
+            sys.argv = [argv[1]] + argv[2:]
+            if tracer is not None:
+                import importlib.util
+                try:
+                    spec = importlib.util.find_spec(argv[1])
+                    origin = getattr(spec, "origin", None)
+                    if spec and spec.submodule_search_locations and not origin:
+                        origin = os.path.join(list(spec.submodule_search_locations)[0], "__main__.py")
+                    elif spec and spec.submodule_search_locations:
+                        origin = os.path.join(list(spec.submodule_search_locations)[0], "__main__.py")
+                    if origin:
+                        tracer.main_file = os.path.abspath(origin)
+                except Exception:
+                    pass
+            runpy.run_module(argv[1], run_name="__main__", alter_sys=True)
+        else:
+            prog = argv[0]
+            p = Path(prog)
+            if not p.is_file():          # a same-named *directory* must not win over PATH
+                found = shutil.which(prog)
+                if not found:
+                    raise SystemExit(f"codetrace: cannot find {prog!r} as a file or on PATH")
+                p = Path(found)
+            # `python script.py` puts the script's own directory first
+            sys.path.insert(0, str(p.resolve().parent))
+            sys.argv = [str(p)] + argv[1:]
+            if tracer is not None:
+                tracer.main_file = str(p.resolve())
+            runpy.run_path(str(p), run_name="__main__")
+    except SystemExit as ex:
+        c = ex.code
+        return 0 if c is None else (c if isinstance(c, int) else 1)
+    return 0
+
+
+# --------------------------------------------------------------------------
+# CLI
+# --------------------------------------------------------------------------
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        prog="codetrace",
+        description="Run a Python command once and draw what actually executed.",
+        epilog="Put the command after --, e.g.  codetrace.py -- python -m yourpkg.cli --flag",
+    )
+    ap.add_argument("--root", default=".", help="project root (default: cwd)")
+    ap.add_argument("--out", default="codetrace_out", help="output directory")
+    ap.add_argument("--include", action="append", default=[],
+                    help="source dir/file to treat as yours, relative to root (repeatable; "
+                         "default: auto-detect top-level packages)")
+    ap.add_argument("--title", default=None, help="page title (default: the project dir name)")
+    ap.add_argument("--brand", default=None, help="small label above the command line")
+    ap.add_argument("--entry", default=None,
+                    help="qualified name of the entry function (default: the function that "
+                         "reaches the most others, which is normally your main)")
+    ap.add_argument("--label", default=None, help="text for the outcome badge (default: exit code + duration)")
+    ap.add_argument("--keep-imports", action="store_true",
+                    help="keep functions that only ran while importing modules (default: drop them)")
+    ap.add_argument("--max-gap", type=int, default=300,
+                    help="how far (px) a callee may drop to sit level with its call site")
+    ap.add_argument("--important", action="append", default=[], metavar="PATTERN",
+                    help="highlight functions matching this glob as the repo's core contribution: "
+                         "'name', 'Class.method', 'path/glob.py:name' (repeatable)")
+    ap.add_argument("--important-file", default=None, metavar="FILE",
+                    help="file with one --important pattern per line (# comments ok). "
+                         "Default: codetrace_important.txt in --root if it exists")
+    ap.add_argument("--innovation-file", default=None, metavar="FILE",
+                    help="innovation.json with reviewed line ranges that implement the studied "
+                         "contribution; their cards get a green frame (relative paths resolve from "
+                         "the current directory). Default: codetrace_innovation.json in --root if it exists")
+    ap.add_argument("--no-values", action="store_true",
+                    help="do not record argument/local/return values (smaller page, less overhead)")
+    ap.add_argument("--no-mosaic", action="store_true", help="skip the file mosaic page")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="do not run anything: rebuild the pages from the callgraph.json / coverage.json "
+                         "already in --out (after editing importance patterns, --entry, --max-gap, ...)")
+    ap.add_argument("cmd", nargs=argparse.REMAINDER, help="-- then the command to run")
+    args = ap.parse_args()
+
+    argv = args.cmd
+    if argv and argv[0] == "--":
+        argv = argv[1:]
+    if not argv and not args.rebuild:
+        ap.error("nothing to run: put the command after --")
+
+    root = Path(args.root).resolve()
+    out = Path(args.out).resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    # Load and check the innovation file before anything runs, so a typo or bad
+    # JSON fails in seconds instead of after the traced command has finished.
+    args.innovation_path = Path(args.innovation_file).resolve() if args.innovation_file else root / "codetrace_innovation.json"
+    args.innovation_spec = None
+    if args.innovation_file and not args.innovation_path.exists():
+        print(f"codetrace: --innovation-file {args.innovation_path} not found", file=sys.stderr)
+        return 2
+    if args.innovation_path.exists():
+        sys.path.insert(0, str(HERE))
+        import _calltree
+        try:
+            args.innovation_spec = _calltree.validate_innovation(json.loads(args.innovation_path.read_text()))
+        except (ValueError, OSError) as exc:  # bad JSON is a ValueError; a directory is an OSError
+            print(f"codetrace: invalid {args.innovation_path}: {exc}", file=sys.stderr)
+            return 2
+    roots = args.include or autodetect_roots(root)
+    if not roots:
+        ap.error(f"no Python found under {root}; pass --include")
+
+    try:
+        import coverage  # noqa
+    except ImportError:
+        print("codetrace: needs coverage —  pip install coverage", file=sys.stderr)
+        return 2
+
+    print(f"codetrace: root={root}")
+    print(f"codetrace: watching {', '.join(roots)}"
+          + ("" if args.include else "   (override with --include)"))
+    os.chdir(root)
+
+    cg_json, cov_json = out / "callgraph.json", out / "coverage.json"
+    meta_json = out / "run.json"
+    if args.rebuild:
+        if not (cg_json.exists() and cov_json.exists()):
+            print(f"codetrace: --rebuild needs {cg_json} and {cov_json}", file=sys.stderr)
+            return 2
+        meta = json.loads(meta_json.read_text()) if meta_json.exists() else {}
+        command, code, secs = meta.get("command", "(earlier run)"), meta.get("exit", 0), meta.get("secs", 0.0)
+        print(f"codetrace: rebuilding from the earlier run of {command}")
+        return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs)
+
+    print(f"codetrace: running {' '.join(argv)}\n", flush=True)
+    log_path = out / "run.log"
+    log = log_path.open("w", errors="replace")
+    if args.no_values:
+        global MAX_SAMPLES
+        MAX_SAMPLES = 0
+    tracer = CallTracer(root, roots, HERE)
+
+    cov = coverage.Coverage(
+        branch=True, cover_pylib=False, concurrency="thread", timid=True,
+        data_file=str(out / ".coverage"),
+        include=[pat for r in roots
+                 for pat in ([str(root / r)] if (root / r).is_file()
+                             else [str(root / r / "*"), str(root / r)])],
+    )
+    cov._warn_no_data = False
+    cov._warn_unimported_source = False
+    t0 = time.time()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = Tee(old_out, log), Tee(old_err, log)
+    cov.start()
+    tracer.start()
+    try:
+        code = run_target(argv, tracer)
+    except BaseException as ex:            # target blew up: still draw what ran
+        tracer.stop(); cov.stop()
+        sys.stdout, sys.stderr = old_out, old_err
+        log.close()
+        import traceback
+        traceback.print_exc()
+        print(f"\ncodetrace: target raised {type(ex).__name__}; drawing the partial run", file=sys.stderr)
+        code = 1
+    else:
+        tracer.stop(); cov.stop()
+        sys.stdout, sys.stderr = old_out, old_err
+        log.close()
+    secs = time.time() - t0
+
+    cov.save()
+    try:
+        cov.json_report(outfile=str(cov_json), show_contexts=False)
+    except Exception as ex:                # nothing measured
+        print(f"codetrace: coverage report failed ({ex}); writing empty", file=sys.stderr)
+        cov_json.write_text('{"files": {}}')
+
+    nfun, nedge = tracer.dump(cg_json)
+    print(f"\ncodetrace: traced {nfun} functions, {nedge} call edges in {secs:.1f}s (exit {code})")
+    command = " ".join(argv)
+    meta_json.write_text(json.dumps({"command": command, "exit": code, "secs": round(secs, 2)}))
+    return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs)
+
+
+def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs) -> int:
+    label = args.label or f"exit {code} · {secs:.1f}s"
+    title = args.title or root.name
+    brand = args.brand or f"{root.name} · call tree with line coverage"
+
+    sys.path.insert(0, str(HERE))
+    import _calltree, _mosaic, _render
+
+    patterns = list(args.important)
+    imp_file = Path(args.important_file) if args.important_file else (root / "codetrace_important.txt")
+    if imp_file.exists():
+        patterns += imp_file.read_text().splitlines()
+        print(f"codetrace: importance patterns from {imp_file}")
+
+    payload = _calltree.build(
+        root=root, cg=json.loads(cg_json.read_text()), cov=json.loads(cov_json.read_text()),
+        command=command, outcome=label, title=title, brand=brand,
+        entry=args.entry, drop_imports=not args.keep_imports, max_gap=args.max_gap,
+        important=patterns,
+    )
+    if patterns:
+        print(f"codetrace: {payload['totals']['important']} functions marked important")
+    if getattr(args, "innovation_spec", None) is not None:
+        try:
+            _calltree.apply_innovation(payload, args.innovation_spec)
+        except ValueError as exc:
+            print(f"codetrace: invalid {args.innovation_path}: {exc}\n"
+                  "codetrace: fix the file and run again with --rebuild (the trace is saved)", file=sys.stderr)
+            return 2
+        inn = payload["innovation"]
+        print(f"codetrace: {inn['cards']} cards ({inn['functions']} functions) framed as innovation from {args.innovation_path}")
+        if inn["unmatched"]:
+            print(f"codetrace: innovation functions with no card in this run: {', '.join(inn['unmatched'])}")
+    (out / "payload_call_tree.json").write_text(json.dumps(payload, separators=(",", ":")))
+    _render.render(HERE / "templates" / "call_tree.html", payload, out / "call-tree.html")
+
+    if not args.no_mosaic:
+        mp = _mosaic.build(
+            root=root, roots=roots, cov=json.loads(cov_json.read_text()),
+            command=command, outcome=label, title=title, brand=brand.replace("call tree with ", ""),
+        )
+        (out / "payload_mosaic.json").write_text(json.dumps(mp, separators=(",", ":")))
+        _render.render(HERE / "templates" / "mosaic.html", mp, out / "mosaic.html")
+
+    print(f"codetrace: open {out / 'call-tree.html'}")
+    if not args.no_mosaic:
+        print(f"codetrace: open {out / 'mosaic.html'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

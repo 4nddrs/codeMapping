@@ -1,0 +1,8 @@
+{
+  "model_profiles": {
+    "scout": {
+      "model": "gpt-4.1-mini",
+      "effort": "off"
+    }
+  }
+}
