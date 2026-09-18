@@ -1,0 +1,41 @@
+{
+ "slug": "openpi",
+ "page_totals": {
+  "train_jax": {
+   "functions": 2029,
+   "calls": 13013,
+   "executed": 2540,
+   "lines": 5358
+  },
+  "train_pytorch": {
+   "functions": 2247,
+   "calls": 63424,
+   "executed": 2340,
+   "lines": 5954
+  },
+  "compute_norm_stats": {
+   "functions": 355,
+   "calls": 129918,
+   "executed": 590,
+   "lines": 1302
+  },
+  "convert_jax_to_pytorch": {
+   "functions": 1010,
+   "calls": 20541,
+   "executed": 1137,
+   "lines": 2659
+  },
+  "serve_policy_jax": {
+   "functions": 1498,
+   "calls": 7928,
+   "executed": 1872,
+   "lines": 3931
+  },
+  "libero_eval": {
+   "functions": 13053,
+   "calls": 25560059,
+   "executed": 27033,
+   "lines": 107923
+  }
+ }
+}

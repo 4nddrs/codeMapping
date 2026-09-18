@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>79</b><span>Sessions</span></div>
-      <div class="tot"><b>80,498</b><span>Functions traced</span></div>
-      <div class="tot"><b>14,047,448</b><span>Calls recorded</span></div>
-      <div class="tot"><b>183,817</b><span>Lines executed</span></div>
-      <div class="tot"><b>482,355</b><span>Lines in scope</span></div>
+      <div class="tot"><b>85</b><span>Sessions</span></div>
+      <div class="tot"><b>100,690</b><span>Functions traced</span></div>
+      <div class="tot"><b>39,842,331</b><span>Calls recorded</span></div>
+      <div class="tot"><b>219,329</b><span>Lines executed</span></div>
+      <div class="tot"><b>609,482</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -803,6 +803,7 @@
           <a href="#patch-policy">Patch Policy<span class="jump-n">27</span></a>
           <a href="#cosmos-policy">Cosmos Policy<span class="jump-n">11</span></a>
           <a href="#dreamzero">DreamZero<span class="jump-n">8</span></a>
+          <a href="#openpi">openpi<span class="jump-n">6</span></a>
           <a href="#robointer">RoboInter<span class="jump-n">5</span></a>
           <a href="#vera">VERA<span class="jump-n">5</span></a>
         </div>
@@ -2121,6 +2122,206 @@
 </div>
 </details>
 <!-- DREAMZERO_SUITE_END -->
+
+<!-- OPENPI_SUITE_BEGIN -->
+<details class="shelf repo-shelf" id="openpi">
+<summary class="shelfhead repo-summary"><h2>openpi (π0.5)</h2><span class="n">6</span><span class="preview">2 training · 1 eval · 1 serve · 1 data · 1 utility</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Physical Intelligence openpi at 215abfb: π0.5 fine-tuning on the LIBERO dataset in both trainers (JAX reference and PyTorch port), the normalization-statistics and JAX→PyTorch weight steps they depend on, the released π0.5-LIBERO checkpoint behind the websocket policy server, and the LIBERO simulator client that scores it. Bounded real runs on one host with 2 × RTX A6000; JAX full fine-tuning ran on the XLA CPU backend after FSDP over both GPUs ran out of memory (its OOM capture is kept as evidence). Green frames mark the lines π0.5 adds over π0. Every capture deviation and limitation is in each flow&#x27;s BRIEF.md and GAPS.md.</p>
+<div class="runs">
+          <div class="pair">
+            <p class="pairhead">Training <em>Two optimizer steps of pi05_libero from the pi05_base checkpoint, in the JAX reference trainer and in the PyTorch port.</em></p>
+        <article class="run" id="openpi-train-jax" data-kind="training" data-search="training (jax) training openpi-train-jax projects/openpi/train_jax.html two optimizer steps of the pi05_libero full fine-tune: tyro config, lerobot data pipeline, fsdp sharding, orbax restore of pi05_base, the jit-traced flow-matching loss with adamw and ema, and the orbax checkpoint. python scripts/train.py pi05_libero --exp-name=ct_train_jax --num-train-steps 2 --batch-size 2 --num-workers 0 --log-interval 1 --no-wandb-enabled pi05_libero exit 0 · 632.5s · 2/2 steps · loss 0.0568 → 0.0981 · xla cpu backend (gpu fsdp oom kept as evidence)" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/openpi/train_jax.html">
+            <div>
+              <h3 class="title"><span class="name">Training (JAX)</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of the pi05_libero full fine-tune: tyro config, LeRobot data pipeline, FSDP sharding, orbax restore of pi05_base, the jit-traced flow-matching loss with AdamW and EMA, and the orbax checkpoint.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">632.5s</span><span class="pill size heavy">18.5 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.4%</b></span></div>
+                <div class="bar"><i style="width: 47.4%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of the pi05_libero full fine-tune: tyro config, LeRobot data pipeline, FSDP sharding, orbax restore of pi05_base, the jit-traced flow-matching loss with AdamW and EMA, and the orbax checkpoint.</p>
+            <div class="cmd-row">
+              <code class="cmd">python scripts/train.py pi05_libero --exp-name=ct_train_jax --num-train-steps 2 --batch-size 2 --num-workers 0 --log-interval 1 --no-wandb-enabled</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/train_jax.html<span class="sep">/</span>18.5 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/train.py</p>
+            <p class="outcome">2/2 steps · loss 0.0568 → 0.0981 · XLA CPU backend (GPU FSDP OOM kept as evidence)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,029</dd></div>
+              <div><dt>Edges</dt><dd>2,105</dd></div>
+              <div><dt>Calls</dt><dd>13,013</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="openpi-train-pytorch" data-kind="training" data-search="training (pytorch) training openpi-train-pytorch projects/openpi/train_pytorch.html the same two optimizer steps in the pytorch port: converted pi05_base weights, patched-transformers paligemma with the gemma action expert and adarms, gradient checkpointing whose recompute is traced, adamw, safetensors checkpoint. python scripts/train_pytorch.py pi05_libero --exp_name ct_train_pytorch --num_train_steps 2 --batch_size 2 --num_workers 0 --log_interval 1 --no-wandb-enabled --pytorch_weight_path /mnt/sata1/datasets/openpi/openpi_data/pytorch/pi05_base_pytorch pi05_libero exit 0 · 309.3s · 2/2 steps · loss 0.0651 → 0.0750 · bfloat16, 1 gpu" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/openpi/train_pytorch.html">
+            <div>
+              <h3 class="title"><span class="name">Training (PyTorch)</span> <span class="chip kind">training</span></h3>
+              <p class="what">The same two optimizer steps in the PyTorch port: converted pi05_base weights, patched-transformers PaliGemma with the Gemma action expert and adaRMS, gradient checkpointing whose recompute is traced, AdamW, safetensors checkpoint.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">309.3s</span><span class="pill size heavy">14.2 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>39.3%</b></span></div>
+                <div class="bar"><i style="width: 39.3%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">The same two optimizer steps in the PyTorch port: converted pi05_base weights, patched-transformers PaliGemma with the Gemma action expert and adaRMS, gradient checkpointing whose recompute is traced, AdamW, safetensors checkpoint.</p>
+            <div class="cmd-row">
+              <code class="cmd">python scripts/train_pytorch.py pi05_libero --exp_name ct_train_pytorch --num_train_steps 2 --batch_size 2 --num_workers 0 --log_interval 1 --no-wandb-enabled --pytorch_weight_path /mnt/sata1/datasets/openpi/openpi_data/pytorch/pi05_base_pytorch</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/train_pytorch.html<span class="sep">/</span>14.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/train_pytorch.py</p>
+            <p class="outcome">2/2 steps · loss 0.0651 → 0.0750 · bfloat16, 1 GPU</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,247</dd></div>
+              <div><dt>Edges</dt><dd>2,272</dd></div>
+              <div><dt>Calls</dt><dd>63,424</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+          <div class="pair">
+            <p class="pairhead">Data &amp; weights <em>The two preparation commands the trainers depend on.</em></p>
+        <article class="run" id="openpi-compute-norm-stats" data-kind="data" data-search="normalization statistics data openpi-compute-norm-stats projects/openpi/compute_norm_stats.html normalization statistics over 10 shuffled batches (2,560 frames) of the lerobot libero dataset: per-sample repack and libero input transforms, running mean/std and quantile histograms, norm_stats.json. python scripts/compute_norm_stats.py --config-name pi05_libero --max-frames 2560 pi05_libero exit 0 · 1191.5s · 10/10 batches · bounded with --max-frames; histogram re-bin loses counts (see gaps)" style="--fam: var(--kind-data)">
+          <a class="run-link" href="projects/openpi/compute_norm_stats.html">
+            <div>
+              <h3 class="title"><span class="name">Normalization statistics</span> <span class="chip kind">data</span></h3>
+              <p class="what">Normalization statistics over 10 shuffled batches (2,560 frames) of the LeRobot LIBERO dataset: per-sample repack and LIBERO input transforms, running mean/std and quantile histograms, norm_stats.json.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1191.5s</span><span class="pill size">3.4 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>45.3%</b></span></div>
+                <div class="bar"><i style="width: 45.3%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Normalization statistics over 10 shuffled batches (2,560 frames) of the LeRobot LIBERO dataset: per-sample repack and LIBERO input transforms, running mean/std and quantile histograms, norm_stats.json.</p>
+            <div class="cmd-row">
+              <code class="cmd">python scripts/compute_norm_stats.py --config-name pi05_libero --max-frames 2560</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/compute_norm_stats.html<span class="sep">/</span>3.4 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/compute_norm_stats.py</p>
+            <p class="outcome">10/10 batches · bounded with --max-frames; histogram re-bin loses counts (see GAPS)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>355</dd></div>
+              <div><dt>Edges</dt><dd>356</dd></div>
+              <div><dt>Calls</dt><dd>129,918</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="openpi-convert-jax-to-pytorch" data-kind="utility" data-search="jax → pytorch weights utility openpi-convert-jax-to-pytorch projects/openpi/convert_jax_to_pytorch.html full conversion of the pi05_base jax checkpoint to pytorch: orbax restore, paligemma/siglip and gemma-expert key slicing including the adarms norms, pi0pytorch construction and a bfloat16 safetensors file. python examples/convert_jax_model_to_pytorch.py --checkpoint_dir /mnt/sata1/datasets/openpi/openpi_data/openpi-assets/checkpoints/pi05_base --config_name pi05_libero --output_path /mnt/sata1/datasets/openpi/openpi_data/pytorch/pi05_base_pytorch pi05_base exit 0 · 118.4s · 812 tensors · 7.23 gb · no assets/ copied (observed behaviour, see gaps)" style="--fam: var(--kind-utility)">
+          <a class="run-link" href="projects/openpi/convert_jax_to_pytorch.html">
+            <div>
+              <h3 class="title"><span class="name">JAX → PyTorch weights</span> <span class="chip kind">utility</span></h3>
+              <p class="what">Full conversion of the pi05_base JAX checkpoint to PyTorch: orbax restore, PaliGemma/SigLIP and Gemma-expert key slicing including the adaRMS norms, PI0Pytorch construction and a bfloat16 safetensors file.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">118.4s</span><span class="pill size">7.6 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>42.8%</b></span></div>
+                <div class="bar"><i style="width: 42.8%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Full conversion of the pi05_base JAX checkpoint to PyTorch: orbax restore, PaliGemma/SigLIP and Gemma-expert key slicing including the adaRMS norms, PI0Pytorch construction and a bfloat16 safetensors file.</p>
+            <div class="cmd-row">
+              <code class="cmd">python examples/convert_jax_model_to_pytorch.py --checkpoint_dir /mnt/sata1/datasets/openpi/openpi_data/openpi-assets/checkpoints/pi05_base --config_name pi05_libero --output_path /mnt/sata1/datasets/openpi/openpi_data/pytorch/pi05_base_pytorch</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/convert_jax_to_pytorch.html<span class="sep">/</span>7.6 MB<span class="sep">/</span>entry <code>__main__</code> &middot; examples/convert_jax_model_to_pytorch.py</p>
+            <p class="outcome">812 tensors · 7.23 GB · no assets/ copied (observed behaviour, see GAPS)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,010</dd></div>
+              <div><dt>Edges</dt><dd>1,011</dd></div>
+              <div><dt>Calls</dt><dd>20,541</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+          <div class="pair">
+            <p class="pairhead">Inference &amp; evaluation <em>The released π0.5-LIBERO checkpoint served over websockets, and the LIBERO simulator client that scores it.</em></p>
+        <article class="run" id="openpi-serve-policy-jax" data-kind="serve" data-search="policy server (jax) serve openpi-serve-policy-jax projects/openpi/serve_policy_jax.html the π0.5-libero checkpoint behind the websocket policy server, driven by the repository&#x27;s own test client: policy creation from the checkpoint, then five requests through the libero input/output transforms and the jit-traced 10-step flow sampler. python scripts/serve_policy.py --env libero --port 18765 pi05_libero exit 1 · 136.4s · 5/5 requests · stopped with sigint (exit 1 is the tracer&#x27;s shutdown artifact, see gaps)" style="--fam: var(--kind-serve)">
+          <a class="run-link" href="projects/openpi/serve_policy_jax.html">
+            <div>
+              <h3 class="title"><span class="name">Policy server (JAX)</span> <span class="chip kind">serve</span></h3>
+              <p class="what">The π0.5-LIBERO checkpoint behind the websocket policy server, driven by the repository&#x27;s own test client: policy creation from the checkpoint, then five requests through the LIBERO input/output transforms and the jit-traced 10-step flow sampler.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict bad">exit 1</span><span class="pill">136.4s</span><span class="pill size heavy">11.2 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.6%</b></span></div>
+                <div class="bar"><i style="width: 47.6%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">The π0.5-LIBERO checkpoint behind the websocket policy server, driven by the repository&#x27;s own test client: policy creation from the checkpoint, then five requests through the LIBERO input/output transforms and the jit-traced 10-step flow sampler.</p>
+            <div class="cmd-row">
+              <code class="cmd">python scripts/serve_policy.py --env LIBERO --port 18765</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/serve_policy_jax.html<span class="sep">/</span>11.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; scripts/serve_policy.py</p>
+            <p class="outcome">5/5 requests · stopped with SIGINT (exit 1 is the tracer&#x27;s shutdown artifact, see GAPS)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,498</dd></div>
+              <div><dt>Edges</dt><dd>1,541</dd></div>
+              <div><dt>Calls</dt><dd>7,928</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="openpi-libero-eval" data-kind="eval" data-search="libero evaluation (client) eval openpi-libero-eval projects/openpi/libero_eval.html ten libero_spatial episodes (one trial per task) of the libero simulation client against an untraced π0.5-libero policy server: environment setup, observation preprocessing, websocket inference every five steps, per-episode success and video. python examples/libero/main.py --args.host 127.0.0.1 --args.port 18767 --args.task-suite-name libero_spatial --args.num-trials-per-task 1 --args.video-out-path /mnt/sata1/datasets/openpi/runs/libero_eval_20260917_120648/videos libero_spatial exit 0 · 1103.6s · 9/10 episodes · untraced baseline of the same commands scored 10/10 (see gaps)" style="--fam: var(--kind-eval)">
+          <a class="run-link" href="projects/openpi/libero_eval.html">
+            <div>
+              <h3 class="title"><span class="name">LIBERO evaluation (client)</span> <span class="chip kind">eval</span></h3>
+              <p class="what">Ten libero_spatial episodes (one trial per task) of the LIBERO simulation client against an untraced π0.5-LIBERO policy server: environment setup, observation preprocessing, websocket inference every five steps, per-episode success and video.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1103.6s</span><span class="pill size heavy">71.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>25.0%</b></span></div>
+                <div class="bar"><i style="width: 25.0%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Ten libero_spatial episodes (one trial per task) of the LIBERO simulation client against an untraced π0.5-LIBERO policy server: environment setup, observation preprocessing, websocket inference every five steps, per-episode success and video.</p>
+            <div class="cmd-row">
+              <code class="cmd">python examples/libero/main.py --args.host 127.0.0.1 --args.port 18767 --args.task-suite-name libero_spatial --args.num-trials-per-task 1 --args.video-out-path /mnt/sata1/datasets/openpi/runs/libero_eval_20260917_120648/videos</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/openpi/libero_eval.html<span class="sep">/</span>71.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; examples/libero/main.py</p>
+            <p class="outcome">9/10 episodes · untraced baseline of the same commands scored 10/10 (see GAPS)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>13,053</dd></div>
+              <div><dt>Edges</dt><dd>14,968</dd></div>
+              <div><dt>Calls</dt><dd>25,560,059</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+</div>
+</div>
+</details>
+<!-- OPENPI_SUITE_END -->
 
 <details class="shelf repo-shelf" id="cambrian-s">
 <summary class="shelfhead repo-summary"><h2>Cambrian-S</h2><span class="n">2</span><span class="preview">2 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
