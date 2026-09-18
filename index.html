@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>74</b><span>Sessions</span></div>
-      <div class="tot"><b>68,253</b><span>Functions traced</span></div>
-      <div class="tot"><b>13,977,674</b><span>Calls recorded</span></div>
-      <div class="tot"><b>165,421</b><span>Lines executed</span></div>
-      <div class="tot"><b>427,499</b><span>Lines in scope</span></div>
+      <div class="tot"><b>78</b><span>Sessions</span></div>
+      <div class="tot"><b>79,246</b><span>Functions traced</span></div>
+      <div class="tot"><b>14,043,383</b><span>Calls recorded</span></div>
+      <div class="tot"><b>182,624</b><span>Lines executed</span></div>
+      <div class="tot"><b>479,944</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -820,6 +820,8 @@
           <a href="#umi">UMI</a>
           <a href="#simtoolreal">SimToolReal</a>
           <a href="#molmoact2">MolmoAct2</a>
+          <a href="#cosmos-framework">cosmos-framework</a>
+          <a href="#wan22-ti2v-5b">Wan2.2-TI2V-5B</a>
         </div>
       </div>
     </nav>
@@ -3003,6 +3005,146 @@
 </div>
 </div>
 </details>
+<details class="shelf repo-shelf" id="cosmos-framework">
+<summary class="shelfhead repo-summary"><h2>cosmos-framework</h2><span class="n">2</span><span class="preview">2 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Two traced command flows from NVIDIA/cosmos-framework @ 6c9d391 (Cosmos-3-Nano): the training step of the integration demos, captured on a GPU-less Windows VM. The shipped examples/integration/net_level.py needs an 80 GB GPU and is broken at this revision (three stale calls), so an in-process CPU driver mirrors it call-for-call on the same cosmos_framework helpers with a tiny random-weight Qwen3-VL MoT, a stub VAE/tokenizer and a plain-PyTorch attention backend; every deviation is tagged D1&ndash;D15 in the driver and listed in the mapping&#x27;s GAPS.md. The trace answers how text / video / action tokens are packed into one sequence (text causal split &rarr; +15000 mRoPE margin &rarr; vision frame-major patches &rarr; action one token per step, all in one full split), what attends to what, and how the rectified-flow loss is masked and weighted &mdash; including one policy-mode iteration where the action tokens are noised and supervised.</p>
+<div class="runs">
+          <div class="pair">
+            <p class="pairhead">One driver, two trials <em>The SUCCESS trial (7 training iterations) and the FAILURE trial (five inconsistent batches) share the model, stubs and call sequence.</em></p>
+        <article class="run" id="cosmos-framework-index" data-kind="training" data-search="training step (net-level + trainer-level) training cosmos-framework-index projects/cosmos_framework/index.html four net-level iterations (pack → noise → cosmos3vfmnetwork.forward → mse → backward) and three trainer-level iterations through omnimotmodel.training_step + compute_flow_matching_loss (t2v, action_fdm, action_policy — the last with noised, supervised actions), round-robin t2i / t2v / action_fdm at net level, on a gpu-less host: tiny random-weight qwen3-vl mot, stub vae/tokenizer, cpu reference attention — call order, packed layout, masks and formulas are the evidence, numbers are not. python docs/code_mapping/capture/net_level_cpu.py --num-train-iters 4 --num-trainer-iters 3 cosmos3 nano vam sequence packing flow matching exit 0 · 67.2s · 7/7 iters finite loss · cpu tiny config (d1–d15)" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/cosmos_framework/index.html">
+            <div>
+              <h3 class="title"><span class="name">Training step (net-level + trainer-level)</span> <span class="chip kind">training</span></h3>
+              <p class="what">Four net-level iterations (pack → noise → Cosmos3VFMNetwork.forward → MSE → backward) and three trainer-level iterations through OmniMoTModel.training_step + compute_flow_matching_loss (T2V, ACTION_FDM, ACTION_POLICY — the last with noised, supervised actions), round-robin T2I / T2V / ACTION_FDM at net level, on a GPU-less host: tiny random-weight Qwen3-VL MoT, stub VAE/tokenizer, CPU reference attention — call order, packed layout, masks and formulas are the evidence, numbers are not.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">67.2s</span><span class="pill size heavy">24.0 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>28.1%</b></span></div>
+                <div class="bar"><i style="width: 28.1%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Four net-level iterations (pack → noise → Cosmos3VFMNetwork.forward → MSE → backward) and three trainer-level iterations through OmniMoTModel.training_step + compute_flow_matching_loss (T2V, ACTION_FDM, ACTION_POLICY — the last with noised, supervised actions), round-robin T2I / T2V / ACTION_FDM at net level, on a GPU-less host: tiny random-weight Qwen3-VL MoT, stub VAE/tokenizer, CPU reference attention — call order, packed layout, masks and formulas are the evidence, numbers are not.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/capture/net_level_cpu.py --num-train-iters 4 --num-trainer-iters 3</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/cosmos_framework/index.html<span class="sep">/</span>24.0 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/capture/net_level_cpu.py</p>
+            <p class="outcome">7/7 iters finite loss · CPU tiny config (D1–D15)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>3,647</dd></div>
+              <div><dt>Edges</dt><dd>3,739</dd></div>
+              <div><dt>Calls</dt><dd>17,865</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="cosmos-framework-failure" data-kind="training" data-search="failure trial (five inconsistent vam batches) training cosmos-framework-failure projects/cosmos_framework/failure.html the same cpu driver pushes five deliberately inconsistent action batches through the train_one_step call sequence: no sequence_plan (packer refuses), plan without actions while actions are present (noiser refuses after a packedsequence without action tokens was built), raw_action_dim wider than the action width (silently accepted — no validation), a domain-id count mismatch (packer finalize refuses), and a plan without text (packer refuses). exit 1 by design. python docs/code_mapping/capture/net_level_cpu_failure.py cosmos3 nano failure abort validation packer failure trial by design: 4 aborts (packer ×3, noiser ×1) + 1 silently accepted (raw_action_dim > width)" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/cosmos_framework/failure.html">
+            <div>
+              <h3 class="title"><span class="name">FAILURE trial (five inconsistent VAM batches)</span> <span class="chip kind">training</span></h3>
+              <p class="what">The same CPU driver pushes five deliberately inconsistent action batches through the train_one_step call sequence: no sequence_plan (packer refuses), plan without actions while actions are present (noiser refuses after a PackedSequence without action tokens was built), raw_action_dim wider than the action width (silently accepted — no validation), a domain-id count mismatch (packer finalize refuses), and a plan without text (packer refuses). Exit 1 by design.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict bad">exit 1</span><span class="pill size heavy">16.8 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>28.5%</b></span></div>
+                <div class="bar"><i style="width: 28.5%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">The same CPU driver pushes five deliberately inconsistent action batches through the train_one_step call sequence: no sequence_plan (packer refuses), plan without actions while actions are present (noiser refuses after a PackedSequence without action tokens was built), raw_action_dim wider than the action width (silently accepted — no validation), a domain-id count mismatch (packer finalize refuses), and a plan without text (packer refuses). Exit 1 by design.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/capture/net_level_cpu_failure.py</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/cosmos_framework/failure.html<span class="sep">/</span>16.8 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/capture/net_level_cpu_failure.py</p>
+            <p class="outcome">FAILURE trial by design: 4 aborts (packer ×3, noiser ×1) + 1 silently accepted (raw_action_dim > width)</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,565</dd></div>
+              <div><dt>Edges</dt><dd>2,592</dd></div>
+              <div><dt>Calls</dt><dd>8,498</dd></div>
+            </dl>
+          </details>
+        </article>
+          </div>
+</div>
+</div>
+</details>
+
+<details class="shelf repo-shelf" id="wan22-ti2v-5b">
+<summary class="shelfhead repo-summary"><h2>Wan2.2-TI2V-5B</h2><span class="n">2</span><span class="preview">1 eval · 1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">One architecture, two repositories: the official Wan2.2 inference path (generate.py, TI2V first-frame pinning, per-token timestep, UniPC) and the DiffSynth-Studio training path (hash-detected model registry, FlowMatchSFTLoss, LoRA). Both traced on a CPU-only VM with a tiny random-init stand-in of the 5B checkpoint — shapes and values are the tiny model's; the code path is the real one.</p>
+<div class="runs">
+        <article class="run" id="wan22-ti2v-5b-generate" data-kind="eval" data-search="ti2v-5b inference eval wan22-ti2v-5b-generate projects/wan22_ti2v_5b/generate.html generate.py --task ti2v-5b image-to-video on a tiny random-init stand-in of the 5b checkpoint: t5 prompt encoding, vae encode of the input image, first latent frame pinned with per-token timestep 0, 4 unipc steps with cfg, vae decode and mp4 save (cpu, sdpa instead of flash-attn). python docs/code_mapping/drivers/parta_cpu_tiny.py wan2.2 ti2v-5b flow-matching unipc tiny-config cpu exit 0 · 46.6s" style="--fam: var(--kind-eval)">
+          <a class="run-link" href="projects/wan22_ti2v_5b/generate.html">
+            <div>
+              <h3 class="title"><span class="name">TI2V-5B inference</span> <span class="chip kind">eval</span> <span class="chip start">Start here</span></h3>
+              <p class="what">generate.py --task ti2v-5B image-to-video on a tiny random-init stand-in of the 5B checkpoint: T5 prompt encoding, VAE encode of the input image, first latent frame pinned with per-token timestep 0, 4 UniPC steps with CFG, VAE decode and mp4 save (CPU, SDPA instead of flash-attn).</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">46.6s</span><span class="pill size heavy">12.7 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>49.2%</b></span></div>
+                <div class="bar"><i style="width: 49.2%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">generate.py --task ti2v-5B image-to-video on a tiny random-init stand-in of the 5B checkpoint: T5 prompt encoding, VAE encode of the input image, first latent frame pinned with per-token timestep 0, 4 UniPC steps with CFG, VAE decode and mp4 save (CPU, SDPA instead of flash-attn).</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/drivers/partA_cpu_tiny.py</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/wan22_ti2v_5b/generate.html<span class="sep">/</span>12.7 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/partA_cpu_tiny.py</p>
+            
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,328</dd></div>
+              <div><dt>Edges</dt><dd>2,363</dd></div>
+              <div><dt>Calls</dt><dd>12,281</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="wan22-ti2v-5b-train-lora" data-kind="training" data-search="ti2v-5b lora sft training wan22-ti2v-5b-train-lora projects/wan22_ti2v_5b/train_lora.html diffsynth-studio train.py lora sft (r=32 on q,k,v,o,ffn.0,ffn.2) of a tiny random-init stand-in of the 5b dit: hash-detected model loading, pipeline units incl. the ti2v-only imageembedderfused, flowmatchsftloss with the first frame dropped, gradient-checkpointed dit blocks, adamw, lora-only safetensors save; 2 synthetic clips x 1 epoch = 2 steps. python docs/code_mapping/drivers/partb_cpu_tiny.py diffsynth flow-matching lora peft tiny-config cpu exit 0 · 188.3s" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/wan22_ti2v_5b/train_lora.html">
+            <div>
+              <h3 class="title"><span class="name">TI2V-5B LoRA SFT</span> <span class="chip kind">training</span></h3>
+              <p class="what">DiffSynth-Studio train.py LoRA SFT (r=32 on q,k,v,o,ffn.0,ffn.2) of a tiny random-init stand-in of the 5B DiT: hash-detected model loading, pipeline units incl. the TI2V-only ImageEmbedderFused, FlowMatchSFTLoss with the first frame dropped, gradient-checkpointed DiT blocks, AdamW, LoRA-only safetensors save; 2 synthetic clips x 1 epoch = 2 steps.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">188.3s</span><span class="pill size heavy">16.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>49.5%</b></span></div>
+                <div class="bar"><i style="width: 49.5%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">DiffSynth-Studio train.py LoRA SFT (r=32 on q,k,v,o,ffn.0,ffn.2) of a tiny random-init stand-in of the 5B DiT: hash-detected model loading, pipeline units incl. the TI2V-only ImageEmbedderFused, FlowMatchSFTLoss with the first frame dropped, gradient-checkpointed DiT blocks, AdamW, LoRA-only safetensors save; 2 synthetic clips x 1 epoch = 2 steps.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/drivers/partB_cpu_tiny.py</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/wan22_ti2v_5b/train_lora.html<span class="sep">/</span>16.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/drivers/partB_cpu_tiny.py</p>
+            
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,453</dd></div>
+              <div><dt>Edges</dt><dd>2,572</dd></div>
+              <div><dt>Calls</dt><dd>27,065</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
   </main>
 
   <footer class="foot">
@@ -3012,7 +3154,7 @@
       on the card; they take longer to open.
     </p>
     <p>
-      Fifteen projects, seventy-two sessions, live beside this menu under <code>projects/</code>.
+      Seventeen projects, seventy-eight sessions, live beside this menu under <code>projects/</code>.
       Adding a session means dropping its HTML in a folder and copying a card. Each session page
       links back here.
     </p>
