@@ -2,11 +2,11 @@
   "repository": "dreamzero0/dreamzero",
   "source_commit": "ab790c198fbce33503358efbbd4187ce9a89adf3",
   "group_totals": {
-    "Sessions": 8,
-    "Functions traced": 11420,
-    "Calls recorded": 5044091,
-    "Lines executed": 14286,
-    "Lines in scope": 36416
+    "Sessions": 10,
+    "Functions traced": 19840,
+    "Calls recorded": 7118464,
+    "Lines executed": 24796,
+    "Lines in scope": 62605
   },
   "pages": [
     {
@@ -63,6 +63,62 @@
         "important": 87,
         "sampled": 4416,
         "boundaries": 3694
+      }
+    },
+    {
+      "id": "s2_server_14b",
+      "card_id": "dreamzero-server-14b",
+      "kind": "serve",
+      "href": "projects/dreamzero/s2_server_14b.html",
+      "title": "DreamZero \u00b7 DreamZero-DROID 14B inference server",
+      "outcome": "exit 0 \u00b7 772.5s \u00b7 9 infers + 4 resets \u00b7 4 mp4",
+      "stages": 9,
+      "important": 94,
+      "innovation": 32,
+      "modules": 800,
+      "command": "python docs/code_mapping/drivers/server14b_session.py --model-path outputs/code_mapping/s2_server_14b/ckpt/DreamZero-DROID --port 5612 --split 26 --t5-device cpu --record outputs/code_mapping/s2_server_14b/session_record.json",
+      "exit": 0,
+      "secs": 772.53,
+      "totals": {
+        "functions": 4074,
+        "edges": 4154,
+        "calls": 1361436,
+        "lines": 12920,
+        "reference_lines": 92683,
+        "executed": 5047,
+        "columns": 20,
+        "dropped": 0,
+        "important": 94,
+        "sampled": 4070,
+        "boundaries": 3554
+      }
+    },
+    {
+      "id": "s1v_serve_wan22_ditcache",
+      "card_id": "dreamzero-serve-ditcache",
+      "kind": "serve",
+      "href": "projects/dreamzero/s1v_serve_wan22_ditcache.html",
+      "title": "DreamZero \u00b7 Wan2.2-5B server session \u00b7 dynamic DiT caching",
+      "outcome": "exit 0 \u00b7 458.4s \u00b7 8 infers + 1 reset \u00b7 DiT 4 of 16 steps per request (s1 8/16) \u00b7 2 mp4",
+      "stages": 9,
+      "important": 67,
+      "innovation": 32,
+      "modules": 800,
+      "command": "python docs/code_mapping/drivers/serve_wan22_session.py --model-path outputs/code_mapping/t1_wan22_lora --episode 5 --port 5613 --out outputs/code_mapping/s1v_serve_wan22_ditcache",
+      "exit": 0,
+      "secs": 458.39,
+      "totals": {
+        "functions": 4346,
+        "edges": 4437,
+        "calls": 712937,
+        "lines": 13269,
+        "reference_lines": 98568,
+        "executed": 5463,
+        "columns": 19,
+        "dropped": 0,
+        "important": 67,
+        "sampled": 4343,
+        "boundaries": 3803
       }
     },
     {
