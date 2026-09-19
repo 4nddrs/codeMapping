@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>88</b><span>Sessions</span></div>
-      <div class="tot"><b>113,379</b><span>Functions traced</span></div>
-      <div class="tot"><b>42,656,276</b><span>Calls recorded</span></div>
-      <div class="tot"><b>234,416</b><span>Lines executed</span></div>
-      <div class="tot"><b>646,743</b><span>Lines in scope</span></div>
+      <div class="tot"><b>89</b><span>Sessions</span></div>
+      <div class="tot"><b>116,997</b><span>Functions traced</span></div>
+      <div class="tot"><b>42,801,692</b><span>Calls recorded</span></div>
+      <div class="tot"><b>237,907</b><span>Lines executed</span></div>
+      <div class="tot"><b>654,295</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -826,6 +826,7 @@
           <a href="#rollingforcing">RollingForcing</a>
           <a href="#diffusion-forcing">Diffusion Forcing</a>
           <a href="#self-forcing">Self Forcing</a>
+          <a href="#causal-forcing">Causal Forcing</a>
         </div>
       </div>
     </nav>
@@ -3214,6 +3215,45 @@
               <div><dt>Functions</dt><dd>4,269</dd></div>
               <div><dt>Edges</dt><dd>4,391</dd></div>
               <div><dt>Calls</dt><dd>739,572</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
+
+<details class="shelf repo-shelf" id="causal-forcing">
+<summary class="shelfhead repo-summary"><h2>Causal Forcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">Causal Forcing++ (zhuhz22/Causal-Forcing) training mappings, one navigator per training stage. Stage 2b distils a causal video diffusion model by consistency distillation straight from ground-truth latents: a frozen teacher takes one guided ODE step from t to t_next and the student at t is matched against an EMA copy of itself at t_next, so no dataset of ODE trajectories is needed. Bounded captures on one RTX A6000 (2 optimizer steps, 8-row synthetic latent fixture, 1.3B weights); every deviation from the README&#x27;s 8-node x 8-GPU schedule is declared in the repository&#x27;s docs/code_mapping/GAPS.md, including the two hardware limits this host hit: the teacher-forcing attention mask needs a single 32 GiB allocation, and the released flex-attention backward kernel does not fit in an A6000&#x27;s shared memory at default tile sizes.</p>
+<div class="runs">
+        <article class="run" id="causal-forcing-index" data-kind="training" data-search="stage 2b causal cd framewise training causal-forcing-index projects/causal_forcing/index.html two optimizer steps of stage 2b consistency distillation: one guided teacher ode step from a ground-truth latent produces the target, and the student at t is matched to its ema copy at t_next. python train.py --config_path docs/code_mapping/configs/causal_cd_framewise_map.yaml --logdir outputs/code_mapping_causal_cd_framewise --disable-wandb --no_save --no_visualize training causal forcing consistency distillation teacher forcing ema exit 0 · 1147.7s · 2/2 steps · losses 0.0014191 → 0.0057983 · 1 traced rank" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/causal_forcing/index.html">
+            <div>
+              <h3 class="title"><span class="name">Stage 2b · Causal CD framewise</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of Stage 2b consistency distillation: one guided teacher ODE step from a ground-truth latent produces the target, and the student at t is matched to its EMA copy at t_next.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1147.7s</span><span class="pill size heavy">21.3 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>46.2%</b></span></div>
+                <div class="bar"><i style="width: 46.2%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of Stage 2b consistency distillation: one guided teacher ODE step from a ground-truth latent produces the target, and the student at t is matched to its EMA copy at t_next. Traced on one rank; the 32 GiB teacher-forcing mask allocation and the foreign process on the host&#x27;s other GPU are why the capture is single-rank.</p>
+            <div class="cmd-row">
+              <code class="cmd">python train.py --config_path docs/code_mapping/configs/causal_cd_framewise_map.yaml --logdir outputs/code_mapping_causal_cd_framewise --disable-wandb --no_save --no_visualize</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/causal_forcing/index.html<span class="sep">/</span>21.3 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train.py</p>
+            <p class="outcome">2/2 steps · losses 0.0014191 → 0.0057983 · 1 traced rank</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>3,618</dd></div>
+              <div><dt>Edges</dt><dd>3,691</dd></div>
+              <div><dt>Calls</dt><dd>145,416</dd></div>
             </dl>
           </details>
         </article>
