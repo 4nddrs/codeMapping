@@ -1955,11 +1955,23 @@
       menuAutoPinned = null;
     }
   }
+  // Never open the popup UNDER the cursor. It used to be placed at cursor+12 and
+  // then clamped into the window, so a tall popup (a big function's values: up
+  // to 72% of the window) was pushed up over the point that was clicked. On
+  // macOS `contextmenu` fires on mouse-DOWN, so the rest of that same gesture --
+  // the release, a left-button release for Ctrl+click -- then landed on the
+  // popup instead of the canvas. Small cards worked, big ones did not. So the
+  // popup takes whichever side of the clicked line has room (below preferred)
+  // and its height is limited to that space; the clicked line stays readable.
   function placeVals(x, y) {
     vals.style.setProperty("display", "block", forceVals ? "important" : "");
-    var vw = window.innerWidth, vh = window.innerHeight, w = vals.offsetWidth, h = vals.offsetHeight;
-    vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
-    vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
+    var vw = window.innerWidth, vh = window.innerHeight, gap = 12, pad = 8;
+    var below = vh - (y + gap) - pad, above = y - gap - pad;
+    var useBelow = below >= 260 || below >= above;
+    vals.style.maxHeight = Math.max(140, Math.min(0.72 * vh, useBelow ? below : above)) + "px";
+    var w = vals.offsetWidth, h = vals.offsetHeight;
+    vals.style.left = Math.max(pad, Math.min(vw - w - pad, x + gap)) + "px";
+    vals.style.top = (useBelow ? y + gap : Math.max(pad, y - gap - h)) + "px";
   }
   function showDestinations(button) {
     var caller = byId[+button.dataset.from], line = +button.dataset.line;
@@ -2918,10 +2930,7 @@
     }
     vals.innerHTML = html.join("");
     vals.setAttribute('role','dialog');vals.setAttribute('aria-label','Recorded values');
-    vals.style.setProperty("display", "block", forceVals ? "important" : "");
-    var vw = window.innerWidth, vh = window.innerHeight, w = vals.offsetWidth, h = vals.offsetHeight;
-    vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
-    vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
+    placeVals(x, y);
     vals.onclick = function (ev) {
       var sib = ev.target.closest(".sibvals");
       if (sib) { var to = byId[+sib.dataset.id]; hideVals(); pushHist(n, line || n.def); flyTo(to, Math.max(z, 0.8)); return; }
@@ -2941,6 +2950,10 @@
   var forceVals = false;    // set once a stylesheet outside the page was found hiding #vals
   function popupVisible() { return getComputedStyle(vals).display !== "none" && vals.getBoundingClientRect().width > 0; }
   function openValuesAt(n, line, x, y) {
+    // A context-menu gesture is never a canvas drag. With Ctrl+click on macOS the
+    // press is a LEFT pointerdown (dragging = true) and the release may never
+    // reach #vp, which would leave the canvas following the mouse.
+    dragging = false; captured = false; moved = 0; downTarget = null; vp.classList.remove("drag");
     try {
       setCur(n);
       showVals(n, line, x, y, false);

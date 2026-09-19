@@ -220,6 +220,14 @@ If the popup cannot be shown (an exception while building it, or something outsi
 the page such as an extension stylesheet keeping `#vals` hidden), the page says so in
 the popup's place with the error text instead of doing nothing: a suppressed browser
 menu followed by no popup would otherwise read as "right-click does not work".
+The popup never opens under the cursor: it takes whichever side of the clicked line has
+room (below preferred) and limits its height to that space. It used to be placed at the
+cursor and clamped into the window, which pushed a *tall* popup — a big function's values —
+up over the clicked point; on macOS, where `contextmenu` fires on mouse-down, the rest of
+the gesture then landed on the popup and big cards appeared not to respond at all.
+A page rendered with an older viewer can be given the current one without its trace:
+read the payload out of its `<script id="payload">`, `_render.render()` it with the
+current template, and restore the `<title>` and the back-to-menu pill.
 A right-click that lands on no line (the header, the gap between rows, or a card while
 it is a zoomed-out thumbnail) opens the whole function's values and its footer says how
 to get a line's. Rows read:
