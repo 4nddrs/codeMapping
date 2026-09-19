@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>89</b><span>Sessions</span></div>
-      <div class="tot"><b>116,997</b><span>Functions traced</span></div>
-      <div class="tot"><b>42,801,692</b><span>Calls recorded</span></div>
-      <div class="tot"><b>237,907</b><span>Lines executed</span></div>
-      <div class="tot"><b>654,295</b><span>Lines in scope</span></div>
+      <div class="tot"><b>90</b><span>Sessions</span></div>
+      <div class="tot"><b>118,629</b><span>Functions traced</span></div>
+      <div class="tot"><b>42,846,771</b><span>Calls recorded</span></div>
+      <div class="tot"><b>239,510</b><span>Lines executed</span></div>
+      <div class="tot"><b>657,448</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -3223,7 +3223,7 @@
 </details>
 
 <details class="shelf repo-shelf" id="causal-forcing">
-<summary class="shelfhead repo-summary"><h2>Causal Forcing</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<summary class="shelfhead repo-summary"><h2>Causal Forcing</h2><span class="n">2</span><span class="preview">2 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
 <p class="repo-note">Causal Forcing++ (zhuhz22/Causal-Forcing) training mappings, one navigator per training stage. Stage 2b distils a causal video diffusion model by consistency distillation straight from ground-truth latents: a frozen teacher takes one guided ODE step from t to t_next and the student at t is matched against an EMA copy of itself at t_next, so no dataset of ODE trajectories is needed. Bounded captures on one RTX A6000 (2 optimizer steps, 8-row synthetic latent fixture, 1.3B weights); every deviation from the README&#x27;s 8-node x 8-GPU schedule is declared in the repository&#x27;s docs/code_mapping/GAPS.md, including the two hardware limits this host hit: the teacher-forcing attention mask needs a single 32 GiB allocation, and the released flex-attention backward kernel does not fit in an A6000&#x27;s shared memory at default tile sizes.</p>
 <div class="runs">
@@ -3254,6 +3254,36 @@
               <div><dt>Functions</dt><dd>3,618</dd></div>
               <div><dt>Edges</dt><dd>3,691</dd></div>
               <div><dt>Calls</dt><dd>145,416</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="causal-forcing-ar-train" data-kind="training" data-search="stage 1 ar diffusion teacher forcing training causal-forcing-ar-train projects/causal_forcing/ar_train.html two optimizer steps of the stage 1 causal ar diffusion objective: per-frame noise levels, noise-augmented clean context, one teacher-forced forward and a schedule-weighted mse. this is the teacher the later stages distil from. python train.py --config_path docs/code_mapping/configs/ar_diffusion_tf_framewise_map.yaml --logdir outputs/code_mapping_ar_diffusion_tf_framewise --disable-wandb --no_save --no_visualize training ar diffusion teacher forcing framewise exit 0 · 531.4s · 2/2 steps · losses 2.9235 → 2.1149" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/causal_forcing/ar_train.html">
+            <div>
+              <h3 class="title"><span class="name">Stage 1 · AR diffusion teacher forcing</span> <span class="chip kind">training</span></h3>
+              <p class="what">Two optimizer steps of the Stage 1 causal AR diffusion objective: per-frame noise levels, noise-augmented clean context, one teacher-forced forward and a schedule-weighted MSE. This is the teacher the later stages distil from.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">531.4s</span><span class="pill size heavy">10.1 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>50.8%</b></span></div>
+                <div class="bar"><i style="width: 50.8%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Two optimizer steps of the Stage 1 causal AR diffusion objective. One model, one forward per step and one teacher-forcing mask build, against three models, four forwards and three mask builds in the Stage 2b distillation flow.</p>
+            <div class="cmd-row">
+              <code class="cmd">python train.py --config_path docs/code_mapping/configs/ar_diffusion_tf_framewise_map.yaml --logdir outputs/code_mapping_ar_diffusion_tf_framewise --disable-wandb --no_save --no_visualize</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/causal_forcing/ar_train.html<span class="sep">/</span>10.1 MB<span class="sep">/</span>entry <code>__main__</code> &middot; train.py</p>
+            <p class="outcome">2/2 steps · losses 2.9235 → 2.1149 · 1 model, 1 forward per step</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,632</dd></div>
+              <div><dt>Edges</dt><dd>1,651</dd></div>
+              <div><dt>Calls</dt><dd>45,079</dd></div>
             </dl>
           </details>
         </article>
