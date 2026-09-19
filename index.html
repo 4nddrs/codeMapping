@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>92</b><span>Sessions</span></div>
-      <div class="tot"><b>125,065</b><span>Functions traced</span></div>
-      <div class="tot"><b>44,899,480</b><span>Calls recorded</span></div>
-      <div class="tot"><b>247,177</b><span>Lines executed</span></div>
-      <div class="tot"><b>677,313</b><span>Lines in scope</span></div>
+      <div class="tot"><b>94</b><span>Sessions</span></div>
+      <div class="tot"><b>127,162</b><span>Functions traced</span></div>
+      <div class="tot"><b>45,699,626</b><span>Calls recorded</span></div>
+      <div class="tot"><b>252,008</b><span>Lines executed</span></div>
+      <div class="tot"><b>688,112</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -3602,9 +3602,9 @@
 </details>
 
 <details class="shelf repo-shelf" id="wan22-ti2v-5b">
-<summary class="shelfhead repo-summary"><h2>Wan2.2-TI2V-5B</h2><span class="n">2</span><span class="preview">1 eval · 1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<summary class="shelfhead repo-summary"><h2>Wan2.2-TI2V-5B</h2><span class="n">4</span><span class="preview">2 eval · 2 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
 <div class="repo-content">
-<p class="repo-note">One architecture, two repositories: the official Wan2.2 inference path (generate.py, TI2V first-frame pinning, per-token timestep, UniPC) and the DiffSynth-Studio training path (hash-detected model registry, FlowMatchSFTLoss, LoRA). Both traced on a CPU-only VM with a tiny random-init stand-in of the 5B checkpoint — shapes and values are the tiny model's; the code path is the real one.</p>
+<p class="repo-note">One architecture, two repositories: the official Wan2.2 inference path (generate.py, TI2V first-frame pinning, per-token timestep, UniPC) and the DiffSynth-Studio training path (hash-detected model registry, FlowMatchSFTLoss, LoRA). Both traced on a CPU-only VM with a tiny random-init stand-in of the 5B checkpoint — shapes and values are the tiny model's; the code path is the real one. The two “real 5B” cards below re-trace the official repo on linux3 with the released checkpoint on an RTX A6000 at 1280×704 — real shapes, real values, flash-attn traced down to the CUDA kernel — plus a one-step flow-matching trainer authored for the study, since Wan2.2 ships no training code. Tiny-CPU and real-GPU pages complement each other; neither supersedes the other.</p>
 <div class="runs">
         <article class="run" id="wan22-ti2v-5b-generate" data-kind="eval" data-search="ti2v-5b inference eval wan22-ti2v-5b-generate projects/wan22_ti2v_5b/generate.html generate.py --task ti2v-5b image-to-video on a tiny random-init stand-in of the 5b checkpoint: t5 prompt encoding, vae encode of the input image, first latent frame pinned with per-token timestep 0, 4 unipc steps with cfg, vae decode and mp4 save (cpu, sdpa instead of flash-attn). python docs/code_mapping/drivers/parta_cpu_tiny.py wan2.2 ti2v-5b flow-matching unipc tiny-config cpu exit 0 · 46.6s" style="--fam: var(--kind-eval)">
           <a class="run-link" href="projects/wan22_ti2v_5b/generate.html">
@@ -3666,6 +3666,66 @@
             </dl>
           </details>
         </article>
+        <article class="run" id="wan22-ti2v-5b-generate-5b-gpu" data-kind="eval" data-search="ti2v-5b text-to-video · real 5b weights on an a6000 eval wan22-ti2v-5b-generate-5b-gpu projects/wan22_ti2v_5b/generate_5b_gpu.html generate.py --task ti2v-5b text-to-video on the released 5b checkpoint at 1280x704, 121 frames, 50 unipc steps with cfg on one rtx a6000: umt5 on cpu, the per-token timestep, 100 dit forwards with flash-attn traced inside down to the cuda kernel call, causal chunked vae decode, mp4 save. real weights and real values, complementing the tiny-stand-in pages above. python generate.py --task ti2v-5b --size 1280*704 --ckpt_dir ./wan2.2-ti2v-5b --offload_model true --convert_model_dtype --t5_cpu --base_seed 42 --save_file docs/code_mapping/runs/t2v_generate/output.mp4 --prompt two anthropomorphic cats in comfy boxing gear and bright gloves fight intensely on a spotlighted stage ti2v-5b t2v flow-matching unipc real-weights 720p rtx-a6000 flash-attn traced-inside exit 0 · 1259.3s" style="--fam: var(--kind-eval)">
+          <a class="run-link" href="projects/wan22_ti2v_5b/generate_5b_gpu.html">
+            <div>
+              <h3 class="title"><span class="name">TI2V-5B text-to-video · real 5B weights on an A6000</span> <span class="chip kind">eval</span></h3>
+              <p class="what">generate.py --task ti2v-5B text-to-video on the RELEASED 5B checkpoint at 1280x704, 121 frames, 50 UniPC steps with CFG on one RTX A6000: umT5 on CPU, the per-token timestep, 100 DiT forwards with flash-attn traced inside down to the CUDA kernel call, causal chunked VAE decode, mp4 save. Real weights and real values, complementing the tiny-stand-in pages above.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">1259.3s</span><span class="pill size">5.2 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>43.0%</b></span></div>
+                <div class="bar"><i style="width: 43.0%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">generate.py --task ti2v-5B text-to-video on the RELEASED 5B checkpoint at 1280x704, 121 frames, 50 UniPC steps with CFG on one RTX A6000: umT5 on CPU, the per-token timestep, 100 DiT forwards with flash-attn traced inside down to the CUDA kernel call, causal chunked VAE decode, mp4 save. Real weights and real values, complementing the tiny-stand-in pages above.</p>
+            <div class="cmd-row">
+              <code class="cmd">python generate.py --task ti2v-5B --size 1280*704 --ckpt_dir ./Wan2.2-TI2V-5B --offload_model True --convert_model_dtype --t5_cpu --base_seed 42 --save_file docs/code_mapping/runs/t2v_generate/output.mp4 --prompt Two anthropomorphic cats in comfy boxing gear and bright gloves fight intensely on a spotlighted stage</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/wan22_ti2v_5b/generate_5b_gpu.html<span class="sep">/</span>5.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; generate.py</p>
+            
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>1,123</dd></div>
+              <div><dt>Edges</dt><dd>2,145</dd></div>
+              <div><dt>Calls</dt><dd>762,743</dd></div>
+            </dl>
+          </details>
+        </article>
+        <article class="run" id="wan22-ti2v-5b-train-step-5b-gpu" data-kind="training" data-search="ti2v-5b flow-matching training step · authored, real 5b dit training wan22-ti2v-5b-train-step-5b-gpu projects/wan22_ti2v_5b/train_step_5b_gpu.html one flow-matching training step on the released 5b dit, written for this study because wan2.2 ships no training code: real vae encode of a clip, umt5 context, sigma sampled and shifted, per-token timestep, forward under autocast, mse against v = eps - x0, backward through 30 gradient-checkpointed blocks with flash-attn&#x27;s backward traced, adamw step. loss 0.186, all 825 params with grads, 40 gib peak. python docs/code_mapping/flows/train_step/train_step.py flow-matching velocity training backward adamw real-weights flash-attn authored not-shipped exit 0 · 352.3s" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/wan22_ti2v_5b/train_step_5b_gpu.html">
+            <div>
+              <h3 class="title"><span class="name">TI2V-5B flow-matching training step · authored, real 5B DiT</span> <span class="chip kind">training</span></h3>
+              <p class="what">ONE flow-matching training step on the released 5B DiT, written for this study because Wan2.2 ships no training code: real VAE encode of a clip, umT5 context, sigma sampled and shifted, per-token timestep, forward under autocast, MSE against v = eps - x0, backward through 30 gradient-checkpointed blocks with flash-attn&#x27;s backward traced, AdamW step. loss 0.186, all 825 params with grads, 40 GiB peak.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">352.3s</span><span class="pill size">4.4 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>47.3%</b></span></div>
+                <div class="bar"><i style="width: 47.3%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">ONE flow-matching training step on the released 5B DiT, written for this study because Wan2.2 ships no training code: real VAE encode of a clip, umT5 context, sigma sampled and shifted, per-token timestep, forward under autocast, MSE against v = eps - x0, backward through 30 gradient-checkpointed blocks with flash-attn&#x27;s backward traced, AdamW step. loss 0.186, all 825 params with grads, 40 GiB peak.</p>
+            <div class="cmd-row">
+              <code class="cmd">python docs/code_mapping/flows/train_step/train_step.py</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/wan22_ti2v_5b/train_step_5b_gpu.html<span class="sep">/</span>4.4 MB<span class="sep">/</span>entry <code>__main__</code> &middot; docs/code_mapping/flows/train_step/train_step.py</p>
+            
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>974</dd></div>
+              <div><dt>Edges</dt><dd>1,795</dd></div>
+              <div><dt>Calls</dt><dd>37,403</dd></div>
+            </dl>
+          </details>
+        </article>
 </div>
 </div>
 </details>
@@ -3678,7 +3738,7 @@
       on the card; they take longer to open.
     </p>
     <p>
-      Seventeen projects, seventy-eight sessions, live beside this menu under <code>projects/</code>.
+      Twenty-three projects, ninety-four sessions, live beside this menu under <code>projects/</code>.
       Adding a session means dropping its HTML in a folder and copying a card. Each session page
       links back here.
     </p>
