@@ -57,6 +57,48 @@ DENY_DIRS = {
 # --------------------------------------------------------------------------
 # source roots
 # --------------------------------------------------------------------------
+def resolve_trace_packages(names) -> dict[str, str]:
+    """Map each --trace-package NAME to the absolute directory (or file) it imports from.
+
+    A dependency the reader cares about -- the attention kernel wrapper, the
+    scheduler library, a vendored trainer -- is normally walked past as a
+    boundary: its card is reference source with no coverage and no onward
+    arrows, so the tree looks cut off exactly where it gets interesting.
+    Naming the package here puts its directory into the traced roots, so its
+    Python frames are recorded like project code (its C extensions stay native
+    boundaries). Files under it are labelled ``NAME/<path inside NAME>`` --
+    the same convention the boundary recorder already uses for site-packages --
+    so ``important.txt`` patterns such as ``flash_attn/*.py:flash_attn_varlen_func``
+    match and cards read the same whether the venv lives inside the repo or not.
+    """
+    import importlib.util
+    out = {}
+    for name in names or ():
+        spec = importlib.util.find_spec(name)
+        if spec is None:
+            raise ImportError(f"--trace-package {name}: not importable in this interpreter "
+                              f"({sys.executable}); install it into the project environment first")
+        if spec.submodule_search_locations:
+            location = next(iter(spec.submodule_search_locations))
+        elif spec.origin and spec.origin not in ("built-in", "frozen"):
+            location = spec.origin
+        else:
+            raise ImportError(f"--trace-package {name}: has no Python source to trace "
+                              f"(origin={spec.origin!r})")
+        out[name] = os.path.abspath(location)
+    return out
+
+
+def package_label(path: str, trace_packages: dict[str, str]) -> str | None:
+    """``flash_attn/flash_attn_interface.py`` for a file under a traced package, else None."""
+    for name, location in trace_packages.items():
+        if path == location:
+            return name if os.path.isdir(location) else name + "/" + os.path.basename(location)
+        if path.startswith(location + os.sep):
+            return name + "/" + os.path.relpath(path, location).replace(os.sep, "/")
+    return None
+
+
 def autodetect_roots(root: Path) -> list[str]:
     """Top-level dirs/files holding this project's own Python."""
     out = []
@@ -631,10 +673,13 @@ class CallTracer:
     remembered as `via`, and import-time work is tagged so it can be dropped.
     """
 
-    def __init__(self, root: Path, roots: list[str], self_dir: Path):
+    def __init__(self, root: Path, roots: list[str], self_dir: Path, trace_packages=None):
         self.root = str(root)
         self.prefixes = tuple(os.path.join(str(root), r) for r in roots)
         self.self_dir = str(self_dir)
+        # --trace-package NAME -> absolute dir; files under it are recorded as
+        # NAME/<rel> instead of a ../../.. path out of the repo (see dump().rel)
+        self.trace_packages = {k: os.path.abspath(v) for k, v in (trace_packages or {}).items()}
         self.main_file = ""      # the script/module run as __main__, set by run_target
         self.edges: dict[tuple, list] = {}
         self.calls: dict[tuple, list] = {}
@@ -1117,6 +1162,11 @@ class CallTracer:
         def rel(p):
             if not p:
                 return ""
+            if self.trace_packages:
+                label = package_label(p if os.path.isabs(p) else os.path.join(self.root, p),
+                                      self.trace_packages)
+                if label is not None:
+                    return label
             try:
                 return os.path.relpath(p, self.root)
             except ValueError:
@@ -1145,6 +1195,7 @@ class CallTracer:
             ],
         }
         data["instance_edges"] = list(self.instance_edges.values())
+        data["trace_packages"] = dict(self.trace_packages)
         data["line_capture"] = {"schema": 1, "scope": "call_site_group",
             "note": "Union of observed line events within each calling context; sampled invocations also retain their own line events. Merged helpers are explicitly marked."}
         data.update(self.boundaries.dump())
@@ -1249,6 +1300,12 @@ def main() -> int:
     ap.add_argument("--include", action="append", default=[],
                     help="source dir/file to treat as yours, relative to root (repeatable; "
                          "default: auto-detect top-level packages)")
+    ap.add_argument("--trace-package", action="append", default=[], metavar="NAME",
+                    help="importable dependency to trace INSIDE, e.g. flash_attn (repeatable). "
+                         "Its Python frames are recorded like project code and its files are "
+                         "labelled NAME/...; without this a dependency is a boundary card: "
+                         "reference source, no coverage, no onward arrows. Remembered in "
+                         "run.json, so --rebuild keeps it")
     ap.add_argument("--title", default=None, help="page title (default: the project dir name)")
     ap.add_argument("--brand", default=None, help="small label above the command line")
     ap.add_argument("--entry", default=None,
@@ -1302,9 +1359,24 @@ def main() -> int:
         except (ValueError, OSError) as exc:  # bad JSON is a ValueError; a directory is an OSError
             print(f"codetrace: invalid {args.innovation_path}: {exc}", file=sys.stderr)
             return 2
-    roots = args.include or autodetect_roots(root)
-    if not roots:
+    # A rebuild must reproduce the capture's scope without the flags being
+    # retyped, so --include and --trace-package are remembered in run.json.
+    meta_json = out / "run.json"
+    meta = json.loads(meta_json.read_text()) if (args.rebuild and meta_json.exists()) else {}
+    base_roots = args.include or meta.get("include") or autodetect_roots(root)
+    if not base_roots:
         ap.error(f"no Python found under {root}; pass --include")
+    try:
+        trace_packages = resolve_trace_packages(args.trace_package)
+    except ImportError as exc:
+        ap.error(str(exc))
+    if args.rebuild:
+        trace_packages = dict(meta.get("trace_packages") or {}) | trace_packages
+    # traced packages join the roots as absolute paths; the tracer's prefix test
+    # and coverage's include patterns both accept those wherever the venv lives
+    roots = list(base_roots) + [d for d in trace_packages.values() if d not in base_roots]
+    for name, location in trace_packages.items():
+        print(f"codetrace: tracing inside {name} ({location})")
 
     try:
         import coverage  # noqa
@@ -1326,7 +1398,8 @@ def main() -> int:
         meta = json.loads(meta_json.read_text()) if meta_json.exists() else {}
         command, code, secs = meta.get("command", "(earlier run)"), meta.get("exit", 0), meta.get("secs", 0.0)
         print(f"codetrace: rebuilding from the earlier run of {command}")
-        return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs)
+        return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs,
+                           trace_packages=trace_packages)
 
     print(f"codetrace: running {' '.join(argv)}\n", flush=True)
     log_path = out / "run.log"
@@ -1334,7 +1407,7 @@ def main() -> int:
     if args.no_values:
         global MAX_SAMPLES
         MAX_SAMPLES = 0
-    tracer = CallTracer(root, roots, HERE)
+    tracer = CallTracer(root, roots, HERE, trace_packages=trace_packages)
 
     cov = coverage.Coverage(
         branch=True, cover_pylib=False, concurrency="thread", timid=True,
@@ -1376,11 +1449,14 @@ def main() -> int:
     nfun, nedge = tracer.dump(cg_json)
     print(f"\ncodetrace: traced {nfun} functions, {nedge} call edges in {secs:.1f}s (exit {code})")
     command = " ".join(argv)
-    meta_json.write_text(json.dumps({"command": command, "exit": code, "secs": round(secs, 2)}))
-    return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs)
+    meta_json.write_text(json.dumps({"command": command, "exit": code, "secs": round(secs, 2),
+                                     "include": list(base_roots), "trace_packages": trace_packages}))
+    return build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs,
+                       trace_packages=trace_packages)
 
 
-def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs) -> int:
+def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs,
+                trace_packages=None) -> int:
     label = args.label or f"exit {code} · {secs:.1f}s"
     title = args.title or root.name
     brand = args.brand or f"{root.name} · call tree with line coverage"
@@ -1394,11 +1470,15 @@ def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs) 
         patterns += imp_file.read_text().splitlines()
         print(f"codetrace: importance patterns from {imp_file}")
 
+    cg = json.loads(cg_json.read_text())
+    # the trace itself knows which packages it was told to follow; the caller's
+    # value (from run.json or the command line) only fills in for older traces
+    trace_packages = dict(trace_packages or {}) | dict(cg.get("trace_packages") or {})
     payload = _calltree.build(
-        root=root, cg=json.loads(cg_json.read_text()), cov=json.loads(cov_json.read_text()),
+        root=root, cg=cg, cov=json.loads(cov_json.read_text()),
         command=command, outcome=label, title=title, brand=brand,
         entry=args.entry, drop_imports=not args.keep_imports, max_gap=args.max_gap,
-        important=patterns,
+        important=patterns, trace_packages=trace_packages,
     )
     if patterns:
         print(f"codetrace: {payload['totals']['important']} functions marked important")
@@ -1420,6 +1500,7 @@ def build_pages(args, root, out, roots, cg_json, cov_json, command, code, secs) 
         mp = _mosaic.build(
             root=root, roots=roots, cov=json.loads(cov_json.read_text()),
             command=command, outcome=label, title=title, brand=brand.replace("call tree with ", ""),
+            trace_packages=trace_packages,
         )
         (out / "payload_mosaic.json").write_text(json.dumps(mp, separators=(",", ":")))
         _render.render(HERE / "templates" / "mosaic.html", mp, out / "mosaic.html")

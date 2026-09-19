@@ -10,13 +10,36 @@ COLD_W, COLD_H = 330, 92
 GAP = 44
 
 
-def build(*, root: Path, roots, cov, command, outcome, title, brand):
+def build(*, root: Path, roots, cov, command, outcome, title, brand, trace_packages=None):
+    # --trace-package roots may live outside the repo; they are keyed NAME/<rel>
+    # like the call tree does, instead of failing relative_to(root).
+    trace_packages = {k: Path(v) for k, v in (trace_packages or {}).items()}
+
+    def key_for(path: Path):
+        for name, location in trace_packages.items():
+            try:
+                inside = path.relative_to(location)
+            except ValueError:
+                continue
+            return name if str(inside) == "." else name + "/" + inside.as_posix()
+        try:
+            return path.relative_to(root).as_posix()
+        except ValueError:
+            return None
+
+    def resolve(rel: str) -> Path:
+        for name, location in trace_packages.items():
+            if rel == name:
+                return location
+            if rel.startswith(name + "/"):
+                return location / rel[len(name) + 1:]
+        return root / rel
+
     cov_files = {}
     for k, v in (cov.get("files") or {}).items():
         kp = Path(k)
-        try:
-            rel = kp.resolve().relative_to(root).as_posix() if kp.is_absolute() else kp.as_posix()
-        except ValueError:
+        rel = key_for(kp.resolve() if kp.is_absolute() else (root / kp).resolve())
+        if rel is None:
             continue
         cov_files[rel] = v
 
@@ -25,16 +48,21 @@ def build(*, root: Path, roots, cov, command, outcome, title, brand):
     for r in roots:
         p = root / r
         if p.is_file() and p.suffix == ".py":
-            allfiles.append(p.relative_to(root).as_posix())
+            rel = key_for(p)
+            if rel is not None:
+                allfiles.append(rel)
         elif p.is_dir():
             for q in sorted(p.rglob("*.py")):
-                if "__pycache__" not in q.parts:
-                    allfiles.append(q.relative_to(root).as_posix())
+                if "__pycache__" in q.parts:
+                    continue
+                rel = key_for(q)
+                if rel is not None:
+                    allfiles.append(rel)
 
     files = []
     for rel in allfiles:
         try:
-            src = (root / rel).read_text(errors="replace")
+            src = resolve(rel).read_text(errors="replace")
         except OSError:
             continue
         lines = src.split("\n")

@@ -104,6 +104,7 @@ python codetrace/codetrace.py -- yourcmd ...
 | `--root DIR` | project root (default: current directory) |
 | `--out DIR` | where to write the pages (default: `codetrace_out`) |
 | `--include PATH` | a source dir/file that is *yours*, relative to root. Repeatable. Default: auto-detected top-level packages — check the `watching …` line it prints and override if it guessed wrong. |
+| `--trace-package NAME` | an importable dependency to trace **inside** (e.g. `flash_attn`). Repeatable. Its Python frames are recorded like project code and its files are labelled `NAME/…`; its C extensions stay native boundaries. Remembered in `run.json`, so `--rebuild` keeps it. See [Tracing inside a dependency](#tracing-inside-a-dependency). |
 | `--entry NAME` | function to treat as the root of the tree. Default: the traced function that reaches the most others, which is normally your `main`. |
 | `--title` / `--brand` | page title and the small label above the command line |
 | `--label TEXT` | text for the outcome badge (default: `exit 0 · 12.3s`) |
@@ -114,6 +115,42 @@ python codetrace/codetrace.py -- yourcmd ...
 | `--no-values` | don't capture argument/local/return values (smaller page, faster) |
 | `--rebuild` | redraw from the trace already in `--out` instead of running the command |
 | `--no-mosaic` | skip the second page |
+
+## Tracing inside a dependency
+
+Only your code is traced. A call into a library becomes a **boundary card**:
+the library function's source, shown as reference, with **no line highlighted
+and no arrows leading on** — its internal lines were never recorded. That is
+correct, and it is also exactly where a reader who cares about the library
+concludes the page is cut off. On the Wan2.2 pages the attention kernel wrapper
+`flash_attn_varlen_func` looked like a dead end for that reason.
+
+Name the package and it stops being a boundary:
+
+```bash
+python codetrace/codetrace.py --include wan --trace-package flash_attn -- python generate.py …
+```
+
+- Its Python frames are traced like project code: real coverage, values, arrows
+  onward. On the Wan2.2 training step that turns one grey card into
+  `flash_attn_varlen_func → FlashAttnVarlenFunc.forward → _flash_attn_varlen_forward`,
+  ending at the pybind11 `varlen_fwd` CUDA kernel — which stays a **native**
+  boundary, because there is no Python inside it to trace.
+- Files are labelled `NAME/<path inside the package>` (`flash_attn/flash_attn_interface.py`),
+  not a `../../../.venv/…` path, so the label is the same whether the venv lives
+  inside the repo or not, and `important.txt` can say
+  `flash_attn/*.py:flash_attn_varlen_func`.
+- The package must be importable by the interpreter running codetrace; it is
+  resolved with `importlib.util.find_spec`, and a name that is not installed is
+  an error rather than a silently narrower trace.
+- Calls *from* the traced package into other libraries are recorded as
+  boundaries in turn (capped like any other, see below).
+- It is remembered in `run.json` and `callgraph.json`; `--rebuild` reproduces
+  the same labels without the flag being retyped.
+
+Every boundary card's header tooltip and value popup say which package to name
+to go deeper. Record the choice in the brief's scope: tracing a dependency is a
+scoping decision, not a default.
 
 ## Moving around
 
@@ -177,7 +214,15 @@ own scroll so it can never push past the canvas on a short window.
 
 ## Values: right-click a line
 
-Right-click any line to see what the variables on it held, one line per value:
+Right-click any line — or hover it and press <kbd>v</kbd>, which needs no
+`contextmenu` event at all — to see what the variables on it held, one line per value.
+If the popup cannot be shown (an exception while building it, or something outside
+the page such as an extension stylesheet keeping `#vals` hidden), the page says so in
+the popup's place with the error text instead of doing nothing: a suppressed browser
+menu followed by no popup would otherwise read as "right-click does not work".
+A right-click that lands on no line (the header, the gap between rows, or a card while
+it is a zoomed-out thumbnail) opens the whole function's values and its footer says how
+to get a line's. Rows read:
 `name = (shape) (dtype) device [first values…]` for arrays and tensors, the type for objects
 and dicts, the value itself for scalars. The rows are grouped as **#output**, what the line
 assigns or returns, valued after it runs, and **#input**, what it reads, valued as the line

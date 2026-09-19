@@ -14,11 +14,39 @@ RET = 20   # the '↩ return' strip at the foot of every card
 COL_GAP, ROW_GAP = 150, 28
 MIN_W, MAX_W = 380, 1000
 
+# Cards per observed dependency endpoint, mirroring codetrace.MAX_INSTANCES for
+# project functions. Without it a boundary is drawn once per call site x receiver
+# type and nothing bounds it: on the Wan2.2 DiffSynth LoRA capture torch's
+# nn.Module.__setattr__ alone took 366 cards and 53% of the canvas, none of which
+# can ever highlight (a boundary card is reference source; its internal lines are
+# not traced, see the coverage_scope "boundary_only" below). Past the cap the
+# remaining call sites collapse into one merged card per endpoint, exactly as
+# project instances do. 0 disables the cap and restores the original
+# one-card-per-record behaviour, for reproducing a page built before this.
+MAX_BOUNDARY_INSTANCES = 8
+
 
 _NONE_SUSPENSION_NOTE = (
     "The saved profiler event cannot distinguish yield None from generator.close() "
     "or generator.throw(); this sample's outcome is unknown."
 )
+
+
+def _slim_target(target):
+    """The payload's copy of a boundary target, without the source blob.
+
+    The endpoint's source is already on the card as ``src`` (that is what the
+    viewer renders, templates/call_tree.html: ``n.src.split``), so keeping a
+    second copy under ``boundary.target.source`` put the same text in the page
+    twice for every card. On the Wan2.2 DiffSynth LoRA capture that was 1,976
+    copies of 130 distinct blobs -- 2.95 MB where 0.24 MB would do.
+
+    Nothing reads these two keys from the payload: the viewer touches only
+    ``boundary.{kind,expression,outcomes,outcomes_note,source_reference_only}``.
+    The full target, source included, stays in ``callgraph.json``, which is the
+    raw evidence and is not rewritten here.
+    """
+    return {k: v for k, v in target.items() if k not in ("source", "source_path")}
 
 
 def _normalize_sample_outcome(sample):
@@ -226,13 +254,36 @@ def apply_innovation(payload, spec):
 
 
 def build(*, root: Path, cg, cov, command, outcome, title, brand,
-          entry=None, drop_imports=True, max_gap=300, important=()):
+          entry=None, drop_imports=True, max_gap=300, important=(), trace_packages=None):
     main_file = cg.get("main_file") or ""   # the script/module run as __main__
+    # --trace-package NAME -> absolute dir. The tracer records files under it as
+    # NAME/<rel> (codetrace.package_label), so they resolve back through this
+    # table rather than through `root / rel`, wherever the package really lives.
+    trace_packages = {k: Path(v) for k, v in (trace_packages or cg.get("trace_packages") or {}).items()}
+
+    def resolve(rel: str) -> Path:
+        for name, location in trace_packages.items():
+            if rel == name:
+                return location
+            if rel.startswith(name + "/"):
+                return location / rel[len(name) + 1:]
+        return root / rel
+
+    def label_for(path: Path):
+        """The NAME/<rel> label for an absolute path under a traced package, else None."""
+        for name, location in trace_packages.items():
+            try:
+                inside = path.relative_to(location)
+            except ValueError:
+                continue
+            return name if str(inside) == "." else name + "/" + inside.as_posix()
+        return None
+
     # ---------- read every source file the trace touched ----------
     defs, sources = {}, {}
     files = {c["file"] for c in cg["calls"]} | {e["cfile"] for e in cg["edges"] if e["cfile"]}
     for rel in sorted(files):
-        p = root / rel
+        p = resolve(rel)
         if not p.exists():
             continue
         src = p.read_text(errors="replace")
@@ -275,10 +326,13 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
     cov_files = {}
     for k, v in (cov.get("files") or {}).items():
         kp = Path(k)
-        try:
-            rel = kp.resolve().relative_to(root).as_posix() if kp.is_absolute() else kp.as_posix()
-        except ValueError:
-            continue
+        absolute = kp.resolve() if kp.is_absolute() else (root / kp).resolve()
+        rel = label_for(absolute)          # a traced package keys by its label...
+        if rel is None:
+            try:                          # ...everything else stays repo-relative
+                rel = absolute.relative_to(root).as_posix()
+            except ValueError:
+                continue
         cov_files[rel] = v
 
     # ---------- one card per CALL SITE (call tree), when the trace has it -----
@@ -492,6 +546,8 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
         # External/native endpoints are measured calls, with source as reference
         # only. They are attached before reachability and layout so every visible
         # caller can open its actual observed destination.
+        boundary_seen: dict = {}      # endpoint identity -> cards drawn so far
+        boundary_merged: dict = {}    # endpoint identity -> the merged card's node id
         for boundary_index, record in enumerate(cg.get("external_calls") or []):
             c = inst_node.get(record["parent"])
             boundary_id = record.get("id", boundary_index)
@@ -503,6 +559,31 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                 boundary_exclusions.append({"id": boundary_id, "reason": "recorded call line is outside caller source", "line": cline})
                 continue
             target = record["target"]
+
+            # --- cap cards per endpoint (see MAX_BOUNDARY_INSTANCES) ----------
+            ident = target.get("identity") or (
+                str(target.get("file")) + ":" + str(target.get("name")))
+            drawn = boundary_seen.get(ident, 0)
+            if MAX_BOUNDARY_INSTANCES and drawn >= MAX_BOUNDARY_INSTANCES:
+                m = boundary_merged.get(ident)
+                if m is not None:
+                    # Fold this call site into the endpoint's merged card: keep the
+                    # arrow so the caller still shows where it went, and carry the
+                    # counts so the merged card's total stays truthful.
+                    nodes[m]["calls"] += record["count"]
+                    nodes[m]["boundary"]["merged_call_sites"] += 1
+                    nodes[m]["boundary"]["merged_ids"].append(boundary_id)
+                    edges.append({"from": c, "line": cline, "to": m, "n": record["count"],
+                                  "seq": record.get("seq", 0), "via": "", "boundary": True,
+                                  "boundary_id": boundary_id, "expression": record.get("expression", ""),
+                                  "expression_exact": record.get("expression_exact", False),
+                                  "provenance": "external_call"})
+                    continue
+
+            # This record is the first past the cap, so its card becomes the one
+            # merged card that every later call site of this endpoint folds into.
+            is_merged = bool(MAX_BOUNDARY_INSTANCES) and drawn >= MAX_BOUNDARY_INSTANCES
+
             outcomes, outcomes_provenance = _boundary_outcomes(record, cg.get("external_capture") or {})
             source = target.get("source") or ""
             source_available = bool(source)
@@ -529,7 +610,8 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                 "w": max(MIN_W, min(MAX_W, round(GUT + maxlen * CHW + 26))),
                 "h": HDR + len(lines) * LH + RET,
                 "boundary": {"id": boundary_id, "parent_instance": record["parent"],
-                             "kind": target.get("kind", "external"), "target": target,
+                             "kind": target.get("kind", "external"),
+                             "target": _slim_target(target),
                              "expression": record.get("expression", ""),
                              "expression_exact": record.get("expression_exact", False),
                              "expression_note": record.get("expression_note", ""),
@@ -537,8 +619,15 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
                              "outcomes_provenance": outcomes_provenance,
                              "outcomes_note": outcomes_provenance["note"] if outcomes_provenance else "",
                              "contexts": record.get("contexts") or [],
+                             "merged": is_merged,
+                             "merged_call_sites": 1,
+                             "merged_ids": [boundary_id],
                              "source_reference_only": source_available},
             }
+            if is_merged:
+                boundary_merged[ident] = n
+            else:
+                boundary_seen[ident] = drawn + 1
             edges.append({"from": c, "line": cline, "to": n, "n": record["count"],
                           "seq": record.get("seq", 0), "via": "", "boundary": True,
                           "boundary_id": boundary_id, "expression": record.get("expression", ""),
@@ -688,7 +777,20 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
 
     entry_name = nodes[entry_id]["name"]
     context_coverage = any(n["coverage_scope"] in ("call_site_group", "merged_call_sites") for n in nodes.values())
-    drawn_boundary_ids = {n["boundary"]["id"] for n in nodes.values() if n.get("boundary")}
+    # A merged card stands in for every call site folded into it, so count those
+    # ids as rendered -- otherwise the audit below would report them as excluded
+    # for being unreachable, which is not what happened to them.
+    drawn_boundary_ids = set()
+    merged_boundary_ids = set()
+    for n in nodes.values():
+        b = n.get("boundary")
+        if not b:
+            continue
+        drawn_boundary_ids.add(b["id"])
+        folded = b.get("merged_ids") or []
+        drawn_boundary_ids.update(folded)
+        if b.get("merged"):
+            merged_boundary_ids.update(folded)
     excluded_ids = {record["id"] for record in boundary_exclusions}
     for index, record in enumerate(cg.get("external_calls") or []):
         boundary_id = record.get("id", index)
@@ -727,7 +829,11 @@ def build(*, root: Path, cg, cov, command, outcome, title, brand,
             "boundaries": len(drawn_boundary_ids),
         },
         "boundary_audit": {"recorded": len(cg.get("external_calls") or []),
-                           "rendered": len(drawn_boundary_ids), "excluded": boundary_exclusions},
+                           "rendered": len(drawn_boundary_ids),
+                           "cards": sum(1 for n in nodes.values() if n.get("boundary")),
+                           "merged_call_sites": len(merged_boundary_ids),
+                           "max_instances": MAX_BOUNDARY_INSTANCES,
+                           "excluded": boundary_exclusions},
         "external_capture": cg.get("external_capture"),
         "main": entry_id,
         "nodes": [nodes[i] for i in sorted(nodes)],

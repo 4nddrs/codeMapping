@@ -89,7 +89,19 @@ class CalltreeEvidenceTests(unittest.TestCase):
         payload = self.build()
         raw = {row["id"]: row for row in self.graph["external_calls"]}
         self.assertTrue(raw)
-        drawn = {node["boundary"]["id"]: node for node in payload["nodes"] if node.get("boundary")}
+        # A record is "drawn" either as its own card or by being folded into its
+        # endpoint's merged card past MAX_BOUNDARY_INSTANCES. Both keep an arrow,
+        # so both are accounted for; only the card-owning record carries samples.
+        drawn, owner = {}, {}
+        for node in payload["nodes"]:
+            boundary = node.get("boundary")
+            if not boundary:
+                continue
+            drawn[boundary["id"]] = node
+            owner[boundary["id"]] = True
+            for folded in boundary.get("merged_ids") or []:
+                drawn.setdefault(folded, node)
+                owner.setdefault(folded, False)
         excluded = {row["id"]: row for row in payload["boundary_audit"]["excluded"]}
         self.assertFalse(set(drawn) & set(excluded))
         self.assertEqual(set(raw), set(drawn) | set(excluded))
@@ -106,8 +118,88 @@ class CalltreeEvidenceTests(unittest.TestCase):
             self.assertEqual(links[0]["line"], record["cline"])
             self.assertEqual(links[0]["n"], record["count"])
             self.assertEqual(links[0]["provenance"], "external_call")
+            if not owner[boundary_id]:
+                continue
             self.assertEqual(node["samples"], record["samples"])
-            self.assertEqual(node["boundary"]["target"], record["target"])
+            # The payload's copy of the target drops the source blob: the card
+            # already carries that text once, as `src`, and that is the only copy
+            # the viewer reads. callgraph.json still holds the full target.
+            self.assertEqual(node["boundary"]["target"],
+                             {k: v for k, v in record["target"].items()
+                              if k not in ("source", "source_path")})
+            self.assertNotIn("source", node["boundary"]["target"])
+            if record["target"].get("source"):
+                self.assertEqual(node["src"], record["target"]["source"].rstrip("\n"))
+
+    def test_boundary_cards_are_capped_per_endpoint(self):
+        """Past MAX_BOUNDARY_INSTANCES an endpoint gets one merged card.
+
+        A boundary card is reference source with no internal coverage, so an
+        uncapped endpoint contributes pure canvas area: torch's
+        nn.Module.__setattr__ took 366 cards and 53% of the canvas on the Wan2.2
+        DiffSynth LoRA capture. Every folded call site must keep its arrow and
+        its count, so nothing observed is lost -- only the duplicate cards go.
+        """
+        graph = copy.deepcopy(self.graph)
+        records = graph["external_calls"]
+        self.assertTrue(records)
+        seed = records[0]
+        identity = seed["target"].get("identity")
+        self.assertTrue(identity, "fixture boundary records carry a target identity")
+        same = [r for r in records if r["target"].get("identity") == identity]
+        next_id = max(r["id"] for r in records) + 1
+        for offset in range(14):
+            clone = copy.deepcopy(seed)
+            clone["id"] = next_id + offset
+            records.append(clone)
+        total = len(same) + 14
+
+        payload = self.build(graph=graph)
+        cards = [n for n in payload["nodes"] if n.get("boundary")
+                 and n["boundary"]["target"].get("identity") == identity]
+        self.assertEqual(len(cards), _calltree.MAX_BOUNDARY_INSTANCES + 1,
+                         "8 per-call-site cards plus exactly one merged card")
+        merged = [c for c in cards if c["boundary"]["merged"]]
+        self.assertEqual(len(merged), 1)
+        folded = merged[0]["boundary"]["merged_ids"]
+        self.assertEqual(merged[0]["boundary"]["merged_call_sites"], len(folded))
+        self.assertEqual(len(folded), total - _calltree.MAX_BOUNDARY_INSTANCES)
+
+        # every record still has exactly one arrow, and the merged card's count
+        # is the sum of the call sites it stands for
+        by_id = {r["id"]: r for r in records if r["target"].get("identity") == identity}
+        for record_id in by_id:
+            links = [e for e in payload["edges"] if e.get("boundary_id") == record_id]
+            self.assertEqual(len(links), 1, record_id)
+        self.assertEqual(merged[0]["calls"], sum(by_id[i]["count"] for i in folded))
+        self.assertEqual(payload["boundary_audit"]["rendered"], len(records))
+        self.assertGreaterEqual(payload["boundary_audit"]["merged_call_sites"], len(folded))
+        self.assertEqual(payload["boundary_audit"]["max_instances"],
+                         _calltree.MAX_BOUNDARY_INSTANCES)
+
+    def test_boundary_cap_can_be_disabled_for_old_pages(self):
+        """MAX_BOUNDARY_INSTANCES = 0 restores one card per observed record."""
+        graph = copy.deepcopy(self.graph)
+        records = graph["external_calls"]
+        seed = records[0]
+        identity = seed["target"].get("identity")
+        next_id = max(r["id"] for r in records) + 1
+        for offset in range(14):
+            clone = copy.deepcopy(seed)
+            clone["id"] = next_id + offset
+            records.append(clone)
+
+        original = _calltree.MAX_BOUNDARY_INSTANCES
+        _calltree.MAX_BOUNDARY_INSTANCES = 0
+        try:
+            payload = self.build(graph=graph)
+        finally:
+            _calltree.MAX_BOUNDARY_INSTANCES = original
+        cards = [n for n in payload["nodes"] if n.get("boundary")
+                 and n["boundary"]["target"].get("identity") == identity]
+        self.assertEqual(len(cards), len([r for r in records
+                                          if r["target"].get("identity") == identity]))
+        self.assertFalse(any(c["boundary"]["merged"] for c in cards))
 
     def test_dependency_reference_source_has_no_false_internal_coverage(self):
         payload = self.build()

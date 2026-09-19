@@ -116,6 +116,18 @@ phases 2–6 with that run before delivering.
    - `--include` should match the brief's **in scope** list, not the
      auto-detected default — auto-detect is a starting point (check the
      `watching …` line it prints), the brief is the source of truth for scope.
+   - `--trace-package NAME` (repeatable) follows a **dependency's** Python as
+     if it were project code — `--trace-package flash_attn` turns the attention
+     kernel wrapper from a grey boundary card into traced cards with coverage,
+     values and arrows onward, ending at the real C++/CUDA kernel. Use it when
+     the brief's question runs *through* a library (the attention kernel, the
+     scheduler library, a vendored trainer); leave it off otherwise, because
+     everything it adds is not your code. Its files are labelled `NAME/…`
+     (`flash_attn/flash_attn_interface.py`) so `important.txt` can name them,
+     and the choice is remembered in `run.json` for `--rebuild`. Put it in the
+     brief's in-scope list — it is a scoping decision, and the before/after
+     traces are worth keeping side by side (see the Wan2.2 mapping's
+     `out_train_wan_only/` next to `out_train/`).
    - `--important-file` should point at the **same `important.txt` from
      phase 3** (see [Reconciling `important.txt`](#reconciling-importanttxt)
      below) so the ★ marks in the canvas match the curated critical path —
@@ -284,7 +296,20 @@ Feed these into [phases/05-honest-gaps.md](05-honest-gaps.md) /
   the tool's ["What is and isn't drawn"](../codetrace/README.md#what-is-and-isnt-drawn).
 - **Only your code is drawn.** Third-party and stdlib frames are walked past
   silently; a `via …` label on a chip means the call passed through such a
-  frame before landing back in your code.
+  frame before landing back in your code. A call *into* a library becomes a
+  **boundary card**: the library function's source as reference, with no line
+  highlighted and no arrows onward — its internals were never recorded. That is
+  correct, and it is also exactly where a reader concludes the page is "cut
+  off" at the function they care about. If the brief's question runs through
+  that library, re-capture with `--trace-package NAME` (step 4) and record the
+  scope change; otherwise name the boundary in `GAPS.md`.
+- **Boundary cards are capped, like project cards.** An endpoint reached from
+  many call sites gets 8 per-call-site cards plus one **merged** card that
+  stands for the rest (its `merged_call_sites` count and incoming arrows say
+  how many). Without the cap, `nn.Module.__setattr__`/`__getattr__` alone were
+  hundreds of cards and 80–90 % of the canvas on the Wan2.2 pages, none of
+  which could ever highlight. Set `MAX_BOUNDARY_INSTANCES = 0` in
+  `_calltree.py` only to reproduce a page rendered before this rule.
 - **Values are sampled, not exhaustive.** The stock tracer records the first
   two calls at each call site: arguments at entry, what each statement changed
   (read as the next statement starts; a loop's later passes in bulk), and locals

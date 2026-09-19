@@ -371,7 +371,12 @@
   .chip.self { background: var(--muted); }
   .chip.syn { background: var(--faint); }
   .chip small { font-weight: 400; opacity: 0.85; }
-  .callactions { position: absolute; right: 3px; top: 1px; height: 15px; max-width: 58%; display: inline-flex; align-items: center; gap: 4px; background: var(--surface); padding-left: 4px; }
+  /* Overflow box at the row's right edge. It paints over the source, so it
+     holds only the compact "→ N calls" button: a primary chip here used to be
+     as wide as its target's name (a 60-char torch wrapper covered 411 px of
+     `x_t = …` on the Wan2.2 training page). The menu it opens lists every
+     destination on the line, so nothing is lost by not naming one inline. */
+  .callactions { position: absolute; right: 3px; top: 1px; height: 15px; max-width: 30%; display: inline-flex; align-items: center; gap: 4px; background: var(--surface); padding-left: 4px; }
   .callactions .chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .callsmore { flex: 0 0 auto; height: 15px; padding: 0 5px; border: 1px solid var(--accent); border-radius: 5px; background: var(--surface); color: var(--accent); font: inherit; font-size: 10px; line-height: 12px; cursor: pointer; }
   .callsmore:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -636,6 +641,7 @@
 
       <div class="hg">Inspecting</div>
       <div class="hr"><span class="hl"><b>right-click</b></span><span class="hd">on a line: the values its variables held</span></div>
+      <div class="hr"><span class="hl"><kbd>v</kbd></span><span class="hd">the same, for the line under the pointer — no right-click needed</span></div>
       <div class="hr"><span class="hl"><b>★</b></span><span class="hd">mark a core function</span></div>
       <div class="hr"><span class="hl"><kbd>i</kbd></span><span class="hd">show only core functions</span></div>
       <div class="hr"><span class="hl"><b>Stage</b></span><span class="hd">jump to a curated section of the run (from the <b># ---</b> headings in important.txt)</span></div>
@@ -664,6 +670,14 @@
 
   function wholeRunCoverage(n) { return (n.coverage_scope || D.coverage_scope) === "whole_run"; }
   function contextCoverage(n) { return n.coverage_scope === "call_site_group" || n.coverage_scope === "merged_call_sites"; }
+  // A Python dependency stops the tree: its card is reference source with no
+  // coverage and no onward arrows. Say how to go deeper instead of leaving the
+  // reader to conclude the function "was never hit" or that the page is cut off.
+  function traceHint(n) {
+    var t = n.boundary && n.boundary.target;
+    if (!t || n.boundary.kind !== "python" || !t.module) return "";
+    return " Not traced inside: " + t.module.split(".")[0] + " is a dependency. To follow it, re-capture with --trace-package " + t.module.split(".")[0] + ".";
+  }
   // New captures record this context's lines. Legacy captures can only compare
   // outgoing calls. In either case, navigate to siblings without copying edges.
   var contextGroups = {};
@@ -1301,7 +1315,7 @@
       '<span class="meta">' +
         (n.innovation ? '<span class="innovtag' + (n.innovation.role === "supporting" ? " sup" : "") + '" title="' + attr(n.innovation.summary || "") + '">◆ ' + (n.innovation.role === "supporting" ? "supports innovation" : "innovation") + "</span>" : "") +
         (n.via ? '<span class="via" title="entered from outside the repo">via ' + esc(n.via) + "</span>" : "") +
-        (n.boundary ? '<span class="covscope" title="This call boundary was observed. Internal implementation lines were not traced.">' + esc(n.boundary.kind) + ' boundary · ' + (n.boundary.source_reference_only ? 'source reference only' : 'source unavailable') + '</span>' :
+        (n.boundary ? '<span class="covscope" title="' + attr("This call boundary was observed. Internal implementation lines were not traced." + traceHint(n)) + '">' + esc(n.boundary.kind) + ' boundary · ' + (n.boundary.source_reference_only ? 'source reference only' : 'source unavailable') + '</span>' :
          contextCoverage(n) ? '<span class="covscope" title="Lines recorded across the calls grouped on this card; not a single invocation.">' + (n.coverage_scope === 'merged_call_sites' ? 'merged-context coverage' : 'this-context coverage') + '</span>' :
          wholeRunCoverage(n) && !covMissing ? '<span class="covscope" title="Line colors combine all calls in the command; they are not per-invocation coverage.">whole-run coverage</span>' : "") +
         '<span class="callcount" title="' + callCountLabel(n) + '">×' + n.calls.toLocaleString() + (n.call_scope === "call_site_group" ? " here" : "") + "</span>" +
@@ -1401,25 +1415,24 @@
       var chips = Array.from(row.querySelectorAll('.chip[data-to]'));
       if (!chips.length || !chips.some(function (chip) { return chip.offsetLeft + chip.offsetWidth > row.clientWidth; })) return;
       var line = +row.dataset.l, lineEdges = outByLine[line] || [];
-      function rank(chip) {
-        var target = byId[+chip.dataset.to];
-        if (target.boundary && /\.forward$/.test(target.name)) return 0;
-        if (!target.boundary) return 1;
-        if (target.boundary.kind === 'python' && !/\.__\w+__$/.test(target.name)) return 2;
-        return 3;
-      }
-      var primary = chips.slice().sort(function (a,b) { return rank(a)-rank(b); })[0];
-      chips.forEach(function (chip) { if (chip !== primary) chip.style.display = 'none'; });
+      // The chips do not fit beside the source, so hide them all. Keeping one
+      // "primary" chip in the overflow box used to cover the source instead:
+      // the box paints over the row and is as wide as that target's name, and
+      // on the Wan2.2 training page a 60-character torch wrapper name hid
+      // 411 px of `x_t = (1 - sigma…`. The button below opens the same menu
+      // of every recorded destination on the line, so no arrow is lost.
+      chips.forEach(function (chip) { chip.style.display = 'none'; });
+      // A lone destination whose name is already underlined in the source
+      // needs no button: that underline is the same link.
+      if (lineEdges.length === 1 && row.querySelector('.src .ref[data-to="' + chips[0].dataset.to + '"]')) return;
       var actions = document.createElement('span');actions.className = 'callactions';
-      actions.appendChild(primary);
-      if (chips.length > 1) {
-        var more = document.createElement('button');more.type = 'button';more.className = 'callsmore';
-        more.dataset.from = n.id;more.dataset.line = line;more.dataset.primary = primary.dataset.to;
-        more.textContent = '+' + (chips.length - 1) + ' calls';
-        more.title = 'Show all ' + lineEdges.length + ' recorded destinations on line ' + line;
-        more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');
-        actions.appendChild(more);
-      }
+      var more = document.createElement('button');more.type = 'button';more.className = 'callsmore';
+      more.dataset.from = n.id;more.dataset.line = line;
+      more.textContent = '→ ' + lineEdges.length + (lineEdges.length === 1 ? ' call' : ' calls');
+      more.title = 'Show the ' + lineEdges.length + ' recorded destination' + (lineEdges.length === 1 ? '' : 's') +
+        ' on line ' + line + ' (the call chips did not fit beside the source)';
+      more.setAttribute('aria-haspopup','dialog');more.setAttribute('aria-expanded','false');
+      actions.appendChild(more);
       row.appendChild(actions);
     });
   }
@@ -1450,7 +1463,9 @@
     for (var i = 0; i < mounted.length; i++) { var n = mounted[i]; if (wx >= n.x && wx <= n.x + n.w && wy >= n.y && wy <= n.y + n.h) return n; }
     return null;
   }
+  var lastPointer = null;   // where the pointer last was over the canvas, for the `v` key
   vp.addEventListener("pointermove", function (e) {
+    lastPointer = { x: e.clientX, y: e.clientY, row: e.target.closest ? e.target.closest(".row") : null };
     if (dragging) {
       moved += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
       if (moved > 4 && !captured) { captured = true; vp.classList.add("drag"); try { vp.setPointerCapture(e.pointerId); } catch (_) {} }
@@ -1912,6 +1927,12 @@
     else if (e.key === "Backspace" || e.key === "b" || (e.altKey && e.key === "ArrowLeft")) { e.preventDefault(); goBack(); }
     else if (e.key === "Enter") { e.preventDefault(); returnFrom(cur || centerNode()); }
     else if (e.key === "i") $("imponly").click();
+    else if (e.key === "v" && lastPointer) {           // values for the hovered line, without a right-click
+      e.preventDefault();
+      var vrow = lastPointer.row, vpl = vrow ? vrow.closest(".panel") : null;
+      var vn = vpl ? byId[+vpl.dataset.id] : hitPanel({ clientX: lastPointer.x, clientY: lastPointer.y });
+      if (vn) openValuesAt(vn, vrow ? +vrow.dataset.l : null, lastPointer.x, lastPointer.y);
+    }
     else if (e.key === "g" && !$("innovonly").hidden) $("innovonly").click();
     else if (e.key === "Escape") hideVals();
     else if (e.key === "?") { e.preventDefault(); $("hinttoggle").click(); }
@@ -1935,7 +1956,7 @@
     }
   }
   function placeVals(x, y) {
-    vals.style.display = "block";
+    vals.style.setProperty("display", "block", forceVals ? "important" : "");
     var vw = window.innerWidth, vh = window.innerHeight, w = vals.offsetWidth, h = vals.offsetHeight;
     vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
     vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
@@ -2564,6 +2585,15 @@
            (N > 1 ? '<button data-v="prev">‹</button><button data-v="next">›</button>' : "") : "") +
       (line && !all ? '<button data-v="all">show all</button>' : "") +
       '<button class="x" data-v="close">×</button></div>');
+    // A right-click that did not land on a line -- the header, the gap between
+    // rows, or the card while it is a zoomed-out thumbnail (z < TEXT_Z, where
+    // the text layer is empty) -- shows the whole function's values. Say so:
+    // read cold, that popup looks like "right-click does not work on lines".
+    if (!line && !all) {
+      html.push('<div class="foot">Whole-function values: this right-click did not land on a line' +
+        (z < TEXT_Z ? ' because the card is zoomed out (' + (z * 100).toFixed(z < 0.1 ? 1 : 0) + '%). Click the card, or Ctrl+scroll, to read its code, then' : '. Zoom in if needed, then') +
+        ' right-click a line for that line’s values.</div>');
+    }
     if (!N) {
       // Values are kept per call-site card, for its first calls; point to the cards that have them.
       var sibs = nodes.filter(function (o) { return o !== n && o.file === n.file && o.name === n.name && o.def === n.def && o.samples && o.samples.length; });
@@ -2871,7 +2901,7 @@
           (sample.args_unavailable ? '<br>Arguments: ' + esc(sample.args_unavailable) : '') +
           (sample.ret_unavailable ? '<br>Return: ' + esc(sample.ret_unavailable) : '') +
           (sample.exception_unavailable ? '<br>Exception: ' + esc(sample.exception_unavailable) : '') +
-          '<br>Internal implementation lines were not traced. Source, when available, is reference only.</div>');
+          '<br>Internal implementation lines were not traced. Source, when available, is reference only.' + esc(traceHint(n)) + '</div>');
       } else if ((sample.status && sample.status !== 'returned') || sample.ret_unavailable || sample.exception_unavailable) {
         html.push('<div class="sec">recorded call outcome</div><div class="foot">Sample outcome: ' + esc(sample.status || 'unknown') +
           (sample.ret_unavailable ? '<br>Return: ' + esc(sample.ret_unavailable) : '') +
@@ -2888,7 +2918,7 @@
     }
     vals.innerHTML = html.join("");
     vals.setAttribute('role','dialog');vals.setAttribute('aria-label','Recorded values');
-    vals.style.display = "block";
+    vals.style.setProperty("display", "block", forceVals ? "important" : "");
     var vw = window.innerWidth, vh = window.innerHeight, w = vals.offsetWidth, h = vals.offsetHeight;
     vals.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
     vals.style.top = Math.max(8, Math.min(vh - h - 8, y + 12)) + "px";
@@ -2902,6 +2932,41 @@
       else if (op === "prev" || op === "next") { n._si = (((n._si || 0) + (op === "next" ? 1 : N - 1)) % N); showVals(n, line, x, y, all); }
     };
   }
+  // Open the values popup for a card (and line) at a screen position, and
+  // never do so silently: once the browser menu has been suppressed, a popup
+  // that then fails to appear reads as "right-click does nothing". So an
+  // exception while building it, or a popup that something outside the page
+  // keeps hidden (an extension stylesheet with display:none !important), is
+  // reported in the popup's place rather than swallowed.
+  var forceVals = false;    // set once a stylesheet outside the page was found hiding #vals
+  function popupVisible() { return getComputedStyle(vals).display !== "none" && vals.getBoundingClientRect().width > 0; }
+  function openValuesAt(n, line, x, y) {
+    try {
+      setCur(n);
+      showVals(n, line, x, y, false);
+      if (!popupVisible()) {
+        // Something outside the page (an extension or user stylesheet with
+        // `display:none !important`) is hiding the popup. Inline !important
+        // outranks it, so force it and keep the values; say why in the footer.
+        forceVals = true; placeVals(x, y);
+        if (!popupVisible()) throw new Error("the values popup stays hidden even when forced (computed display: " +
+                                             getComputedStyle(vals).display + "): a stylesheet or extension outside this page is hiding #vals");
+        vals.insertAdjacentHTML("beforeend", '<div class="foot">Shown by force: a stylesheet outside this page (a browser extension?) was hiding this popup.</div>');
+      }
+    } catch (err) {
+      var msg = (err && err.stack) ? String(err.stack) : String(err);
+      try {
+        vals.innerHTML = '<div class="vh"><b>' + esc(shortName(n).leaf) + '()</b><span>values could not be shown</span>' +
+          '<button class="x" data-v="close">×</button></div>' +
+          '<div class="empty">' + esc(msg).replace(/\n/g, "<br>") + '</div>' +
+          '<div class="foot">Line ' + (line || "?") + ' of ' + esc(n.file) + '. Copy this text when reporting the problem.</div>';
+        forceVals = true; placeVals(x, y);
+        if (!popupVisible()) throw new Error("still hidden");
+      } catch (_) {
+        window.alert("codetrace: values could not be shown for " + n.name + " line " + line + ":\n" + msg);
+      }
+    }
+  }
   vp.addEventListener("contextmenu", function (e) {
     var pl = e.target.closest && e.target.closest(".panel");
     var n = pl ? byId[+pl.dataset.id] : hitPanel(e);
@@ -2909,14 +2974,33 @@
     e.preventDefault();
     ctxJustOpened = true;                 // stops this gesture's pointerup closing the popup
     var row = e.target.closest && e.target.closest(".row");
-    setCur(n);
-    showVals(n, row ? +row.dataset.l : null, e.clientX, e.clientY, false);
+    openValuesAt(n, row ? +row.dataset.l : null, e.clientX, e.clientY);
   });
   // #vals is position:fixed and lives OUTSIDE #vp, so a viewport-scoped listener
   // never saw clicks on the header or toolbar. Document level closes it wherever
   // you click, while clicks inside the popup itself keep it open.
+  // Any button pressed outside the popup closes it. It used to be the left
+  // button only, which left the open popup standing under a right-click: the
+  // popup is 780px wide and up to 72% of the window tall, it opens at the
+  // cursor, and it lives OUTSIDE #vp -- so the next right-click on a line
+  // landed on the popup, no handler ran, and the browser's own menu appeared
+  // with the old values still showing. Measured on the Wan2.2 pages: with the
+  // popup open, 28 of 29 visible rows of a card were unreachable.
   document.addEventListener("pointerdown", function (e) {
-    if (e.button === 0 && vals.style.display === "block" && !vals.contains(e.target)) hideVals();
+    if (vals.style.display === "block" && !vals.contains(e.target)) hideVals();
+  });
+  // A right-click that lands ON the popup means "the line under it": close the
+  // popup, hit-test the point again, and open that line's values instead.
+  document.addEventListener("contextmenu", function (e) {
+    if (vals.style.display !== "block" || !vals.contains(e.target)) return;
+    hideVals();
+    var under = document.elementFromPoint(e.clientX, e.clientY);
+    var pl = under && under.closest && under.closest(".panel");
+    if (!pl) return;                      // popup was over empty canvas: let the browser menu through
+    e.preventDefault();
+    ctxJustOpened = true;
+    var row = under.closest(".row");
+    openValuesAt(byId[+pl.dataset.id], row ? +row.dataset.l : null, e.clientX, e.clientY);
   });
   // Deliberately NOT closed by the wheel: the popup is a pinned inspector, and
   // scrolling to read a long value dump used to dismiss it. It closes on an
