@@ -787,11 +787,11 @@
     </p>
 
     <div class="totals">
-      <div class="tot"><b>91</b><span>Sessions</span></div>
-      <div class="tot"><b>122,882</b><span>Functions traced</span></div>
-      <div class="tot"><b>44,800,940</b><span>Calls recorded</span></div>
-      <div class="tot"><b>244,094</b><span>Lines executed</span></div>
-      <div class="tot"><b>668,663</b><span>Lines in scope</span></div>
+      <div class="tot"><b>92</b><span>Sessions</span></div>
+      <div class="tot"><b>125,065</b><span>Functions traced</span></div>
+      <div class="tot"><b>44,899,480</b><span>Calls recorded</span></div>
+      <div class="tot"><b>247,177</b><span>Lines executed</span></div>
+      <div class="tot"><b>677,313</b><span>Lines in scope</span></div>
     </div>
   </header>
 
@@ -827,6 +827,7 @@
           <a href="#diffusion-forcing">Diffusion Forcing</a>
           <a href="#self-forcing">Self Forcing</a>
           <a href="#causal-forcing">Causal Forcing</a>
+          <a href="#minwm">minWM</a>
         </div>
       </div>
     </nav>
@@ -3314,6 +3315,45 @@
               <div><dt>Functions</dt><dd>4,253</dd></div>
               <div><dt>Edges</dt><dd>4,375</dd></div>
               <div><dt>Calls</dt><dd>1,954,169</dd></div>
+            </dl>
+          </details>
+        </article>
+</div>
+</div>
+</details>
+
+<details class="shelf repo-shelf" id="minwm">
+<summary class="shelfhead repo-summary"><h2>minWM</h2><span class="n">1</span><span class="preview">1 training</span><span class="repo-toggle" aria-hidden="true"><span class="when-closed">Expand</span><span class="when-open">Collapse</span><span class="repo-chevron"></span></span></summary>
+<div class="repo-content">
+<p class="repo-note">minWM Wan Action2V training mapping. Phase-1 bidirectional SFT fine-tunes a Wan2.1-T2V-1.3B backbone so that a camera stream conditions generation: every transformer block attends twice, once normally and once over q/k/v encoded from the clip&#x27;s per-frame extrinsics and intrinsics (PRoPE), and the camera branch is added back through a zero-initialised projection so the pretrained path is untouched at step 0. Bounded capture on 2 x RTX A6000: 4 optimizer steps, FSDP2 with sequence parallelism (sp_size 2), rank 0 traced under codetrace while rank 1 ran bare. Deviations from the README&#x27;s 20000-step 8-GPU run are declared in the repository&#x27;s docs/code_mapping/GAPS.md, the load-bearing ones being the 4-step bound, a dataloader forced in-process, and an LMDB holding 495 of the official 19823 clips.</p>
+<div class="runs">
+        <article class="run" id="minwm-index" data-kind="training" data-search="wan action2v phase-1 bidirectional sft training minwm-index projects/minwm/index.html four optimizer steps of camera-conditioned flow-matching sft: a pre-encoded latent plus its per-frame viewmats and ks, one shared timestep, and a wan 1.3b forward where every block attends twice, once through prope. python tools/train_mwm.py --config-file configs/wan21/action2v/train/stage0_bi_sft.py --output-dir outputs/wan_action2v_sft_map_clean training.sp_size=2 training.max_steps=4 training.ckpt_interval=2 training.log_interval=1 data.num_workers=0 training wan action2v sft prope camera fsdp2 sequence parallel exit 0 · 651.4s · 4/4 steps · losses 0.0248 → 0.1538" style="--fam: var(--kind-training)">
+          <a class="run-link" href="projects/minwm/index.html">
+            <div>
+              <h3 class="title"><span class="name">Wan Action2V · Phase-1 bidirectional SFT</span> <span class="chip kind">training</span></h3>
+              <p class="what">Four optimizer steps of camera-conditioned flow-matching SFT: a pre-encoded latent plus its per-frame viewmats and Ks, one shared timestep, and a Wan 1.3B forward where every block attends twice, once through PRoPE.</p>
+            </div>
+            <div class="metrics">
+              <div class="pills"><span class="verdict">exit 0</span><span class="pill">651.4s</span><span class="pill size heavy">22.2 MB</span></div>
+              <div class="cov">
+                <div class="covtop"><span class="covlabel">Line coverage</span><span><b>35.6%</b></span></div>
+                <div class="bar"><i style="width: 35.6%"></i></div>
+              </div>
+            </div>
+          </a>
+          <details class="run-more">
+            <summary>Command &amp; capture notes</summary>
+            <p class="what-full">Four optimizer steps of the Phase-1 SFT stage, traced on rank 0 of a 2-rank torchrun job with sequence parallelism. 30 blocks x 4 steps = 120 self-attention calls, 120 PRoPE calls and 960 sequence-parallel all-to-all calls, plus two FSDP2 DCP checkpoint directories.</p>
+            <div class="cmd-row">
+              <code class="cmd">python tools/train_mwm.py --config-file configs/wan21/action2v/train/stage0_bi_sft.py --output-dir outputs/wan_action2v_sft_map_clean training.sp_size=2 training.max_steps=4 training.ckpt_interval=2 training.log_interval=1 data.num_workers=0 data.dataset.data_path=dataset/Wan21/Action2V_minwm_official/data</code>
+              <button type="button" class="copy-cmd">Copy</button>
+            </div>
+            <p class="local">projects/minwm/index.html<span class="sep">/</span>22.2 MB<span class="sep">/</span>entry <code>__main__</code> &middot; tools/train_mwm.py</p>
+            <p class="outcome">4/4 steps · losses 0.0248 → 0.1538 · sp_size 2 · 2 DCP checkpoints</p>
+            <dl class="counts">
+              <div><dt>Functions</dt><dd>2,183</dd></div>
+              <div><dt>Edges</dt><dd>2,191</dd></div>
+              <div><dt>Calls</dt><dd>98,540</dd></div>
             </dl>
           </details>
         </article>
